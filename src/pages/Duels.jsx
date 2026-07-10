@@ -62,7 +62,7 @@ export default function Duels() {
   }, [searchNick]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
       <div className="mb-6">
         <h1 className="font-heading text-2xl md:text-3xl font-bold">Дуэли 1×1</h1>
         <p className="text-muted-foreground text-sm mt-1">Вызови соперника или найди случайный матч</p>

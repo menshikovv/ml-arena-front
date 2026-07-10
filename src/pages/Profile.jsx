@@ -81,7 +81,7 @@ export default function Profile() {
     : 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
       {/* Header card */}
       <Card className="relative overflow-hidden p-6 bg-card/60 border-border mb-6">
         <div className="absolute inset-0 grid-bg opacity-50" />

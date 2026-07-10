@@ -92,7 +92,7 @@ export default function DuelLobby() {
   const winner = duel.winner_name;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
       <Link to="/duels" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft size={16} /> К дуэлям
       </Link>

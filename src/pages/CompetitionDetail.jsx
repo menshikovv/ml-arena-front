@@ -128,7 +128,7 @@ export default function CompetitionDetail() {
   const color = TASK_TYPE_COLORS[competition.task_type] || "#7C3AED";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
       <Link to="/competitions" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft size={16} /> Все соревнования
       </Link>

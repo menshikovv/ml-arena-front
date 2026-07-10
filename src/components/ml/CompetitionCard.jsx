@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { TASK_TYPE_LABELS, TASK_TYPE_COLORS, METRIC_LABELS } from "@/lib/ml-arena";
-import { Users, Clock, Trophy, Lock } from "lucide-react";
+import { Users, Clock, Trophy, Lock, ArrowRight, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function CompetitionCard({ competition }) {
@@ -10,49 +10,74 @@ export default function CompetitionCard({ competition }) {
 
   return (
     <Link to={`/competitions/${competition.id}`}>
-      <Card className="group relative overflow-hidden p-5 bg-card/60 border-border hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer h-full">
+      <Card className="group relative overflow-hidden p-5 md:p-6 bg-card/60 border-border hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
         <div
-          className="absolute top-0 left-0 right-0 h-1"
-          style={{ background: `linear-gradient(90deg, ${color}, transparent)` }}
+          className="absolute top-0 left-0 bottom-0 w-1"
+          style={{ background: color }}
         />
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <span
-              className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide mb-2"
-              style={{ background: `${color}20`, color }}
-            >
-              {TASK_TYPE_LABELS[competition.task_type]}
-            </span>
-            <h3 className="font-heading font-semibold text-base leading-snug group-hover:text-primary transition-colors">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span
+                className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                style={{ background: `${color}20`, color }}
+              >
+                {TASK_TYPE_LABELS[competition.task_type]}
+              </span>
+              {isActive && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Активно
+                </span>
+              )}
+              {competition.is_private && <Lock size={13} className="text-muted-foreground" />}
+            </div>
+
+            <h3 className="font-heading font-bold text-lg md:text-xl leading-snug group-hover:text-primary transition-colors mb-1.5">
               {competition.title}
             </h3>
+
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 md:line-clamp-3 mb-3 max-w-3xl">
+              {competition.description}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
+              {competition.company_name && (
+                <span className="flex items-center gap-1">
+                  <Building2 size={13} /> {competition.company_name}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Users size={13} /> {competition.participants_count || 0} участников
+              </span>
+              <span className="flex items-center gap-1">
+                <Trophy size={13} /> {METRIC_LABELS[competition.metric]}
+              </span>
+              {competition.deadline && (
+                <span className="flex items-center gap-1">
+                  <Clock size={13} />
+                  {isActive ? `До ${new Date(competition.deadline).toLocaleDateString("ru-RU")}` : "Завершено"}
+                </span>
+              )}
+            </div>
           </div>
-          {competition.is_private && <Lock size={14} className="text-muted-foreground shrink-0" />}
-        </div>
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-          {competition.description}
-        </p>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Users size={13} /> {competition.participants_count || 0}
-          </span>
-          <span className="flex items-center gap-1">
-            <Trophy size={13} /> {METRIC_LABELS[competition.metric]?.split(" ")[0]}
-          </span>
-          {competition.deadline && (
-            <span className="flex items-center gap-1">
-              <Clock size={13} />
-              {isActive ? "Активно" : "Завершено"}
-            </span>
-          )}
-        </div>
-        {competition.prize_fund > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <span className="text-sm font-semibold text-gradient-purple">
-              Приз: {competition.prize_fund.toLocaleString()} ₽
+
+          <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:gap-2 shrink-0 md:pl-6 md:border-l border-border md:min-w-[160px]">
+            {competition.prize_fund > 0 ? (
+              <div className="text-left md:text-right">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Призовой фонд</div>
+                <div className="text-lg font-bold text-gradient-purple">
+                  {competition.prize_fund.toLocaleString()} ₽
+                </div>
+              </div>
+            ) : (
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Без приза</div>
+            )}
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+              Участвовать <ArrowRight size={15} />
             </span>
           </div>
-        )}
+        </div>
       </Card>
     </Link>
   );
