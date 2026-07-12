@@ -26,7 +26,7 @@ export default function Register() {
   return (
     <AuthLayout
       icon={UserPlus}
-      title="Создать аккаунт"
+      title="Создание аккаунта"
       subtitle="Зарегистрируйтесь, чтобы начать"
       footer={
         <>
