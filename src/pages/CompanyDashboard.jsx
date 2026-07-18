@@ -14,6 +14,7 @@ import { Trophy, Users, Send, Plus, Eye,
 import { TASK_TYPE_LABELS, METRIC_LABELS } from "@/lib/ml-arena";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 
 export default function CompanyDashboard() {
   const [showCreate, setShowCreate] = useState(false);
@@ -105,7 +106,7 @@ export default function CompanyDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <Reveal className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">Кабинет компании</h1>
           <p className="text-muted-foreground text-sm mt-1">Управляй соревнованиями и находи таланты</p>
@@ -113,20 +114,21 @@ export default function CompanyDashboard() {
         <Button onClick={() => setShowCreate(!showCreate)}>
           <Plus size={16} className="mr-1.5" /> Создать соревнование
         </Button>
-      </div>
+      </Reveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        <StatCard icon={Trophy} label="Соревнования" value={competitions?.length || 0} color="#7C3AED" />
-        <StatCard icon={Users} label="Кандидатов видно" value={profiles?.length || 0} color="#06B6D4" />
-        <StatCard icon={Briefcase} label="Приглашений отправлено" value={0} color="#F59E0B" />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <StaggerItem><StatCard icon={Trophy} label="Соревнования" value={competitions?.length || 0} color="#7C3AED" /></StaggerItem>
+        <StaggerItem><StatCard icon={Users} label="Кандидатов видно" value={profiles?.length || 0} color="#06B6D4" /></StaggerItem>
+        <StaggerItem><StatCard icon={Briefcase} label="Приглашений отправлено" value={0} color="#F59E0B" /></StaggerItem>
+      </Stagger>
 
       {/* Create form */}
       {showCreate && (
-        <Card className="p-5 bg-card/60 border-primary/30 mb-6">
-          <h3 className="font-heading font-semibold mb-4">Новое соревнование</h3>
-          <div className="space-y-3">
+        <Reveal className="mb-6">
+          <Card className="p-5 bg-card/60 border-primary/30">
+            <h3 className="font-heading font-semibold mb-4">Новое соревнование</h3>
+            <div className="space-y-3">
             <Input placeholder="Название" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <Textarea placeholder="Описание задачи" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid sm:grid-cols-2 gap-3">
@@ -146,22 +148,26 @@ export default function CompanyDashboard() {
               <Button onClick={handleCreate}>Создать</Button>
               <Button variant="outline" onClick={() => setShowCreate(false)}>Отмена</Button>
             </div>
-          </div>
-        </Card>
+            </div>
+          </Card>
+        </Reveal>
       )}
 
       {/* My competitions */}
-      <h3 className="font-heading font-semibold mb-3">Мои соревнования</h3>
+      <Reveal delay={0.14}>
+        <h3 className="font-heading font-semibold mb-3">Мои соревнования</h3>
+      </Reveal>
       {competitions?.length === 0 ? (
         <Card className="p-6 text-center bg-card/40 border-border mb-6">
           <Trophy className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Пока нет соревнований</p>
         </Card>
       ) : (
-        <div className="space-y-2 mb-8">
+        <Stagger className="space-y-2 mb-8" delay={0.16}>
           {competitions?.map((c) => (
-            <Link key={c.id} to={`/competitions/${c.id}`}>
-              <Card className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
+            <StaggerItem key={c.id}>
+              <Link to={`/competitions/${c.id}`}>
+                <Card className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{c.title}</p>
@@ -171,14 +177,15 @@ export default function CompanyDashboard() {
                     {c.status === "active" ? "Активно" : c.status}
                   </span>
                 </div>
-              </Card>
-            </Link>
+                </Card>
+              </Link>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
 
       {/* HR candidates */}
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <Reveal className="flex items-center justify-between gap-3 mb-3" delay={0.2}>
         <h3 className="font-heading font-semibold">HR-воронка · Кандидаты</h3>
         <div className="flex gap-2">
           <select value={skillFilter} onChange={(e) => setSkillFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs">
@@ -195,7 +202,7 @@ export default function CompanyDashboard() {
             <option value="platinum">Платина</option>
           </select>
         </div>
-      </div>
+      </Reveal>
 
       {filteredProfiles.length === 0 ? (
         <Card className="p-6 text-center bg-card/40 border-border">
@@ -203,9 +210,10 @@ export default function CompanyDashboard() {
           <p className="text-sm text-muted-foreground">Кандидаты не найдены</p>
         </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <Stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3" delay={0.22}>
           {filteredProfiles.map((p) => (
-            <Card key={p.id} className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
+            <StaggerItem key={p.id}>
+              <Card className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-3 mb-3">
                 <Avatar name={p.user_name} src={p.avatar_url} size={40} />
                 <div className="flex-1 min-w-0">
@@ -226,14 +234,19 @@ export default function CompanyDashboard() {
                   <Send size={12} className="mr-1" /> Пригласить
                 </Button>
               </div>
-            </Card>
+              </Card>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
 
       {/* Invite modal */}
       {inviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setInviteModal(null)}>
+        <Reveal
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          y={8}
+          onClick={() => setInviteModal(null)}
+        >
           <Card className="p-5 bg-card border-border max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-heading font-semibold mb-1">Приглашение для {inviteModal.user_name}</h3>
             <p className="text-xs text-muted-foreground mb-4">Сообщение будет отправлено на email и в платформу</p>
@@ -249,7 +262,7 @@ export default function CompanyDashboard() {
               <Button variant="outline" onClick={() => setInviteModal(null)}>Отмена</Button>
             </div>
           </Card>
-        </div>
+        </Reveal>
       )}
     </div>
   );

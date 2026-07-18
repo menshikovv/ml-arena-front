@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Filter, Loader2, Trophy, Archive } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { Link } from "react-router-dom";
+import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 
 export default function Competitions() {
   const [search, setSearch] = useState("");
@@ -33,7 +34,7 @@ export default function Competitions() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <Reveal className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-heading text-2xl md:text-3xl font-bold">
             {showArchive ? "Архив соревнований" : "Соревнования"}
@@ -55,10 +56,10 @@ export default function Competitions() {
             </Link>
           </Button>
         </div>
-      </div>
+      </Reveal>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-3 mb-6">
+      <Reveal className="flex flex-col md:flex-row gap-3 mb-6" delay={0.08}>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -91,7 +92,7 @@ export default function Competitions() {
             ))}
           </select>
         </div>
-      </div>
+      </Reveal>
 
       {/* Grid */}
       {isLoading ? (
@@ -106,11 +107,13 @@ export default function Competitions() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <Stagger className="flex flex-col gap-4">
           {filtered.map((c) => (
-            <CompetitionCard key={c.id} competition={c} />
+            <StaggerItem key={c.id}>
+              <CompetitionCard competition={c} />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
     </div>
   );

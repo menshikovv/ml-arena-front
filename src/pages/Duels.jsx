@@ -9,6 +9,7 @@ import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Swords, Loader2, Zap, Search, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 
 const OPPONENTS = [
   { name: "ml_ninja", rating: 1180, avatar: null },
@@ -63,14 +64,15 @@ export default function Duels() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
-      <div className="mb-6">
+      <Reveal className="mb-6">
         <h1 className="font-heading text-2xl md:text-3xl font-bold">Дуэли 1×1</h1>
         <p className="text-muted-foreground text-sm mt-1">Вызови соперника или найди случайный матч</p>
-      </div>
+      </Reveal>
 
       {/* Find opponent */}
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <Card className="p-5 bg-card/40 border-border">
+      <Stagger className="grid md:grid-cols-2 gap-4 mb-6">
+        <StaggerItem className="h-full">
+          <Card className="p-5 bg-card/40 border-border h-full">
           <h3 className="font-heading font-semibold mb-3 flex items-center gap-2">
             <Search size={18} /> Поиск по нику
           </h3>
@@ -92,9 +94,11 @@ export default function Duels() {
               </Button>
             </div>
           )}
-        </Card>
+          </Card>
+        </StaggerItem>
 
-        <Card className="p-5 bg-card/40 border-border flex flex-col">
+        <StaggerItem className="h-full">
+          <Card className="p-5 bg-card/40 border-border flex flex-col h-full">
           <h3 className="font-heading font-semibold mb-3 flex items-center gap-2">
             <Zap size={18} /> Случайный матч
           </h3>
@@ -104,14 +108,18 @@ export default function Duels() {
           <Button onClick={() => createDuelMutation.mutate(OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)])}>
             <Zap size={16} className="mr-1.5" /> Найти соперника
           </Button>
-        </Card>
-      </div>
+          </Card>
+        </StaggerItem>
+      </Stagger>
 
       {/* Available opponents */}
-      <h3 className="font-heading font-semibold mb-3">Доступные соперники</h3>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+      <Reveal delay={0.12}>
+        <h3 className="font-heading font-semibold mb-3">Доступные соперники</h3>
+      </Reveal>
+      <Stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8" delay={0.14}>
         {OPPONENTS.map((o) => (
-          <Card key={o.name} className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
+          <StaggerItem key={o.name}>
+            <Card className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
             <div className="flex items-center gap-3 mb-3">
               <Avatar name={o.name} src={o.avatar} size={40} />
               <div className="flex-1 min-w-0">
@@ -125,12 +133,15 @@ export default function Duels() {
             <Button size="sm" variant="outline" className="w-full" onClick={() => createDuelMutation.mutate(o)}>
               <Swords size={14} className="mr-1.5" /> Вызвать на дуэль
             </Button>
-          </Card>
+            </Card>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
 
       {/* History */}
-      <h3 className="font-heading font-semibold mb-3">История дуэлей</h3>
+      <Reveal delay={0.18}>
+        <h3 className="font-heading font-semibold mb-3">История дуэлей</h3>
+      </Reveal>
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -141,10 +152,11 @@ export default function Duels() {
           <p className="text-sm text-muted-foreground">У тебя пока нет дуэлей</p>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <Stagger className="space-y-2" delay={0.2}>
           {duels?.map((d) => (
-            <Link key={d.id} to={`/duels/${d.id}`}>
-              <Card className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
+            <StaggerItem key={d.id}>
+              <Link to={`/duels/${d.id}`}>
+                <Card className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Avatar name={d.player1_name} size={32} />
                   <span className="text-sm font-medium w-20 truncate">{d.player1_name}</span>
@@ -159,10 +171,11 @@ export default function Duels() {
                   )}
                   <ArrowRight size={14} className="text-muted-foreground" />
                 </div>
-              </Card>
-            </Link>
+                </Card>
+              </Link>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
     </div>
   );

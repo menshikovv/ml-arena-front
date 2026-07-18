@@ -90,13 +90,5 @@
     @apply bg-background text-foreground font-body;
   }
 
-  @media (min-width: 1024px) {
-    body {
-      cursor: none;
-    }
 
-    input, textarea, select, [contenteditable] {
-      cursor: text;
-    }
-  }
 }

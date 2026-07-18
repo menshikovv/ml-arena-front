@@ -16,6 +16,7 @@ import {
   MapPin, Building2, Github, Link as LinkIcon, Loader2,
   Trophy, Swords, Target, Eye, EyeOff, Award, TrendingUp, Star
 } from "lucide-react";
+import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 
 const BADGE_ICONS = {
   "Первая победа": Trophy,
@@ -83,10 +84,11 @@ export default function Profile() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
       {/* Header card */}
-      <Card className="relative overflow-hidden p-6 bg-card/60 border-border mb-6">
-        <div className="absolute inset-0 grid-bg opacity-50" />
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
-        <div className="relative flex flex-col md:flex-row gap-5">
+      <Reveal className="mb-6">
+        <Card className="relative overflow-hidden p-6 bg-card/60 border-border">
+          <div className="absolute inset-0 grid-bg opacity-50" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
+          <div className="relative flex flex-col md:flex-row gap-5">
           <Avatar name={profile.user_name} src={profile.avatar_url} size={88} className="ring-2 ring-primary/30" />
           <div className="flex-1">
             <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -105,10 +107,10 @@ export default function Profile() {
               {profile.kaggle_url && <a href={profile.kaggle_url} className="flex items-center gap-1 hover:text-foreground"><LinkIcon size={14} /> Kaggle</a>}
             </div>
           </div>
-        </div>
+          </div>
 
-        {/* League progress bar */}
-        <div className="relative mt-5">
+          {/* League progress bar */}
+          <div className="relative mt-5">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
             <span>До следующей лиги: {progress.current}/{progress.max === "∞" ? "∞" : progress.max}</span>
             <span>{profile.rating} очков</span>
@@ -116,50 +118,56 @@ export default function Profile() {
           <div className="h-2 rounded-full bg-secondary overflow-hidden">
             <div className="h-full bg-gradient-to-r from-primary to-accent transition-all" style={{ width: `${Math.min(progress.percent, 100)}%` }} />
           </div>
-        </div>
-      </Card>
+          </div>
+        </Card>
+      </Reveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={TrendingUp} label="Рейтинг" value={profile.rating || 1000} color="#7C3AED" />
-        <StatCard icon={Trophy} label="Победы в турнирах" value={profile.competitions_won || 0} color="#FFD700" />
-        <StatCard icon={Swords} label="Дуэли" value={`${profile.duels_won || 0}–${profile.duels_lost || 0}`} sublabel={`${winRate}% побед`} color="#06B6D4" />
-        <StatCard icon={Target} label="Участий" value={profile.competitions_participated || 0} color="#EC4899" />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <StaggerItem><StatCard icon={TrendingUp} label="Рейтинг" value={profile.rating || 1000} color="#7C3AED" /></StaggerItem>
+        <StaggerItem><StatCard icon={Trophy} label="Победы в турнирах" value={profile.competitions_won || 0} color="#FFD700" /></StaggerItem>
+        <StaggerItem><StatCard icon={Swords} label="Дуэли" value={`${profile.duels_won || 0}–${profile.duels_lost || 0}`} sublabel={`${winRate}% побед`} color="#06B6D4" /></StaggerItem>
+        <StaggerItem><StatCard icon={Target} label="Участий" value={profile.competitions_participated || 0} color="#EC4899" /></StaggerItem>
+      </Stagger>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
+      <Stagger className="grid md:grid-cols-2 gap-6 mb-6" delay={0.14}>
         {/* Skills radar */}
-        <Card className="p-5 bg-card/40 border-border">
-          <h3 className="font-heading font-semibold mb-4">ML-паспорт · Навыки</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <RadarChart data={skillData}>
-              <PolarGrid stroke="hsl(var(--border))" />
-              <PolarAngleAxis dataKey="skill" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-              <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-              <Radar dataKey="value" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.3} strokeWidth={2} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </Card>
+        <StaggerItem>
+          <Card className="p-5 bg-card/40 border-border">
+            <h3 className="font-heading font-semibold mb-4">ML-паспорт · Навыки</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <RadarChart data={skillData}>
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="skill" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                <Radar dataKey="value" stroke="#7C3AED" fill="#7C3AED" fillOpacity={0.3} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </Card>
+        </StaggerItem>
 
         {/* Rating history */}
-        <Card className="p-5 bg-card/40 border-border">
-          <h3 className="font-heading font-semibold mb-4">Динамика рейтинга</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={ratingHistory}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-              <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} domain={[800, "auto"]} />
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-              />
-              <Line type="monotone" dataKey="rating" stroke="#06B6D4" strokeWidth={2} dot={{ fill: "#06B6D4", r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
+        <StaggerItem>
+          <Card className="p-5 bg-card/40 border-border">
+            <h3 className="font-heading font-semibold mb-4">Динамика рейтинга</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={ratingHistory}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} domain={[800, "auto"]} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                />
+                <Line type="monotone" dataKey="rating" stroke="#06B6D4" strokeWidth={2} dot={{ fill: "#06B6D4", r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </StaggerItem>
+      </Stagger>
 
       {/* Badges */}
-      <Card className="p-5 bg-card/40 border-border">
+      <Reveal delay={0.2}>
+        <Card className="p-5 bg-card/40 border-border">
         <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
           <Award size={18} /> Бейджи и достижения
         </h3>
@@ -181,10 +189,11 @@ export default function Profile() {
             })}
           </div>
         )}
-      </Card>
+        </Card>
+      </Reveal>
 
       {/* Visibility toggle */}
-      <div className="flex items-center justify-between mt-6 p-4 rounded-lg bg-card/40 border border-border">
+      <Reveal className="flex items-center justify-between mt-6 p-4 rounded-lg bg-card/40 border border-border" delay={0.24}>
         <div className="flex items-center gap-2">
           {profile.visible_to_employers ? <Eye size={16} className="text-emerald-400" /> : <EyeOff size={16} className="text-muted-foreground" />}
           <div>
@@ -197,7 +206,7 @@ export default function Profile() {
         <Button variant="outline" size="sm">
           {profile.visible_to_employers ? "Скрыть" : "Показать"}
         </Button>
-      </div>
+      </Reveal>
     </div>
   );
 }

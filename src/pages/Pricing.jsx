@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Check, X, Crown, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 
 const PLANS = [
   {
@@ -56,19 +57,19 @@ const PLANS = [
 export default function Pricing() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 md:py-12">
-      <div className="text-center mb-10">
+      <Reveal className="text-center mb-10">
         <h1 className="font-heading text-3xl md:text-4xl font-bold mb-3">Подписки</h1>
         <p className="text-muted-foreground">Выбери план, чтобы раскрыть весь потенциал арены</p>
-      </div>
+      </Reveal>
 
-      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      <Stagger className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {PLANS.map((plan) => (
-          <Card
-            key={plan.name}
-            className={`relative p-6 bg-card/60 border-border ${
-              plan.popular ? "border-primary glow-purple" : ""
-            }`}
-          >
+          <StaggerItem key={plan.name} className="h-full">
+            <Card
+              className={`relative p-6 bg-card/60 border-border h-full ${
+                plan.popular ? "border-primary glow-purple" : ""
+              }`}
+            >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
                 Популярный
@@ -104,14 +105,17 @@ export default function Pricing() {
             >
               {plan.name === "Free" ? "Текущий план" : "Оформить"}
             </Button>
-          </Card>
+            </Card>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
 
-      <p className="text-center text-sm text-muted-foreground mt-8">
-        Нужно особое условие для команды?{" "}
-        <Link to="#" className="text-primary hover:underline">Свяжитесь с нами</Link>
-      </p>
+      <Reveal delay={0.28}>
+        <p className="text-center text-sm text-muted-foreground mt-8">
+          Нужно особое условие для команды?{" "}
+          <Link to="#" className="text-primary hover:underline">Свяжитесь с нами</Link>
+        </p>
+      </Reveal>
     </div>
   );
 }

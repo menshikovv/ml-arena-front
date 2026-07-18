@@ -8,13 +8,13 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { to: "/competitions", label: "Соревнования", icon: Trophy },
-  { to: "/duels", label: "Дуэли", icon: Swords },
-  { to: "/leaderboard", label: "Рейтинг", icon: LayoutGrid },
-  { to: "/profile", label: "ML-паспорт", icon: User },
-  { to: "/company/dashboard", label: "Кабинет компании", icon: Building2 },
-  { to: "/pricing", label: "Подписки", icon: Crown },
-  { to: "/admin", label: "Админ", icon: Shield },
+  { to: "/competitions", label: "Соревнования", icon: Trophy, gradientId: "sidebar-competitions-gradient" },
+  { to: "/duels", label: "Дуэли", icon: Swords, gradientId: "sidebar-duels-gradient" },
+  { to: "/leaderboard", label: "Лидерборд", icon: LayoutGrid, gradientId: "sidebar-leaderboard-gradient" },
+  { to: "/profile", label: "ML-паспорт", icon: User, gradientId: "sidebar-profile-gradient" },
+  { to: "/company/dashboard", label: "Кабинет компании", icon: Building2, gradientId: "sidebar-company-gradient" },
+  { to: "/pricing", label: "Подписки", icon: Crown, gradientId: "sidebar-pricing-gradient" },
+  { to: "/admin", label: "Админ", icon: Shield, gradientId: "sidebar-admin-gradient" },
 ];
 
 export default function AppLayout() {
@@ -58,7 +58,21 @@ export default function AppLayout() {
               } ${collapsed ? "justify-center" : ""}`}
               title={collapsed ? item.label : undefined}
             >
-              <Icon size={18} className="shrink-0" />
+              <Icon
+                size={19}
+                stroke={`url(#${item.gradientId})`}
+                strokeWidth={2.25}
+                className="shrink-0 drop-shadow-[0_2px_5px_rgba(37,99,235,0.22)]"
+              >
+                <defs>
+                  <linearGradient id={item.gradientId} x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#38BDF8" />
+                    <stop offset="42%" stopColor="#2563EB" />
+                    <stop offset="72%" stopColor="#22D3EE" />
+                    <stop offset="100%" stopColor="#8B5CF6" />
+                  </linearGradient>
+                </defs>
+              </Icon>
               {!collapsed && <span>{item.label}</span>}
               {active && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
             </Link>
