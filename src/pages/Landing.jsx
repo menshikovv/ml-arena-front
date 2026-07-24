@@ -88,6 +88,54 @@ function SectionTitle({ eyebrow, title, desc, align = "center" }) {
   );
 }
 
+function HeroBackdrop({ reduceMotion }) {
+  const verticalLines = Array.from({ length: 9 });
+  const horizontalLines = Array.from({ length: 5 });
+  const floatTransition = reduceMotion
+    ? undefined
+    : { duration: 5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" };
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div className="absolute inset-0 flex justify-around opacity-[0.08]">
+        {verticalLines.map((_, index) => (
+          <span key={index} className="h-full w-px bg-background" />
+        ))}
+      </div>
+      <div className="absolute inset-0 flex flex-col justify-around opacity-[0.08]">
+        {horizontalLines.map((_, index) => (
+          <span key={index} className="h-px w-full bg-background" />
+        ))}
+      </div>
+
+      <motion.div
+        animate={reduceMotion ? undefined : { y: [0, -7, 0] }}
+        transition={floatTransition}
+        className="absolute left-[7%] top-24 hidden border-l-2 border-accent pl-3 text-left xl:block"
+      >
+        <p className="font-mono text-[10px] uppercase text-background/45">Best score</p>
+        <p className="font-mono text-lg font-semibold text-background">0.9412</p>
+      </motion.div>
+      <motion.div
+        animate={reduceMotion ? undefined : { y: [0, 8, 0] }}
+        transition={floatTransition ? { ...floatTransition, delay: 0.8 } : undefined}
+        className="absolute right-[7%] top-32 hidden border-r-2 border-primary pr-3 text-right xl:block"
+      >
+        <p className="font-mono text-[10px] uppercase text-background/45">Active duel</p>
+        <p className="font-mono text-lg font-semibold text-background">01:42:18</p>
+      </motion.div>
+      <div className="absolute bottom-36 left-[12%] hidden items-center gap-2 text-xs text-background/55 lg:flex">
+        <CheckCircle2 size={15} className="text-accent" />
+        CSV validated
+      </div>
+      <div className="absolute bottom-36 right-[12%] hidden items-center gap-2 text-xs text-background/55 lg:flex">
+        <span className="h-2 w-2 rounded-full bg-accent" />
+        128 участников онлайн
+      </div>
+    </div>
+  );
+}
+
 function ArenaPreview() {
   const rows = [
     { rank: "01", name: "datawizard", task: "Credit Scoring", score: "0.9412", change: "+24" },
@@ -96,21 +144,22 @@ function ArenaPreview() {
   ];
 
   return (
-    <div className="relative mx-auto mt-12 max-w-5xl">
-      <div className="flex items-center justify-between border-b border-border/80 px-2 pb-3 text-xs text-muted-foreground">
+    <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
+      <div className="flex items-center justify-between border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-2 font-medium text-foreground">
           <span className="h-2 w-2 rounded-full bg-accent" />
-          Арена сейчас
+          Live leaderboard
         </span>
-        <span>Season 01 · Live leaderboard</span>
+        <span>Season 01</span>
       </div>
       <div className="divide-y divide-border/70">
         {rows.map((row, index) => (
           <motion.div
             key={row.name}
             initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.45 + index * 0.1 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
             className={`grid grid-cols-[42px_1fr_auto] md:grid-cols-[60px_1fr_1fr_auto_auto] items-center gap-3 px-2 py-4 md:px-4 ${
               row.active ? "bg-primary/8" : ""
             }`}
@@ -128,8 +177,10 @@ function ArenaPreview() {
           </motion.div>
         ))}
       </div>
-      <div className="pointer-events-none absolute -left-16 top-10 hidden h-20 w-1 bg-primary md:block" />
-      <div className="pointer-events-none absolute -right-12 bottom-8 hidden h-28 w-1 bg-accent md:block" />
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
+        <span>Рейтинг обновляется после каждого результата</span>
+        <BarChart3 size={16} className="text-primary" />
+      </div>
     </div>
   );
 }
@@ -220,22 +271,21 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="relative border-b border-border bg-card">
-          <div className="absolute left-0 top-28 h-24 w-1 bg-primary" />
-          <div className="absolute right-0 top-56 h-40 w-1 bg-accent" />
-          <div className="relative max-w-7xl mx-auto px-4 pt-14 pb-12 text-center md:pt-20">
+        <section className="relative isolate overflow-hidden bg-foreground text-background">
+          <HeroBackdrop reduceMotion={reduceMotion} />
+          <div className="relative z-10 max-w-7xl mx-auto px-4 pt-16 text-center md:pt-24">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={transition}
             >
-              <h1 className="font-heading text-5xl md:text-7xl font-bold mb-5">
+              <h1 className="font-heading text-5xl md:text-7xl font-bold text-background mb-5">
                 ML Арена
               </h1>
-              <p className="text-2xl md:text-4xl font-heading font-semibold max-w-4xl mx-auto mb-5">
+              <p className="text-2xl md:text-4xl font-heading font-semibold text-background max-w-4xl mx-auto mb-5">
                 Докажи навык в машинном обучении результатом
               </p>
-              <p className="text-base md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
+              <p className="text-base md:text-xl text-background/65 max-w-3xl mx-auto mb-8 leading-relaxed">
                 Соревнования, дуэли и подтвержденный ML-паспорт для тех, <br />кто входит в AI через практику.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -244,7 +294,7 @@ export default function Landing() {
                     Регистрация <ArrowRight size={18} className="ml-1" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="h-12 px-8 text-base bg-background">
+                <Button asChild variant="outline" size="lg" className="h-12 border-background/20 bg-background/5 px-8 text-base text-background hover:bg-background/10 hover:text-background">
                   <Link to="/competitions">
                     <Trophy size={18} className="mr-2" /> Смотреть соревнования
                   </Link>
@@ -252,31 +302,25 @@ export default function Landing() {
               </div>
             </motion.div>
 
-            <ArenaPreview />
+            <div className="mt-16 grid grid-cols-2 border-t border-background/15 md:mt-20 md:grid-cols-4">
+              {STATS.map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...transition, delay: 0.2 + index * 0.06 }}
+                  className="border-r border-background/15 px-3 py-5 text-center md:py-6"
+                >
+                  <stat.icon size={19} className="mx-auto mb-2 text-accent" />
+                  <div className="font-heading text-xl font-bold text-background">{stat.value}</div>
+                  <div className="text-[11px] text-background/50">{stat.label}</div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="border-b border-border bg-background">
-          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4">
-            {STATS.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.4 }}
-                variants={reveal}
-                transition={{ ...transition, delay: index * 0.06 }}
-                className="border-b border-r border-border p-5 text-center md:border-b-0 md:p-7"
-              >
-                <stat.icon size={20} className="mx-auto mb-2 text-primary" />
-                <div className="font-heading text-2xl font-bold">{stat.value}</div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        <section className="border-b border-border bg-secondary/35">
+        <section className="bg-background">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -308,7 +352,7 @@ export default function Landing() {
           </motion.div>
         </section>
 
-        <section className="max-w-7xl mx-auto grid gap-12 px-4 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
+        <section className="max-w-7xl mx-auto grid gap-12 px-4 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-28">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -338,7 +382,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="border-y border-border bg-card">
+        <section className="bg-secondary/30">
           <div className="max-w-7xl mx-auto px-4 py-20 lg:py-24">
             <SectionTitle
               title="От задачи до ML-паспорта"
@@ -397,29 +441,32 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="border-y border-border bg-secondary/35">
+        <section className="bg-card">
           <div className="max-w-7xl mx-auto px-4 py-20 lg:py-24">
             <SectionTitle
-              title="Четыре лиги. Один понятный маршрут."
-              desc="Побеждай в соревнованиях и дуэлях, чтобы перейти от первого результата к Платине."
+              title={<>Четыре лиги.<br />Один понятный маршрут.</>}
+              desc="Каждый результат меняет позицию в live leaderboard и приближает к следующей лиге."
             />
-            <div className="grid grid-cols-2 md:grid-cols-4 border-l border-t border-border">
-              {LEAGUES.map((league, index) => (
-                <motion.div
-                  key={league.name}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, amount: 0.4 }}
-                  variants={reveal}
-                  transition={{ ...transition, delay: index * 0.08 }}
-                  className="relative border-b border-r border-border bg-background p-5 text-center md:p-7"
-                >
-                  <div className="absolute left-0 right-0 top-0 h-1 bg-primary" style={{ opacity: 0.35 + index * 0.2 }} />
-                  <div className="mb-4 inline-block"><LeagueBadge rating={league.rating} size="lg" /></div>
-                  <div className="font-heading font-semibold">{league.name}</div>
-                  <div className="font-mono text-xs text-muted-foreground">{league.range}</div>
-                </motion.div>
-              ))}
+            <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-stretch">
+              <div className="grid grid-cols-2 border-l border-t border-border">
+                {LEAGUES.map((league, index) => (
+                  <motion.div
+                    key={league.name}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.4 }}
+                    variants={reveal}
+                    transition={{ ...transition, delay: index * 0.08 }}
+                    className="relative border-b border-r border-border bg-background p-5 text-center md:p-7"
+                  >
+                    <div className="absolute left-0 right-0 top-0 h-1 bg-primary" style={{ opacity: 0.35 + index * 0.2 }} />
+                    <div className="mb-4 inline-block"><LeagueBadge rating={league.rating} size="lg" /></div>
+                    <div className="font-heading font-semibold">{league.name}</div>
+                    <div className="font-mono text-xs text-muted-foreground">{league.range}</div>
+                  </motion.div>
+                ))}
+              </div>
+              <ArenaPreview />
             </div>
           </div>
         </section>
@@ -445,7 +492,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="border-y border-border bg-card">
+        <section className="bg-secondary/30">
           <motion.div
             initial="hidden"
             whileInView="visible"

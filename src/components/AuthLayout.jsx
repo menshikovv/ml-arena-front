@@ -1,8 +1,21 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-background px-4">
+      <Button
+        asChild
+        variant="ghost"
+        size="icon"
+        className="absolute left-4 top-4 md:left-6 md:top-6"
+      >
+        <Link to="/" aria-label="Вернуться на главную" title="Вернуться на главную">
+          <ArrowLeft size={20} />
+        </Link>
+      </Button>
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">

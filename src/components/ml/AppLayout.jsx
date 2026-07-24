@@ -3,14 +3,14 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import Avatar from "@/components/ml/Avatar";
 import {
-  Swords, LayoutGrid, Trophy, User, Building2, Crown, Shield,
+  Swords, ChartNoAxesColumnIncreasing, Trophy, User, Building2, Crown, Shield,
   Menu, X, LogOut, ChevronLeft
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/competitions", label: "Соревнования", icon: Trophy, gradientId: "sidebar-competitions-gradient" },
   { to: "/duels", label: "Дуэли", icon: Swords, gradientId: "sidebar-duels-gradient" },
-  { to: "/leaderboard", label: "Лидерборд", icon: LayoutGrid, gradientId: "sidebar-leaderboard-gradient" },
+  { to: "/leaderboard", label: "Лидерборд", icon: ChartNoAxesColumnIncreasing, gradientId: "sidebar-leaderboard-gradient" },
   { to: "/profile", label: "ML-паспорт", icon: User, gradientId: "sidebar-profile-gradient" },
   { to: "/company/dashboard", label: "Кабинет компании", icon: Building2, gradientId: "sidebar-company-gradient" },
   { to: "/pricing", label: "Подписки", icon: Crown, gradientId: "sidebar-pricing-gradient" },
