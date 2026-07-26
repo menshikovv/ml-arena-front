@@ -307,8 +307,8 @@ export default function Landing() {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="pointer-events-none fixed left-0 right-0 top-[22px] z-50 flex justify-center px-4 md:top-[30px]"
       >
-        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between rounded-[16px] bg-white/65 px-4 backdrop-blur-[32px] md:px-6">
-          <Link to="/" className="flex items-center gap-2 font-[var(--font-fustat)] text-[21px] font-extrabold text-black">
+        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/50 bg-gradient-to-r from-[#087EEA]/90 via-[#66B5FF]/55 to-white/70 px-4 shadow-[0_14px_35px_-18px_rgba(15,23,42,0.18)] backdrop-blur-[32px] md:px-6">
+          <Link to="/" className="flex items-center gap-2 font-[var(--font-fustat)] text-[21px] font-extrabold text-white">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0084FF] text-white shadow-[0_6px_18px_rgba(0,132,255,0.24)]">
               <Swords size={16} />
             </span>
@@ -321,7 +321,11 @@ export default function Landing() {
               ["/leaderboard", "Лидерборд"],
               ["/pricing", "Тарифы"],
             ].map(([to, label]) => (
-              <Link key={to} to={to} className="font-[var(--font-sans)] text-[14px] font-medium text-black/55 transition-colors hover:text-black">
+              <Link
+                key={to}
+                to={to}
+                className="font-[var(--font-sans)] text-[15px] font-semibold text-[#0B2B55] transition-all duration-300 hover:text-[#0084FF] hover:drop-shadow-[0_0_7px_rgba(0,132,255,0.75)]"
+              >
                 {label}
               </Link>
             ))}
@@ -329,14 +333,14 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <Link
               to="/register"
-              className="group hidden h-9 items-center gap-2 rounded-[12px] border border-black/10 bg-black/5 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-black transition-all hover:bg-black/10 hover:shadow-md sm:flex"
+              className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex"
             >
               Войти на арену
               <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-black/10 bg-black/5 text-black md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] md:hidden"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Открыть меню"
             >
