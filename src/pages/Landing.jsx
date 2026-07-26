@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -13,8 +13,11 @@ import {
   FileSpreadsheet,
   Flame,
   GraduationCap,
+  FileCheck2,
   LineChart,
   Medal,
+  Menu,
+  Play,
   Radar,
   Rocket,
   ShieldCheck,
@@ -24,6 +27,7 @@ import {
   Trophy,
   Upload,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,51 +92,98 @@ function SectionTitle({ eyebrow, title, desc, align = "center" }) {
   );
 }
 
-function HeroBackdrop({ reduceMotion }) {
-  const verticalLines = Array.from({ length: 9 });
-  const horizontalLines = Array.from({ length: 5 });
-  const floatTransition = reduceMotion
+function HeroCompanion({ reduceMotion }) {
+  const float = (x, y, duration) => reduceMotion
     ? undefined
-    : { duration: 5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" };
+    : {
+        x,
+        y,
+        transition: {
+          duration,
+          repeat: Infinity,
+          repeatType: "mirror",
+          ease: "easeInOut",
+        },
+      };
+
+  const glassClass = "absolute z-20 flex items-center gap-3 rounded-[20px] border border-white/70 bg-gradient-to-br from-white/80 to-white/45 px-4 py-3 text-left shadow-[inset_0_2.5px_4px_rgba(255,255,255,0.8),0_12px_32px_-4px_rgba(0,132,255,0.14)] ring-1 ring-black/5 backdrop-blur-[24px] pointer-events-auto";
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-0 flex justify-around opacity-[0.08]">
-        {verticalLines.map((_, index) => (
-          <span key={index} className="h-full w-px bg-background" />
-        ))}
-      </div>
-      <div className="absolute inset-0 flex flex-col justify-around opacity-[0.08]">
-        {horizontalLines.map((_, index) => (
-          <span key={index} className="h-px w-full bg-background" />
-        ))}
-      </div>
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.9, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      className="relative flex min-h-[500px] w-full items-center justify-center py-8 lg:justify-end"
+    >
+      <div className="absolute left-1/2 top-1/2 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-300/30" />
+      <div className="absolute left-1/2 top-1/2 h-[330px] w-[330px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-300/35" />
 
-      <motion.div
-        animate={reduceMotion ? undefined : { y: [0, -7, 0] }}
-        transition={floatTransition}
-        className="absolute left-[7%] top-24 hidden border-l-2 border-accent pl-3 text-left xl:block"
-      >
-        <p className="font-mono text-[10px] uppercase text-background/45">Best score</p>
-        <p className="font-mono text-lg font-semibold text-background">0.9412</p>
-      </motion.div>
-      <motion.div
-        animate={reduceMotion ? undefined : { y: [0, 8, 0] }}
-        transition={floatTransition ? { ...floatTransition, delay: 0.8 } : undefined}
-        className="absolute right-[7%] top-32 hidden border-r-2 border-primary pr-3 text-right xl:block"
-      >
-        <p className="font-mono text-[10px] uppercase text-background/45">Active duel</p>
-        <p className="font-mono text-lg font-semibold text-background">01:42:18</p>
-      </motion.div>
-      <div className="absolute bottom-36 left-[12%] hidden items-center gap-2 text-xs text-background/55 lg:flex">
-        <CheckCircle2 size={15} className="text-accent" />
-        CSV validated
+      <div className="relative w-full max-w-[600px]">
+        <video
+          className="pointer-events-none block h-auto w-full select-none rounded-[24px]"
+          src="/hero_robo_video.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          controls={false}
+          disablePictureInPicture
+          disableRemotePlayback
+          controlsList="nodownload noremoteplayback noplaybackrate nofullscreen"
+          aria-label="Интерактивный помощник ML Арены"
+          style={{ filter: "brightness(1.02) contrast(1.04)" }}
+        />
+
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 12 }}
+          animate={{ opacity: 1, scale: 1, ...float([0, 2, 0], [0, -8, 0], 5) }}
+          whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: 1 }}
+          transition={{ type: "spring", damping: 20, stiffness: 100, delay: 0.6 }}
+          className={`${glassClass} right-0 top-[13%] sm:-right-3 lg:-right-5`}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0084FF] to-[#0066CC] text-white shadow-[0_4px_12px_rgba(0,132,255,0.3)]">
+            <FileCheck2 size={17} />
+          </span>
+          <span>
+            <span className="block text-[13px] font-bold text-neutral-900">CSV проверен</span>
+            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">score 0.9412</span>
+          </span>
+        </motion.div>
+
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 12 }}
+          animate={{ opacity: 1, scale: 1, ...float([0, -2, 0], [0, 8, 0], 5.5) }}
+          whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: -1 }}
+          transition={{ type: "spring", damping: 20, stiffness: 100, delay: 0.8 }}
+          className={`${glassClass} left-0 top-[47%] sm:-left-4 lg:-left-8`}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
+            <Swords size={17} />
+          </span>
+          <span>
+            <span className="block text-[13px] font-bold text-neutral-900">Дуэль 1×1</span>
+            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">соперник найден</span>
+          </span>
+        </motion.div>
+
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 12 }}
+          animate={{ opacity: 1, scale: 1, ...float([0, -1, 0], [0, -10, 0], 4.8) }}
+          whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: 1.5 }}
+          transition={{ type: "spring", damping: 20, stiffness: 100, delay: 1 }}
+          className={`${glassClass} bottom-[12%] right-1 sm:-right-2 lg:-right-4`}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#9333EA] to-[#7E22CE] text-white shadow-[0_4px_12px_rgba(147,51,234,0.3)]">
+            <Brain size={17} />
+          </span>
+          <span>
+            <span className="block text-[13px] font-bold text-neutral-900">ML-паспорт</span>
+            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">рейтинг 1420</span>
+          </span>
+        </motion.div>
       </div>
-      <div className="absolute bottom-36 right-[12%] hidden items-center gap-2 text-xs text-background/55 lg:flex">
-        <span className="h-2 w-2 rounded-full bg-accent" />
-        128 участников онлайн
-      </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -240,6 +291,7 @@ function PassportPreview() {
 }
 
 export default function Landing() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const reveal = {
     hidden: reduceMotion ? {} : { opacity: 0, y: 22 },
@@ -249,78 +301,193 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen overflow-hidden bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Swords size={16} className="text-white" />
-              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-accent" />
-            </div>
-            <span className="font-heading text-lg font-bold">ML Арена</span>
+      <motion.header
+        initial={reduceMotion ? false : { opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="pointer-events-none fixed left-0 right-0 top-[22px] z-50 flex justify-center px-4 md:top-[30px]"
+      >
+        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between rounded-[16px] bg-white/65 px-4 backdrop-blur-[32px] md:px-6">
+          <Link to="/" className="flex items-center gap-2 font-[var(--font-fustat)] text-[21px] font-extrabold text-black">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0084FF] text-white shadow-[0_6px_18px_rgba(0,132,255,0.24)]">
+              <Swords size={16} />
+            </span>
+            ML Арена
           </Link>
-          <nav className="hidden md:flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm"><Link to="/competitions">Соревнования</Link></Button>
-            <Button asChild variant="ghost" size="sm"><Link to="/duels">Дуэли</Link></Button>
-            <Button asChild variant="ghost" size="sm"><Link to="/leaderboard">Лидерборд</Link></Button>
-            <Button asChild variant="ghost" size="sm"><Link to="/pricing">Тарифы</Link></Button>
+          <nav className="hidden items-center gap-7 md:flex">
+            {[
+              ["/competitions", "Соревнования"],
+              ["/duels", "Дуэли"],
+              ["/leaderboard", "Лидерборд"],
+              ["/pricing", "Тарифы"],
+            ].map(([to, label]) => (
+              <Link key={to} to={to} className="font-[var(--font-sans)] text-[14px] font-medium text-black/55 transition-colors hover:text-black">
+                {label}
+              </Link>
+            ))}
           </nav>
-          <Button asChild size="sm" className="ml-1 shadow-lg shadow-primary/20">
-            <Link to="/register">Войти на арену <ArrowRight size={15} className="ml-1" /></Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/register"
+              className="group hidden h-9 items-center gap-2 rounded-[12px] border border-black/10 bg-black/5 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-black transition-all hover:bg-black/10 hover:shadow-md sm:flex"
+            >
+              Войти на арену
+              <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-black/10 bg-black/5 text-black md:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Открыть меню"
+            >
+              <Menu size={18} />
+            </button>
+          </div>
         </div>
-      </header>
+      </motion.header>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] flex justify-end bg-black/15" onClick={() => setMobileMenuOpen(false)}>
+          <motion.div
+            initial={reduceMotion ? false : { x: 260 }}
+            animate={{ x: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="h-full w-[260px] border-l border-black/10 bg-white/95 p-5 backdrop-blur-[40px]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-10 flex items-center justify-between">
+              <span className="font-[var(--font-fustat)] text-lg font-extrabold text-black">ML Арена</span>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-black/5 text-black"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Закрыть меню"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2">
+              {[
+                ["/competitions", "Соревнования"],
+                ["/duels", "Дуэли"],
+                ["/leaderboard", "Лидерборд"],
+                ["/pricing", "Тарифы"],
+              ].map(([to, label]) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-4 py-3 font-[var(--font-sans)] text-sm font-semibold text-black/65 transition-colors hover:bg-black/5 hover:text-black"
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+            <Link
+              to="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-6 flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white"
+            >
+              Войти на арену <ArrowRight size={15} />
+            </Link>
+          </motion.div>
+        </div>
+      )}
 
       <main>
-        <section className="relative isolate overflow-hidden bg-foreground text-background">
-          <HeroBackdrop reduceMotion={reduceMotion} />
-          <div className="relative z-10 max-w-7xl mx-auto px-4 pt-16 text-center md:pt-24">
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={transition}
-            >
-              <h1 className="font-heading text-5xl md:text-7xl font-bold text-background mb-5">
-                ML Арена
-              </h1>
-              <p className="text-2xl md:text-4xl font-heading font-semibold text-background max-w-4xl mx-auto mb-5">
-                Докажи навык в машинном обучении результатом
-              </p>
-              <p className="text-base md:text-xl text-background/65 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Соревнования, дуэли и подтвержденный ML-паспорт для тех, <br />кто входит в AI через практику.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button asChild size="lg" className="h-12 px-8 text-base shadow-xl shadow-primary/20">
-                  <Link to="/register">
-                    Регистрация <ArrowRight size={18} className="ml-1" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="h-12 border-background/20 bg-background/5 px-8 text-base text-background hover:bg-background/10 hover:text-background">
-                  <Link to="/competitions">
-                    <Trophy size={18} className="mr-2" /> Смотреть соревнования
-                  </Link>
-                </Button>
-              </div>
-            </motion.div>
+        <section className="relative isolate overflow-hidden bg-white text-black">
+          <div className="relative mx-auto w-full max-w-[1440px] px-6 pb-12 pt-[118px] sm:px-10 md:pt-[128px] lg:px-12 xl:px-16">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+                className="flex max-w-[680px] flex-col items-start justify-center text-left lg:col-span-6 lg:pr-4"
+              >
+                <div className="flex w-fit items-center gap-3 rounded-full border border-black/5 bg-black/5 px-3 py-1.5 shadow-sm">
+                  <div className="flex -space-x-2">
+                    {["B", "S", "G", "P"].map((letter, index) => (
+                      <span
+                        key={letter}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white transition-transform hover:-translate-y-1"
+                        style={{ backgroundColor: ["#B7794B", "#8E9AA8", "#D4A928", "#7167E8"][index] }}
+                      >
+                        {letter}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="font-[var(--font-sans)] text-[12px] text-black/75">
+                    Founder Season · <strong className="text-neutral-900">регистрация открыта</strong>
+                  </span>
+                </div>
 
-            <div className="mt-16 grid grid-cols-2 border-t border-background/15 md:mt-20 md:grid-cols-4">
+                <h1 className="mt-6 select-none font-[var(--font-outfit)] text-[42px] font-black leading-[1.08] text-black sm:text-[50px] lg:text-[60px]">
+                  ML Арена
+                </h1>
+                <p className="mt-3 font-[var(--font-outfit)] text-[29px] font-bold leading-[1.1] text-black sm:text-[34px] lg:text-[41px]">
+                  Докажи навык в машинном обучении результатом
+                </p>
+                <p className="mt-5 max-w-[500px] font-[var(--font-sans)] text-[17px] leading-relaxed text-black/60">
+                  Соревнования, дуэли и подтвержденный ML-паспорт для тех, кто входит в AI через практику.
+                </p>
+
+                <div className="mt-8 flex flex-wrap items-center gap-5">
+                  <motion.div
+                    whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                  >
+                    <Link
+                      to="/register"
+                      className="group flex w-fit items-center gap-4 rounded-[16px] bg-[#0084FF] py-2 pl-6 pr-2 font-[var(--font-sans)] text-sm font-bold text-white transition-colors hover:bg-[#0074E0]"
+                      style={{ boxShadow: "inset 0 4px 4px rgba(255,255,255,0.35), 0 10px 25px -5px rgba(0,132,255,0.25)" }}
+                    >
+                      Регистрация
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#0084FF]">
+                        <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </Link>
+                  </motion.div>
+
+                  <Link to="/competitions" className="group flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-[#0084FF] transition-colors group-hover:bg-blue-100">
+                      <Play size={14} fill="currentColor" />
+                    </span>
+                    <span className="font-[var(--font-sans)] text-[14px] font-bold text-[#0084FF] transition-colors group-hover:text-[#0074E0]">
+                      Смотреть соревнования
+                    </span>
+                  </Link>
+                </div>
+              </motion.div>
+
+              <div className="lg:col-span-6">
+                <HeroCompanion reduceMotion={reduceMotion} />
+              </div>
+            </div>
+
+            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:mt-0">
               {STATS.map((stat, index) => (
                 <motion.div
                   key={stat.label}
-                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...transition, delay: 0.2 + index * 0.06 }}
-                  className="border-r border-background/15 px-3 py-5 text-center md:py-6"
+                  transition={{ duration: 0.55, delay: 0.65 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={reduceMotion ? undefined : { y: -2, scale: 1.02 }}
+                  className="group flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px]"
                 >
-                  <stat.icon size={19} className="mx-auto mb-2 text-accent" />
-                  <div className="font-heading text-xl font-bold text-background">{stat.value}</div>
-                  <div className="text-[11px] text-background/50">{stat.label}</div>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF] transition-transform group-hover:scale-110">
+                    <stat.icon size={17} />
+                  </span>
+                  <span>
+                    <span className="block font-[var(--font-outfit)] text-lg font-bold leading-none text-black">{stat.value}</span>
+                    <span className="mt-1 block font-[var(--font-sans)] text-[10px] text-black/45">{stat.label}</span>
+                  </span>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="bg-background">
+        <section className="bg-secondary/30">
           <motion.div
             initial="hidden"
             whileInView="visible"
