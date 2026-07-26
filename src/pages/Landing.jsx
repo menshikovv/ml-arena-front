@@ -307,8 +307,8 @@ export default function Landing() {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="pointer-events-none fixed left-0 right-0 top-[22px] z-50 flex justify-center px-4 md:top-[30px]"
       >
-        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/50 bg-gradient-to-r from-[#087EEA]/90 via-[#66B5FF]/55 to-white/70 px-4 shadow-[0_14px_35px_-18px_rgba(15,23,42,0.18)] backdrop-blur-[32px] md:px-6">
-          <Link to="/" className="flex items-center gap-2 font-[var(--font-fustat)] text-[21px] font-extrabold text-white">
+        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/70 bg-white/75 px-4 shadow-[0_14px_35px_-18px_rgba(15,23,42,0.18)] backdrop-blur-[32px] md:px-6">
+          <Link to="/" className="flex items-center gap-2 font-[var(--font-fustat)] text-[21px] font-extrabold text-black">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0084FF] text-white shadow-[0_6px_18px_rgba(0,132,255,0.24)]">
               <Swords size={16} />
             </span>
