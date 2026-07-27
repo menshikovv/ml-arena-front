@@ -143,7 +143,7 @@ export default function AppLayout() {
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin">
           <Outlet />
         </main>
       </div>
