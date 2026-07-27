@@ -19,19 +19,12 @@ const NAV_ITEMS = [
 
 function ArenaLogoMark({ className = "h-8 w-8" }) {
   return (
-    <span className={`relative inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden="true">
-      <span className="absolute inset-0 rounded-[28%] bg-white shadow-[0_10px_24px_-14px_rgba(0,102,255,0.7)]" />
-      <span className="absolute inset-[2px] rounded-full bg-[conic-gradient(from_218deg,#155BFF_0deg,#155BFF_132deg,#20D6C6_226deg,#155BFF_340deg)]" />
-      <span className="absolute inset-[7px] rounded-full bg-white" />
-      <span className="absolute bottom-[5px] h-[10px] w-[7px] rounded-t-[3px] bg-[#155BFF]" />
-      <span className="absolute bottom-[9px] left-[8px] h-[11px] w-[4px] rounded-sm bg-[#155BFF]" />
-      <span className="absolute bottom-[9px] right-[8px] h-[11px] w-[4px] rounded-sm bg-[#20D6C6]" />
-      <span className="absolute bottom-[11px] left-[13px] h-[15px] w-[5px] rounded-sm bg-[#1682FF]" />
-      <span className="absolute bottom-[11px] right-[13px] h-[15px] w-[5px] rounded-sm bg-[#18C8D6]" />
-      <span className="absolute left-1/2 top-[4px] h-[23px] w-[2.5px] -translate-x-1/2 rounded-full bg-[#155BFF]" />
-      <span className="absolute left-1/2 top-[7px] ml-[1px] h-[9px] w-[15px] rounded-r-full bg-[#155BFF]" />
-      <span className="absolute left-1/2 top-[3px] h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-[#155BFF]" />
-    </span>
+    <img
+      src="/logo.svg"
+      alt=""
+      className={`shrink-0 object-contain ${className}`}
+      aria-hidden="true"
+    />
   );
 }
 
