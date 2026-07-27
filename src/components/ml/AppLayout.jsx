@@ -17,6 +17,24 @@ const NAV_ITEMS = [
   { to: "/admin", label: "Админ", icon: Shield, gradientId: "sidebar-admin-gradient" },
 ];
 
+function ArenaLogoMark({ className = "h-8 w-8" }) {
+  return (
+    <span className={`relative inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden="true">
+      <span className="absolute inset-0 rounded-[28%] bg-white shadow-[0_10px_24px_-14px_rgba(0,102,255,0.7)]" />
+      <span className="absolute inset-[2px] rounded-full bg-[conic-gradient(from_218deg,#155BFF_0deg,#155BFF_132deg,#20D6C6_226deg,#155BFF_340deg)]" />
+      <span className="absolute inset-[7px] rounded-full bg-white" />
+      <span className="absolute bottom-[5px] h-[10px] w-[7px] rounded-t-[3px] bg-[#155BFF]" />
+      <span className="absolute bottom-[9px] left-[8px] h-[11px] w-[4px] rounded-sm bg-[#155BFF]" />
+      <span className="absolute bottom-[9px] right-[8px] h-[11px] w-[4px] rounded-sm bg-[#20D6C6]" />
+      <span className="absolute bottom-[11px] left-[13px] h-[15px] w-[5px] rounded-sm bg-[#1682FF]" />
+      <span className="absolute bottom-[11px] right-[13px] h-[15px] w-[5px] rounded-sm bg-[#18C8D6]" />
+      <span className="absolute left-1/2 top-[4px] h-[23px] w-[2.5px] -translate-x-1/2 rounded-full bg-[#155BFF]" />
+      <span className="absolute left-1/2 top-[7px] ml-[1px] h-[9px] w-[15px] rounded-r-full bg-[#155BFF]" />
+      <span className="absolute left-1/2 top-[3px] h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-[#155BFF]" />
+    </span>
+  );
+}
+
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,11 +51,9 @@ export default function AppLayout() {
     <div className="flex flex-col h-full">
       <div className={`flex items-center gap-2.5 px-4 h-16 border-b border-border shrink-0 ${collapsed ? "justify-center" : ""}`}>
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 glow-purple">
-            <Swords size={18} className="text-white" />
-          </div>
+          <ArenaLogoMark className="h-8 w-8" />
           {!collapsed && (
-            <span className="font-heading font-bold text-lg tracking-tight">ML Арена</span>
+            <span className="font-heading font-bold text-lg tracking-tight">ML-Арена</span>
           )}
         </Link>
       </div>
@@ -119,10 +135,8 @@ export default function AppLayout() {
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Swords size={16} className="text-white" />
-            </div>
-            <span className="font-heading font-bold">ML Арена</span>
+            <ArenaLogoMark className="h-8 w-8" />
+            <span className="font-heading font-bold">ML-Арена</span>
           </Link>
         </header>
 

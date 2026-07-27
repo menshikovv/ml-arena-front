@@ -80,6 +80,12 @@ const STATS = [
   { value: "4", label: "лиги роста", icon: Medal },
 ];
 
+const FOUNDER_STEPS = [
+  { icon: Target, title: "Мини-задачи", desc: "короткий вход в практику" },
+  { icon: Code2, title: "Разборы", desc: "понятная обратная связь" },
+  { icon: LineChart, title: "Ранний рейтинг", desc: "первые позиции до запуска" },
+];
+
 function SectionTitle({ eyebrow, title, desc, align = "center" }) {
   const isLeft = align === "left";
 
@@ -290,6 +296,24 @@ function PassportPreview() {
   );
 }
 
+function ArenaLogoMark({ className = "h-8 w-8" }) {
+  return (
+    <span className={`relative inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden="true">
+      <span className="absolute inset-0 rounded-[28%] bg-white shadow-[0_10px_24px_-14px_rgba(0,102,255,0.7)]" />
+      <span className="absolute inset-[2px] rounded-full bg-[conic-gradient(from_218deg,#155BFF_0deg,#155BFF_132deg,#20D6C6_226deg,#155BFF_340deg)]" />
+      <span className="absolute inset-[7px] rounded-full bg-white" />
+      <span className="absolute bottom-[5px] h-[10px] w-[7px] rounded-t-[3px] bg-[#155BFF]" />
+      <span className="absolute bottom-[9px] left-[8px] h-[11px] w-[4px] rounded-sm bg-[#155BFF]" />
+      <span className="absolute bottom-[9px] right-[8px] h-[11px] w-[4px] rounded-sm bg-[#20D6C6]" />
+      <span className="absolute bottom-[11px] left-[13px] h-[15px] w-[5px] rounded-sm bg-[#1682FF]" />
+      <span className="absolute bottom-[11px] right-[13px] h-[15px] w-[5px] rounded-sm bg-[#18C8D6]" />
+      <span className="absolute left-1/2 top-[4px] h-[23px] w-[2.5px] -translate-x-1/2 rounded-full bg-[#155BFF]" />
+      <span className="absolute left-1/2 top-[7px] ml-[1px] h-[9px] w-[15px] rounded-r-full bg-[#155BFF]" />
+      <span className="absolute left-1/2 top-[3px] h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-[#155BFF]" />
+    </span>
+  );
+}
+
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -308,11 +332,9 @@ export default function Landing() {
         className="pointer-events-none fixed left-0 right-0 top-[22px] z-50 flex justify-center px-4 md:top-[30px]"
       >
         <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/70 bg-white/75 px-4 shadow-[0_6px_18px_-14px_rgba(15,23,42,0.12)] backdrop-blur-[32px] md:px-6">
-          <Link to="/" className="flex items-center gap-2 font-[var(--font-fustat)] text-[21px] font-extrabold text-black">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0084FF] text-white shadow-[0_6px_18px_rgba(0,132,255,0.24)]">
-              <Swords size={16} />
-            </span>
-            ML Арена
+          <Link to="/" className="flex items-center gap-2.5 font-[var(--font-fustat)] text-[21px] font-extrabold text-black">
+            <ArenaLogoMark className="h-8 w-8" />
+            ML-Арена
           </Link>
           <nav className="hidden items-center gap-7 md:flex">
             {[
@@ -360,7 +382,10 @@ export default function Landing() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-10 flex items-center justify-between">
-              <span className="font-[var(--font-fustat)] text-lg font-extrabold text-black">ML Арена</span>
+              <span className="flex items-center gap-2.5 font-[var(--font-fustat)] text-lg font-extrabold text-black">
+                <ArenaLogoMark className="h-8 w-8" />
+                ML-Арена
+              </span>
               <button
                 type="button"
                 className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-black/5 text-black"
@@ -426,7 +451,7 @@ export default function Landing() {
                 </div>
 
                 <h1 className="mt-6 select-none font-[var(--font-outfit)] text-[42px] font-black leading-[1.08] text-black sm:text-[50px] lg:text-[60px]">
-                  ML Арена
+                  ML-Арена
                 </h1>
                 <p className="mt-3 font-[var(--font-outfit)] text-[29px] font-bold leading-[1.1] text-black sm:text-[34px] lg:text-[41px]">
                   Докажи навык в машинном обучении результатом
@@ -498,12 +523,13 @@ export default function Landing() {
             viewport={{ once: true, amount: 0.25 }}
             variants={reveal}
             transition={transition}
-            className="max-w-7xl mx-auto grid gap-10 px-4 py-16 lg:grid-cols-[1fr_1.2fr] lg:items-center lg:py-20"
+            className="max-w-7xl mx-auto grid gap-10 px-4 py-16 lg:grid-cols-[0.95fr_1.25fr] lg:items-center lg:py-20"
           >
-            <div>
+            <div className="relative">
+
               <h2 className="font-heading text-4xl md:text-5xl font-bold mb-4">Founder Season</h2>
               <p className="max-w-xl text-muted-foreground leading-relaxed">
-                ML Арена еще находится в разработке. В предсезоне первые участники получат мини-задачи,
+                ML-Арена еще находится в разработке. В предсезоне первые участники получат мини-задачи,
                 разборы, ранний рейтинг, подготовку к соревнованию открытия и специальные награды.
               </p>
               <Button asChild className="mt-6">
@@ -512,30 +538,43 @@ export default function Landing() {
                 </Link>
               </Button>
             </div>
-            <div className="grid sm:grid-cols-3 border-y border-border">
-              {["Мини-задачи", "Разборы", "Ранний рейтинг"].map((item, index) => (
-                <div key={item} className="border-b border-border p-5 sm:border-b-0 sm:border-r">
-                  <span className="mb-6 block font-mono text-xs text-primary">0{index + 1}</span>
-                  <p className="font-heading font-semibold">{item}</p>
-                </div>
+            <div className="relative grid gap-3 sm:grid-cols-3">
+              <div className="pointer-events-none absolute left-8 right-8 top-9 hidden h-px bg-gradient-to-r from-primary/10 via-primary/35 to-cyan-400/20 sm:block" />
+              {FOUNDER_STEPS.map((step, index) => (
+                <motion.div
+                  key={step.title}
+                  whileHover={reduceMotion ? undefined : { y: -5 }}
+                  className="group relative overflow-hidden rounded-[22px] border border-white/80 bg-background/75 p-5 shadow-[0_18px_45px_-32px_rgba(37,99,235,0.55)] ring-1 ring-black/5 backdrop-blur-xl"
+                >
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#155BFF] to-[#20D6C6] opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="mb-8 flex items-center justify-between">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner transition-all group-hover:bg-primary group-hover:text-primary-foreground">
+                      <step.icon size={21} />
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-primary/70">0{index + 1}</span>
+                  </div>
+                  <p className="font-heading text-lg font-semibold">{step.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+                </motion.div>
               ))}
             </div>
           </motion.div>
         </section>
 
-        <section className="max-w-7xl mx-auto grid gap-12 px-4 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-28">
+        <section className="max-w-7xl mx-auto grid gap-12 px-4 py-20 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:py-28">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             variants={reveal}
             transition={transition}
+            className="lg:pr-8"
           >
-            <h2 className="font-heading text-4xl md:text-5xl font-bold">
+            <h2 className="font-heading text-4xl md:text-5xl font-bold leading-tight">
               Войти в ML сложно. Доказать навык еще сложнее.
             </h2>
           </motion.div>
-          <div className="border-t border-border">
+          <div className="grid gap-3">
             {PROBLEMS.map((problem, index) => (
               <motion.div
                 key={problem}
@@ -544,10 +583,16 @@ export default function Landing() {
                 viewport={{ once: true, amount: 0.4 }}
                 variants={reveal}
                 transition={{ ...transition, delay: index * 0.05 }}
-                className="grid grid-cols-[44px_1fr] gap-4 border-b border-border py-5 md:py-6"
+                whileHover={reduceMotion ? undefined : { x: 6 }}
+                className="group relative grid grid-cols-[54px_1fr] gap-4 overflow-hidden rounded-[20px] border border-border/80 bg-card p-5 shadow-sm transition-colors hover:border-primary/30 hover:bg-background"
               >
-                <span className="font-mono text-sm text-primary">0{index + 1}</span>
-                <p className="text-base leading-relaxed text-muted-foreground md:text-lg">{problem}</p>
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 font-mono text-sm font-semibold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  0{index + 1}
+                </span>
+                <p className="self-center text-base leading-relaxed text-muted-foreground md:text-lg">{problem}</p>
+                {index < PROBLEMS.length - 1 && (
+                  <span className="absolute bottom-0 left-[27px] top-[58px] hidden w-px bg-gradient-to-b from-primary/25 to-transparent md:block" />
+                )}
               </motion.div>
             ))}
           </div>
@@ -643,7 +688,7 @@ export default function Landing() {
         </section>
 
         <section className="max-w-7xl mx-auto px-4 py-20 lg:py-28">
-          <SectionTitle title="Для кого ML Арена" />
+          <SectionTitle title="Для кого ML-Арена" />
           <div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2 lg:grid-cols-5">
             {AUDIENCES.map((audience, index) => (
               <motion.div
@@ -721,12 +766,10 @@ export default function Landing() {
       <footer className="border-t border-border py-9">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <Swords size={16} className="text-white" />
-            </div>
-            <span className="font-heading font-bold">ML Арена</span>
+            <ArenaLogoMark className="h-8 w-8" />
+            <span className="font-heading font-bold">ML-Арена</span>
           </div>
-          <p className="text-sm text-muted-foreground">© 2026 ML Арена. Практика, рейтинг и ML-паспорт.</p>
+          <p className="text-sm text-muted-foreground">© 2026 ML-Арена. Практика, рейтинг и ML-паспорт.</p>
         </div>
       </footer>
     </div>
