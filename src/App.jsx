@@ -56,7 +56,14 @@ const AuthenticatedApp = () => {
           <Route path="/competitions" element={<Competitions />} />
           <Route path="/competitions/:id" element={<CompetitionDetail />} />
           <Route path="/duels" element={<Duels />} />
+          <Route path="/duels/matchmaking" element={<Duels />} />
+          <Route path="/duels/history" element={<Duels />} />
+          <Route path="/duels/rating" element={<Duels />} />
           <Route path="/duels/:id" element={<DuelLobby />} />
+          <Route path="/duels/:id/lobby" element={<DuelLobby />} />
+          <Route path="/duels/:id/live" element={<DuelLobby />} />
+          <Route path="/duels/:id/overtime" element={<DuelLobby />} />
+          <Route path="/duels/:id/result" element={<DuelLobby />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<Navigate to="/profile/me" replace />} />
           <Route path="/profile/:id" element={<Profile />} />

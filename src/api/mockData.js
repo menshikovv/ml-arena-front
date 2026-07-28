@@ -282,7 +282,7 @@ export const mockEntities = {
     },
     async create(data) {
       await delay(200);
-      const entry = { id: "du" + generateId(), ...data };
+      const entry = { id: "du" + generateId(), created_date: new Date().toISOString(), ...data };
       store.duels.unshift(entry);
       return clone(entry);
     },
@@ -296,9 +296,17 @@ export const mockEntities = {
         const p2score = store.duels[idx].player2_score || 0;
         const higher = ["accuracy", "roc_auc", "f1"].includes(store.duels[idx].metric);
         store.duels[idx].status = "completed";
-        store.duels[idx].winner_name = higher
-          ? (p1score > p2score ? store.duels[idx].player1_name : store.duels[idx].player2_name)
-          : (p1score < p2score ? store.duels[idx].player1_name : store.duels[idx].player2_name);
+        if (p1score === p2score) {
+          const p1time = new Date(store.duels[idx].player1_submitted_at).getTime();
+          const p2time = new Date(store.duels[idx].player2_submitted_at).getTime();
+          store.duels[idx].winner_name = p1time <= p2time
+            ? store.duels[idx].player1_name
+            : store.duels[idx].player2_name;
+        } else {
+          store.duels[idx].winner_name = higher
+            ? (p1score > p2score ? store.duels[idx].player1_name : store.duels[idx].player2_name)
+            : (p1score < p2score ? store.duels[idx].player1_name : store.duels[idx].player2_name);
+        }
         store.duels[idx].rating_change = Math.floor(Math.random() * 20) + 5;
       }
       return clone(store.duels[idx]);
