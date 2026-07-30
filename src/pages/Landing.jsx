@@ -346,7 +346,7 @@ export default function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <Link
-              to="/register"
+              to="/login"
               className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex"
             >
               Войти на арену
@@ -405,7 +405,7 @@ export default function Landing() {
               ))}
             </nav>
             <Link
-              to="/register"
+              to="/login"
               onClick={() => setMobileMenuOpen(false)}
               className="mt-6 flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white"
             >
