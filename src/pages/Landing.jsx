@@ -86,12 +86,11 @@ const FOUNDER_STEPS = [
   { icon: LineChart, title: "Ранний рейтинг", desc: "первые позиции до запуска" },
 ];
 
-function SectionTitle({ eyebrow, title, desc, align = "center" }) {
+function SectionTitle({ title, desc, align = "center" }) {
   const isLeft = align === "left";
 
   return (
     <div className={`${isLeft ? "text-left" : "text-center"} mb-10`}>
-      {eyebrow && <p className="text-xs font-semibold uppercase text-primary mb-3">{eyebrow}</p>}
       <h2 className="font-heading text-3xl md:text-5xl font-bold mb-4 max-w-4xl mx-auto">{title}</h2>
       {desc && <p className={`text-muted-foreground max-w-2xl leading-relaxed ${isLeft ? "" : "mx-auto"}`}>{desc}</p>}
     </div>

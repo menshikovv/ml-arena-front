@@ -140,8 +140,7 @@ function OverviewTab({ competition, meta }) {
   return (
     <div>
       <section className="border-b border-border pb-7">
-        <p className="text-xs font-semibold uppercase text-primary">Постановка</p>
-        <h2 className="mt-2 font-heading text-2xl font-bold">Что нужно сделать</h2>
+        <h2 className="font-heading text-2xl font-bold">Что нужно сделать</h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">{competition.description}</p>
       </section>
 
@@ -163,8 +162,7 @@ function OverviewTab({ competition, meta }) {
       <section className="border-b border-border py-7">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-semibold uppercase text-primary">Метрика</p>
-            <h2 className="mt-2 font-heading text-xl font-bold">{METRIC_LABELS[competition.metric]}</h2>
+            <h2 className="font-heading text-xl font-bold">{METRIC_LABELS[competition.metric]}</h2>
           </div>
           <span className="text-sm font-semibold text-accent">{higher ? "Чем выше, тем лучше" : "Чем ниже, тем лучше"}</span>
         </div>
@@ -176,8 +174,7 @@ function OverviewTab({ competition, meta }) {
       <section className="border-b border-border py-7">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase text-primary">Leaderboard split</p>
-            <h2 className="mt-2 font-heading text-xl font-bold">Public помогает ориентироваться. Private определяет финал.</h2>
+            <h2 className="font-heading text-xl font-bold">Public помогает ориентироваться. Private определяет финал.</h2>
           </div>
           <Lock className="hidden text-primary sm:block" size={24} />
         </div>
@@ -193,7 +190,7 @@ function OverviewTab({ competition, meta }) {
       </section>
 
       <section className="py-7">
-        <p className="text-xs font-semibold uppercase text-primary">Этапы соревнования</p>
+        <h2 className="font-heading text-xl font-bold">Этапы соревнования</h2>
         <div className="mt-5 grid sm:grid-cols-4">
           {[
             ["01", "Старт", "Данные открыты"],
@@ -251,8 +248,7 @@ function DataTab({ competition, meta, locked }) {
       )}
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase text-primary">Dataset</p>
-          <h2 className="mt-2 font-heading text-2xl font-bold">Файлы соревнования</h2>
+          <h2 className="font-heading text-2xl font-bold">Файлы соревнования</h2>
         </div>
         <div className="text-xs text-muted-foreground">Версия {meta.dataVersion} · обновлено 28.07.2026</div>
       </div>
@@ -389,8 +385,7 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
     <div>
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase text-primary">CSV submit</p>
-          <h2 className="mt-2 font-heading text-2xl font-bold">Загрузить решение</h2>
+          <h2 className="font-heading text-2xl font-bold">Загрузить решение</h2>
         </div>
         <div className="text-sm font-semibold">{attemptsUsed} из {competition.max_submits_free || 5} попыток сегодня</div>
       </div>
@@ -495,8 +490,7 @@ function LeaderboardTab({ competition, leaderboard, submissions }) {
     <div>
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 md:flex-row md:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase text-primary">Ranking</p>
-          <h2 className="mt-2 font-heading text-2xl font-bold">Leaderboard</h2>
+          <h2 className="font-heading text-2xl font-bold">Leaderboard</h2>
         </div>
         <div className="flex border border-border p-1">
           <button type="button" onClick={() => setMode("public")} className={cn("h-8 px-4 text-xs font-semibold", mode === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Public</button>
@@ -575,8 +569,7 @@ function RulesTab({ competition }) {
   const [open, setOpen] = useState(0);
   return (
     <div>
-      <p className="text-xs font-semibold uppercase text-primary">Fair play</p>
-      <h2 className="mt-2 font-heading text-2xl font-bold">Правила соревнования</h2>
+      <h2 className="font-heading text-2xl font-bold">Правила соревнования</h2>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.rules}</p>
       <div className="mt-6 border-y border-border">
         {RULE_SECTIONS.map(([title, text], index) => (
@@ -603,8 +596,7 @@ function RulesTab({ competition }) {
 function DiscussionTab({ discussions, newThread, setNewThread, onCreate }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase text-primary">Вопросы и ответы</p>
-      <h2 className="mt-2 font-heading text-2xl font-bold">Обсуждение</h2>
+      <h2 className="font-heading text-2xl font-bold">Обсуждение</h2>
       <div className="mt-6 border-y border-border py-5">
         <h3 className="text-sm font-semibold">Задать вопрос</h3>
         <div className="mt-3 space-y-3">
@@ -646,7 +638,7 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
 
   return (
     <aside className="border-y border-border bg-card p-5 lg:sticky lg:top-5">
-      <p className="text-xs font-semibold uppercase text-primary">Моё участие</p>
+      <h2 className="font-heading text-lg font-bold">Моё участие</h2>
       <div className="mt-4 flex items-center gap-3">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-md", joined ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground")}>
           {joined ? <Check size={19} /> : <Trophy size={19} />}

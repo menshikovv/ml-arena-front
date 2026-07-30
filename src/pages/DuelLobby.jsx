@@ -144,10 +144,7 @@ function RulesDialog({ open, onClose }) {
             className="w-full max-w-lg border border-border bg-card p-5 shadow-xl"
           >
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase text-primary">Рейтинговая дуэль</p>
-                <h2 id="duel-rules-title" className="mt-1 font-heading text-xl font-bold">Правила матча</h2>
-              </div>
+              <h2 id="duel-rules-title" className="font-heading text-xl font-bold">Правила матча</h2>
               <Button variant="ghost" size="icon" onClick={onClose} aria-label="Закрыть правила"><X /></Button>
             </div>
             <div className="mt-5 divide-y divide-border border-y border-border">
@@ -330,8 +327,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
     <section className="border-t border-border pt-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase text-primary">{overtime ? "Дозагрузка" : "Submit"}</p>
-          <h2 className="mt-1 font-heading text-xl font-bold">Загрузить решение</h2>
+          <h2 className="font-heading text-xl font-bold">{overtime ? "Дозагрузить решение" : "Загрузить решение"}</h2>
         </div>
         <span className="text-xs text-muted-foreground">CSV · до 5 МБ</span>
       </div>
@@ -584,7 +580,7 @@ function LiveView({ duel, overtime, onFinished }) {
         <main className="min-w-0">
           <section>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase text-primary">
+              <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">
                 {TASK_TYPE_LABELS[duel.task_type] || duel.task_type}
               </span>
               <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">
@@ -680,8 +676,7 @@ function ResultView({ duel }) {
       </Link>
       <section className="mt-5 border-y border-border bg-card py-8 text-center md:py-11">
         <Trophy className={cn("mx-auto", userWon ? "text-accent" : "text-primary")} size={36} />
-        <p className="mt-4 text-xs font-medium uppercase text-primary">Дуэль завершена</p>
-        <h1 className="mt-2 font-heading text-3xl font-bold md:text-5xl">
+        <h1 className="mt-5 font-heading text-3xl font-bold md:text-5xl">
           {isDraw ? "Равный score" : userWon ? "Ты выиграл дуэль" : "Дуэль окончена поражением"}
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
@@ -734,7 +729,7 @@ function ResultView({ duel }) {
 
       <section className="grid gap-8 border-b border-border py-8 lg:grid-cols-[.8fr_1.2fr]">
         <div>
-          <p className="text-xs font-medium uppercase text-primary">Изменение рейтинга</p>
+          <h2 className="font-heading text-xl font-bold">Изменение рейтинга</h2>
           <div className="mt-3 flex items-end gap-3">
             <span className={cn("font-heading text-5xl font-bold", userWon ? "text-accent" : "text-destructive")}>
               {userWon ? "+" : "−"}{ratingDelta}
@@ -747,8 +742,7 @@ function ResultView({ duel }) {
           <p className="mt-2 text-xs text-muted-foreground">{userWon ? "До следующей лиги осталось 36 Elo" : "Позиция в текущей лиге сохранена"}</p>
         </div>
         <div className="border-l-0 border-border lg:border-l lg:pl-8">
-          <p className="text-xs font-medium uppercase text-primary">Почему такой результат</p>
-          <h2 className="mt-2 font-heading text-xl font-bold">
+          <h2 className="font-heading text-xl font-bold">
             {isDraw ? "Решило время загрузки" : "Победитель определён по лучшему score"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -783,8 +777,7 @@ function ResultView({ duel }) {
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium uppercase text-primary">Следующий шаг</p>
-          <h2 className="mt-2 font-heading text-xl font-bold">Продолжить серию</h2>
+          <h2 className="font-heading text-xl font-bold">Продолжить серию</h2>
           <div className="mt-5 space-y-2">
             <Button className="w-full" onClick={() => navigate("/duels/matchmaking")}><RefreshCw size={15} /> Сыграть ещё</Button>
             <Button variant="outline" className="w-full" onClick={exportCard}><Download size={15} /> Скачать карточку</Button>
