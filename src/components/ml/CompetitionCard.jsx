@@ -133,11 +133,6 @@ export default function CompetitionCard({ competition, status, meta, userState, 
                 </span>
               </div>
 
-              {featured && (
-                <p className="mb-4 text-xs font-semibold uppercase text-background/60">
-                  Главное рейтинговое событие сезона
-                </p>
-              )}
               <h2
                 className={cn(
                   "max-w-4xl font-heading font-bold leading-tight transition-colors",
@@ -180,11 +175,8 @@ export default function CompetitionCard({ competition, status, meta, userState, 
             )}
           >
             <div>
-              <div className={cn("mb-8 flex items-center justify-between", !featured && "mb-5")}>
+              <div className={cn("mb-8", !featured && "mb-5")}>
                 <Trophy size={featured ? 34 : 24} className={featured ? "text-background" : "text-primary"} />
-                <span className={cn("text-[10px] font-semibold uppercase", featured ? "text-background/45" : "text-muted-foreground")}>
-                  Founder Season
-                </span>
               </div>
               <p className={cn("text-[10px] font-medium uppercase", featured ? "text-background/45" : "text-muted-foreground")}>
                 {competition.prize_fund > 0 ? "Призовой фонд" : "Формат"}

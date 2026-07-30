@@ -11,7 +11,6 @@ import {
   Loader2,
   Search,
   ShieldCheck,
-  Sparkles,
   Trophy,
   Users,
 } from "lucide-react";
@@ -121,11 +120,7 @@ export default function Competitions() {
           <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
             <div className="flex min-h-[300px] flex-col justify-between p-6 md:p-9">
               <div>
-                <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary">
-                  <Sparkles size={15} />
-                  Founder Season · 2026
-                </div>
-                <h1 className="mt-5 max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
+                <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
                   Соревнования, которые определяют сезон
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
@@ -244,8 +239,7 @@ export default function Competitions() {
 
         <div className="mt-9 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-semibold uppercase text-primary">Программа сезона</p>
-            <h2 className="mt-2 font-heading text-2xl font-bold md:text-3xl">
+            <h2 className="font-heading text-2xl font-bold md:text-3xl">
               {statusFilter === "active"
                 ? "События в центре внимания"
                 : statusFilter === "upcoming"

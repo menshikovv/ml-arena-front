@@ -7,7 +7,6 @@ import {
   BarChart3,
   Check,
   ChevronRight,
-  CircleDot,
   Clock3,
   History,
   Loader2,
@@ -262,10 +261,6 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
           <div className="grid lg:grid-cols-[1fr_auto]">
             <div className="flex min-h-[320px] flex-col justify-between p-6 md:p-10">
               <div>
-                <div className="mb-5 inline-flex items-center gap-2 text-xs font-medium text-primary">
-                  <CircleDot size={14} className="fill-primary/20" />
-                  27 игроков ищут соперника
-                </div>
                 <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
                   Дуэли 1×1 по машинному обучению
                 </h1>
@@ -299,8 +294,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
       <Reveal delay={0.06} className="py-9">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase text-primary">Условия матча</p>
-            <h2 className="mt-1 font-heading text-xl font-bold md:text-2xl">Выбери направление</h2>
+            <h2 className="font-heading text-xl font-bold md:text-2xl">Выбери направление</h2>
           </div>
           <span className="hidden text-xs text-muted-foreground md:block">Рейтинг соперника: ±200 Elo</span>
         </div>
@@ -329,8 +323,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
         <Reveal delay={0.08}>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium uppercase text-primary">Точный вызов</p>
-              <h2 className="mt-1 font-heading text-xl font-bold">Найти соперника</h2>
+              <h2 className="font-heading text-xl font-bold">Найти соперника</h2>
             </div>
             <Search size={20} className="text-muted-foreground" />
           </div>
@@ -376,8 +369,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
         <Reveal delay={0.12}>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium uppercase text-primary">Сейчас онлайн</p>
-              <h2 className="mt-1 font-heading text-xl font-bold">Ближайшие по Elo</h2>
+              <h2 className="font-heading text-xl font-bold">Ближайшие по Elo</h2>
             </div>
             <span className="text-xs text-muted-foreground">Win rate</span>
           </div>
@@ -397,8 +389,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
       <section className="border-t border-border py-9">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase text-primary">Последние матчи</p>
-            <h2 className="mt-1 font-heading text-xl font-bold md:text-2xl">Твоя форма</h2>
+            <h2 className="font-heading text-xl font-bold md:text-2xl">Твоя форма</h2>
           </div>
           <Button asChild variant="ghost" size="sm">
             <Link to="/duels/history">Вся история <ArrowRight size={14} /></Link>
@@ -423,8 +414,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
       <section className="border-y border-border py-9">
         <div className="grid gap-8 lg:grid-cols-[.7fr_1.3fr]">
           <div>
-            <p className="text-xs font-medium uppercase text-primary">Duel rating</p>
-            <h2 className="mt-1 font-heading text-2xl font-bold">Сильнейшие дуэлянты</h2>
+            <h2 className="font-heading text-2xl font-bold">Сильнейшие дуэлянты</h2>
             <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
               Elo меняется после каждого рейтингового матча. Premium не влияет на подбор, время или число попыток.
             </p>
@@ -602,8 +592,7 @@ function HistoryView({ duels, isLoading }) {
     <Reveal>
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="text-xs font-medium uppercase text-primary">Архив матчей</p>
-          <h1 className="mt-1 font-heading text-3xl font-bold">История дуэлей</h1>
+          <h1 className="font-heading text-3xl font-bold">История дуэлей</h1>
           <p className="mt-2 text-sm text-muted-foreground">{CURRENT_USER.wins + CURRENT_USER.losses} матчей · {CURRENT_USER.wins} побед</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -658,8 +647,7 @@ function RatingView() {
     <Reveal>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
-          <p className="text-xs font-medium uppercase text-primary">Рейтинговые дуэли</p>
-          <h1 className="mt-1 font-heading text-3xl font-bold">Рейтинг дуэлянтов</h1>
+          <h1 className="font-heading text-3xl font-bold">Рейтинг дуэлянтов</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Позиция рассчитывается по Duel Elo. При подборе учитываются только игроки в диапазоне 200 очков.
           </p>
