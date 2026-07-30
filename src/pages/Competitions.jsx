@@ -123,13 +123,13 @@ export default function Competitions() {
               <div>
                 <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary">
                   <Sparkles size={15} />
-                  Открытые ML-задачи
+                  Founder Season · 2026
                 </div>
                 <h1 className="mt-5 max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
-                  Докажи навык на реальной задаче
+                  Соревнования, которые определяют сезон
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                  Выбери соревнование, скачай данные, отправь CSV и получи место в общем leaderboard.
+                  Докажи навык на реальной задаче, отправь решение и займи своё место в общем leaderboard.
                 </p>
               </div>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -149,10 +149,10 @@ export default function Competitions() {
 
             <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
               {[
-                { icon: Trophy, label: "Активных", value: stats.active || "—" },
+                { icon: Trophy, label: "Событий сезона", value: competitions.length || "—" },
                 { icon: Users, label: "Участников", value: stats.participants || "—" },
                 { icon: CalendarClock, label: "Ближайший дедлайн", value: stats.deadline },
-                { icon: ShieldCheck, label: "Рейтинговый лимит", value: "Равный" },
+                { icon: ShieldCheck, label: "Сейчас активно", value: stats.active || "—" },
               ].map((item, index) => {
                 const Icon = item.icon;
                 return (
@@ -242,8 +242,23 @@ export default function Competitions() {
           </div>
         </Reveal>
 
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Найдено: {filtered.length}</p>
+        <div className="mt-9 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase text-primary">Программа сезона</p>
+            <h2 className="mt-2 font-heading text-2xl font-bold md:text-3xl">
+              {statusFilter === "active"
+                ? "События в центре внимания"
+                : statusFilter === "upcoming"
+                  ? "Следующие старты"
+                  : "Архив больших результатов"}
+            </h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} {pluralize(filtered.length, "соревнование", "соревнования", "соревнований")}
+          </p>
+        </div>
+
+        <div className="mt-3 flex justify-end">
           {(search || typeFilter !== "all" || sort !== "deadline") && (
             <button type="button" onClick={clearFilters} className="text-xs font-medium text-primary hover:underline">
               Сбросить фильтры
@@ -256,14 +271,16 @@ export default function Competitions() {
             <Loader2 className="animate-spin text-primary" size={26} />
           </div>
         ) : filtered.length ? (
-          <Stagger className="mt-4 space-y-4" delay={0.06}>
-            {filtered.map((competition) => (
+          <Stagger className="mt-6 space-y-6" delay={0.06}>
+            {filtered.map((competition, index) => (
               <StaggerItem key={competition.id}>
                 <CompetitionCard
                   competition={competition}
                   status={getStatus(competition)}
                   meta={COMPETITION_META[competition.id] || { difficulty: "Medium", access: "Открыто", domain: "Other", publicSplit: 30 }}
                   userState={USER_STATES[competition.id]}
+                  featured={index === 0}
+                  sequence={index + 1}
                 />
               </StaggerItem>
             ))}
