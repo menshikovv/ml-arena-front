@@ -55,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route element={<AppLayout />}>
           <Route path="/competitions" element={<Competitions />} />
           <Route path="/competitions/:id" element={<CompetitionDetail />} />
+          <Route path="/competitions/:id/:section" element={<CompetitionDetail />} />
           <Route path="/duels" element={<Duels />} />
           <Route path="/duels/matchmaking" element={<Duels />} />
           <Route path="/duels/history" element={<Duels />} />

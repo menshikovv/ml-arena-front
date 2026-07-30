@@ -1,323 +1,878 @@
-import React, { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import { AnimatePresence, motion } from "framer-motion";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Award,
+  BarChart3,
+  CalendarClock,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Database,
+  Download,
+  FileCheck2,
+  FileCode2,
+  FileText,
+  Gauge,
+  Info,
+  Loader2,
+  Lock,
+  MessageSquare,
+  Send,
+  ShieldCheck,
+  Target,
+  Trophy,
+  Upload,
+  Users,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import { base44 } from "@/api/base44Client";
+import Avatar from "@/components/ml/Avatar";
+import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import Avatar from "@/components/ml/Avatar";
 import {
-  ArrowLeft, Download, Upload, Trophy, FileText, Database,
-  ScrollText, MessageSquare, Loader2, Users, Award, Send
-} from "lucide-react";
-import {
-  TASK_TYPE_LABELS, TASK_TYPE_COLORS, METRIC_LABELS,
-  isHigherBetter, formatScore
+  METRIC_LABELS,
+  TASK_TYPE_LABELS,
+  formatScore,
+  isHigherBetter,
 } from "@/lib/ml-arena";
-import { toast } from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "overview", label: "Обзор", icon: FileText },
   { id: "data", label: "Данные", icon: Database },
-  { id: "leaderboard", label: "Лидерборд", icon: Trophy },
-  { id: "rules", label: "Правила", icon: ScrollText },
+  { id: "submit", label: "Submit", icon: Upload },
+  { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+  { id: "rules", label: "Правила", icon: ShieldCheck },
   { id: "discussion", label: "Обсуждение", icon: MessageSquare },
 ];
 
-export default function CompetitionDetail() {
-  const { id } = useParams();
-  const [tab, setTab] = useState("overview");
+const META = {
+  c1: { difficulty: "Medium", domain: "Fintech", publicSplit: 30, dataVersion: "1.2", dataSize: "48 МБ", baseline: "RMSE 2.5000" },
+  c2: { difficulty: "Easy", domain: "NLP", publicSplit: 30, dataVersion: "1.0", dataSize: "22 МБ", baseline: "F1 0.7810" },
+  c3: { difficulty: "Hard", domain: "Fintech", publicSplit: 25, dataVersion: "2.1", dataSize: "76 МБ", baseline: "ROC-AUC 0.8420" },
+  c4: { difficulty: "Hard", domain: "Retail", publicSplit: 30, dataVersion: "1.1", dataSize: "1.4 ГБ", baseline: "Dice 0.7100" },
+  c5: { difficulty: "Medium", domain: "Mobility", publicSplit: 30, dataVersion: "0.9", dataSize: "18 МБ", baseline: "MAE 32.4000" },
+  c6: { difficulty: "Beginner", domain: "Synthetic", publicSplit: 30, dataVersion: "1.0", dataSize: "34 МБ", baseline: "Accuracy 0.9700" },
+};
+
+const RULE_SECTIONS = [
+  ["Формат участия", "Соревнование индивидуальное. Один участник может использовать только один аккаунт."],
+  ["Формат решения", "CSV с колонками id и prediction. Идентификаторы должны полностью совпадать с test.csv."],
+  ["Лимиты", "Лимит попыток одинаков для всех участников рейтингового соревнования."],
+  ["Внешние данные", "Использование внешних данных допускается только при явном разрешении организатора."],
+  ["Предобученные модели", "Открытые предобученные модели разрешены, если в условии не указано обратное."],
+  ["Leaderboard", "Во время турнира виден public score. Итог определяется по private score после завершения."],
+  ["Дисквалификация", "Утечки, мультиаккаунты и атаки на платформу приводят к исключению результата."],
+  ["Финальная проверка", "Участники top-10 могут получить запрос на воспроизводимый код решения."],
+];
+
+const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+function pluralize(value, one, few, many) {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+function getStatus(competition) {
+  if (competition.status === "completed") return "finished";
+  if (competition.status === "draft") return "upcoming";
+  if (competition.deadline && new Date(competition.deadline).getTime() < Date.now()) return "finalizing";
+  return "active";
+}
+
+function getDeadlineLabel(competition) {
+  if (!competition.deadline) return "Дата уточняется";
+  const date = new Date(competition.deadline);
+  const days = Math.max(0, Math.ceil((date.getTime() - Date.now()) / 86400000));
+  return `${days} ${pluralize(days, "день", "дня", "дней")} · до ${date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`;
+}
+
+function safeScore(score, metric) {
+  return typeof score === "number" ? formatScore(score, metric) : "—";
+}
+
+function downloadCsv(filename, content) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = href;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(href);
+}
+
+function CompetitionTabs({ competitionId, activeTab }) {
+  return (
+    <nav className="flex gap-1 overflow-x-auto border-b border-border scrollbar-thin" aria-label="Разделы соревнования">
+      {TABS.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <Link
+            key={tab.id}
+            to={`/competitions/${competitionId}/${tab.id}`}
+            className={cn(
+              "relative flex h-12 shrink-0 items-center gap-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-primary",
+              activeTab === tab.id && "text-primary",
+            )}
+          >
+            <Icon size={15} />
+            {tab.label}
+            {activeTab === tab.id && <motion.span layoutId="competition-tab" className="absolute inset-x-2 bottom-0 h-0.5 bg-primary" />}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function OverviewTab({ competition, meta }) {
+  const higher = isHigherBetter(competition.metric);
+  return (
+    <div>
+      <section className="border-b border-border pb-7">
+        <p className="text-xs font-semibold uppercase text-primary">Постановка</p>
+        <h2 className="mt-2 font-heading text-2xl font-bold">Что нужно сделать</h2>
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">{competition.description}</p>
+      </section>
+
+      <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ["Тип задачи", TASK_TYPE_LABELS[competition.task_type] || competition.task_type, Target],
+          ["Метрика", METRIC_LABELS[competition.metric] || competition.metric, Gauge],
+          ["Формат", "CSV · id + prediction", FileText],
+          ["Сложность", meta.difficulty, BarChart3],
+        ].map(([label, value, Icon], index) => (
+          <div key={label} className={cn("p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}>
+            <Icon className="text-primary" size={19} />
+            <p className="mt-4 text-xs text-muted-foreground">{label}</p>
+            <p className="mt-1 text-sm font-semibold">{value}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="border-b border-border py-7">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase text-primary">Метрика</p>
+            <h2 className="mt-2 font-heading text-xl font-bold">{METRIC_LABELS[competition.metric]}</h2>
+          </div>
+          <span className="text-sm font-semibold text-accent">{higher ? "Чем выше, тем лучше" : "Чем ниже, тем лучше"}</span>
+        </div>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+          Score рассчитывается на скрытой части тестовой выборки. Используй локальную валидацию, чтобы не подстраиваться под public leaderboard.
+        </p>
+      </section>
+
+      <section className="border-b border-border py-7">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase text-primary">Leaderboard split</p>
+            <h2 className="mt-2 font-heading text-xl font-bold">Public помогает ориентироваться. Private определяет финал.</h2>
+          </div>
+          <Lock className="hidden text-primary sm:block" size={24} />
+        </div>
+        <div className="mt-6 flex h-10 overflow-hidden rounded-md text-xs font-semibold">
+          <div className="flex items-center justify-center bg-primary text-primary-foreground" style={{ width: `${meta.publicSplit}%` }}>
+            {meta.publicSplit}% public
+          </div>
+          <div className="flex items-center justify-center bg-secondary text-secondary-foreground" style={{ width: `${100 - meta.publicSplit}%` }}>
+            {100 - meta.publicSplit}% private
+          </div>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">Private score откроется после завершения и финального пересчёта.</p>
+      </section>
+
+      <section className="py-7">
+        <p className="text-xs font-semibold uppercase text-primary">Этапы соревнования</p>
+        <div className="mt-5 grid sm:grid-cols-4">
+          {[
+            ["01", "Старт", "Данные открыты"],
+            ["02", "Submit", getDeadlineLabel(competition)],
+            ["03", "Private reveal", "После дедлайна"],
+            ["04", "Проверка top-10", "Итоговый результат"],
+          ].map(([number, title, text], index) => (
+            <div key={number} className={cn("relative border-t border-border p-4", index > 0 && "sm:border-l")}>
+              <span className="font-mono text-[10px] text-primary">{number}</span>
+              <p className="mt-3 text-sm font-semibold">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid border-y border-border md:grid-cols-2">
+        <div className="p-5 md:p-6">
+          <FileCode2 className="text-primary" size={21} />
+          <h3 className="mt-4 font-heading text-lg font-bold">Начать с baseline</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Базовое решение даёт {meta.baseline} и показывает полный путь от данных до submit.</p>
+          <Button variant="outline" className="mt-4" onClick={() => downloadCsv("baseline.py", "# Baseline ML Arena\n# Load train.csv, fit model, save submission.csv")}>
+            <Download size={15} />
+            Скачать baseline
+          </Button>
+        </div>
+        <div className="border-t border-border p-5 md:border-l md:border-t-0 md:p-6">
+          <ShieldCheck className="text-accent" size={21} />
+          <h3 className="mt-4 font-heading text-lg font-bold">Одинаковые правила для всех</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Premium не меняет лимит submit-ов, score, положение в leaderboard или доступ к public данным.</p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DataTab({ competition, meta, locked }) {
+  const files = [
+    { name: "train.csv", size: meta.dataSize, description: "Признаки и целевая переменная", icon: Database, content: "id,feature_1,feature_2,target\n1,0.41,12.8,1\n2,0.19,9.4,0" },
+    { name: "test.csv", size: "18 МБ", description: "Признаки без ответов", icon: Database, content: "id,feature_1,feature_2\n10001,0.52,11.1\n10002,0.24,8.9" },
+    { name: "sample_submission.csv", size: "2 КБ", description: "Обязательный шаблон id + prediction", icon: FileCheck2, content: "id,prediction\n10001,0.5\n10002,0.5" },
+    { name: "baseline.py", size: "8 КБ", description: `Стартовое решение · ${meta.baseline}`, icon: FileCode2, content: "# ML Arena baseline\n# Fit your model and write submission.csv" },
+  ];
+
+  return (
+    <div>
+      {locked && (
+        <div className="mb-5 flex gap-3 border border-primary/25 bg-primary/5 p-4">
+          <Lock className="mt-0.5 shrink-0 text-primary" size={18} />
+          <div>
+            <p className="text-sm font-semibold">Данные пока закрыты</p>
+            <p className="mt-1 text-xs text-muted-foreground">Файлы станут доступны после старта соревнования.</p>
+          </div>
+        </div>
+      )}
+      <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase text-primary">Dataset</p>
+          <h2 className="mt-2 font-heading text-2xl font-bold">Файлы соревнования</h2>
+        </div>
+        <div className="text-xs text-muted-foreground">Версия {meta.dataVersion} · обновлено 28.07.2026</div>
+      </div>
+      <div className="grid gap-3 py-5 md:grid-cols-2">
+        {files.map((file) => {
+          const Icon = file.icon;
+          return (
+            <div key={file.name} className="flex min-h-32 flex-col justify-between border border-border bg-card p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon size={18} /></div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{file.name}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{file.description}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                <span className="text-xs text-muted-foreground">{file.size}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={locked}
+                  onClick={() => downloadCsv(file.name, file.content)}
+                  aria-label={`Скачать ${file.name}`}
+                >
+                  <Download size={14} />
+                  Скачать
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="border-y border-border p-5">
+        <div className="flex gap-3">
+          <Info className="mt-0.5 shrink-0 text-primary" size={18} />
+          <div>
+            <p className="text-sm font-semibold">Формат решения</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Колонки id и prediction, без пропусков и NaN. Количество строк и id должны совпадать с test.csv.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJoin }) {
+  const inputRef = useRef(null);
   const [file, setFile] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [newThread, setNewThread] = useState({ title: "", content: "" });
-  const queryClient = useQueryClient();
+  const [status, setStatus] = useState("idle");
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState("");
+  const mySubmissions = submissions.filter((submission) => submission.user_name === "Ты");
+  const attemptsUsed = Math.min(mySubmissions.length, competition.max_submits_free || 5);
+  const attemptsLeft = Math.max(0, (competition.max_submits_free || 5) - attemptsUsed);
 
-  const { data: competition, isLoading } = useQuery({
-    queryKey: ["competition", id],
-    queryFn: () => base44.entities.Competition.get(id),
-    enabled: !!id,
-  });
+  const selectFile = (selected) => {
+    if (!selected) return;
+    if (!selected.name.toLowerCase().endsWith(".csv")) {
+      setFile(null);
+      setStatus("invalid");
+      setError("Нужен CSV-файл. Скачайте sample_submission и проверьте расширение.");
+      return;
+    }
+    if (selected.size > 10 * 1024 * 1024) {
+      setFile(null);
+      setStatus("invalid");
+      setError("Файл больше допустимых 10 МБ.");
+      return;
+    }
+    setFile(selected);
+    setStatus("idle");
+    setError("");
+  };
 
-  const { data: submissions } = useQuery({
-    queryKey: ["submissions", id],
-    queryFn: () => base44.entities.Submission.filter({ competition_id: id }, "-score", 50),
-    enabled: !!id,
-  });
-
-  const { data: discussions } = useQuery({
-    queryKey: ["discussions", id],
-    queryFn: () => base44.entities.Discussion.filter({ competition_id: id }, "-created_date", 50),
-    enabled: !!id,
-  });
-
-  const leaderboard = useMemo(() => {
-    if (!submissions) return [];
-    const best = new Map();
-    submissions.forEach((s) => {
-      const existing = best.get(s.user_name);
-      if (!existing || (isHigherBetter(competition?.metric) ? s.score > existing.score : s.score < existing.score)) {
-        best.set(s.user_name, s);
-      }
-    });
-    const arr = Array.from(best.values());
-    arr.sort((a, b) => isHigherBetter(competition?.metric) ? b.score - a.score : a.score - b.score);
-    return arr;
-  }, [submissions, competition]);
-
-  const handleFileUpload = async () => {
-    if (!file) return;
-    setSubmitting(true);
+  const submit = async () => {
+    if (!file || locked || attemptsLeft === 0) return;
     try {
+      setStatus("uploading");
+      setProgress(24);
+      await sleep(200);
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const higher = isHigherBetter(competition.metric);
-      const score = higher ? Math.random() * 0.3 + 0.7 : Math.random() * 0.5 + 0.1;
+      setProgress(100);
+      setStatus("validating");
+      await sleep(500);
+      setStatus("queued");
+      await sleep(450);
+      setStatus("scoring");
+      await sleep(650);
+      const score = isHigherBetter(competition.metric) ? 0.84 + Math.random() * 0.1 : 1.7 + Math.random() * 0.8;
       await base44.entities.Submission.create({
-        competition_id: id,
+        competition_id: competition.id,
         user_name: "Ты",
         file_url,
         score,
         status: "evaluated",
+        attempt_number: mySubmissions.length + 1,
+        created_date: new Date().toISOString(),
       });
-      toast.success("Решение загружено! Скор: " + formatScore(score, competition.metric));
+      setStatus("scored");
       setFile(null);
-      queryClient.invalidateQueries({ queryKey: ["submissions", id] });
-    } catch (err) {
-      toast.error("Ошибка загрузки: " + (err.message || "неизвестная"));
-    } finally {
-      setSubmitting(false);
+      await onSubmitted(score);
+    } catch (submitError) {
+      setStatus("failed");
+      setError(submitError.message || "Системная ошибка scoring. Попытка не списана.");
     }
   };
 
-  const handleCreateThread = async () => {
-    if (!newThread.title || !newThread.content) return;
+  const statusMeta = {
+    uploading: ["Загружаем файл", `${progress}%`],
+    validating: ["Проверяем CSV", "Колонки, id, пропуски и типы значений"],
+    queued: ["Решение принято", "Позиция в очереди: 1"],
+    scoring: ["Считаем public score", "Обычно это занимает меньше минуты"],
+    scored: ["Score рассчитан", "Leaderboard обновлён"],
+    invalid: ["Файл не принят", error],
+    failed: ["Ошибка проверки", error],
+  };
+
+  if (!joined) {
+    return (
+      <div className="border-y border-border py-14 text-center">
+        <Lock className="mx-auto text-primary" size={28} />
+        <h2 className="mt-4 font-heading text-2xl font-bold">{locked ? "Submit пока недоступен" : "Сначала присоединитесь к соревнованию"}</h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
+          {locked ? "Соревнование ещё не началось, завершено или доступно только по приглашению." : "После вступления откроются данные, submit и история ваших попыток."}
+        </p>
+        <Button className="mt-5" onClick={onJoin} disabled={locked}><Trophy size={16} /> {locked ? "Доступ закрыт" : "Присоединиться"}</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase text-primary">CSV submit</p>
+          <h2 className="mt-2 font-heading text-2xl font-bold">Загрузить решение</h2>
+        </div>
+        <div className="text-sm font-semibold">{attemptsUsed} из {competition.max_submits_free || 5} попыток сегодня</div>
+      </div>
+
+      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-secondary">
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(attemptsUsed / (competition.max_submits_free || 5)) * 100}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">Лимит одинаков для всех участников рейтингового соревнования.</p>
+
+      {locked || attemptsLeft === 0 ? (
+        <div className="mt-6 flex min-h-40 items-center justify-center border border-dashed border-border text-center">
+          <div>
+            <Lock className="mx-auto text-muted-foreground" size={22} />
+            <p className="mt-3 text-sm font-semibold">{locked ? "Submit закрыт" : "Лимит на сегодня исчерпан"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{locked ? "Соревнование не принимает новые решения." : "Новые попытки появятся завтра."}</p>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            selectFile(event.dataTransfer.files[0]);
+          }}
+          className="mt-6 flex min-h-44 w-full items-center justify-center border border-dashed border-border bg-secondary/20 p-6 text-center transition-colors hover:border-primary/60 hover:bg-primary/5"
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(event) => selectFile(event.target.files[0])}
+          />
+          <div>
+            <Upload className="mx-auto text-primary" size={28} />
+            <p className="mt-4 text-sm font-semibold">{file ? file.name : "Перетащите CSV или выберите файл"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{file ? `${(file.size / 1024).toFixed(1)} КБ · готов к отправке` : "id + prediction · без пропусков · до 10 МБ"}</p>
+          </div>
+        </button>
+      )}
+
+      {file && status === "idle" && <Button className="mt-3 w-full" onClick={submit}><Send size={15} /> Загрузить решение</Button>}
+
+      {statusMeta[status] && (
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4 border border-border p-4">
+          <div className="flex items-center gap-3">
+            {["uploading", "validating", "queued", "scoring"].includes(status)
+              ? <Loader2 className="animate-spin text-primary" size={18} />
+              : status === "scored"
+                ? <CheckCircle2 className="text-accent" size={18} />
+                : <AlertCircle className="text-destructive" size={18} />}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{statusMeta[status][0]}</p>
+              <p className="truncate text-xs text-muted-foreground">{statusMeta[status][1]}</p>
+            </div>
+          </div>
+          {status === "uploading" && <div className="mt-3 h-1 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} /></div>}
+        </motion.div>
+      )}
+
+      <section className="mt-8">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-lg font-bold">Мои submit-ы</h3>
+          <span className="text-xs text-muted-foreground">{mySubmissions.length} {pluralize(mySubmissions.length, "попытка", "попытки", "попыток")}</span>
+        </div>
+        {mySubmissions.length ? (
+          <div className="mt-3 overflow-x-auto border-y border-border">
+            <div className="min-w-[620px]">
+              <div className="grid grid-cols-[52px_120px_100px_110px_1fr_90px] border-b border-border py-3 text-xs text-muted-foreground">
+                <span>#</span><span>Время</span><span>Статус</span><span>Public score</span><span>Private score</span><span>Лучший</span>
+              </div>
+              {mySubmissions.map((submission, index) => (
+                <div key={submission.id} className="grid min-h-14 grid-cols-[52px_120px_100px_110px_1fr_90px] items-center border-b border-border text-xs">
+                  <span className="font-mono">{submission.attempt_number || mySubmissions.length - index}</span>
+                  <span className="text-muted-foreground">{new Date(submission.created_date).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="font-semibold text-accent">Scored</span>
+                  <span className="font-semibold">{safeScore(submission.score, competition.metric)}</span>
+                  <span className="text-muted-foreground">После финала</span>
+                  <span>{index === 0 ? "Лучший" : "—"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 border-y border-dashed border-border py-8 text-center text-sm text-muted-foreground">Валидных submit-ов пока нет.</div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function LeaderboardTab({ competition, leaderboard, submissions }) {
+  const [mode, setMode] = useState("public");
+  const [search, setSearch] = useState("");
+  const lockedPrivate = getStatus(competition) !== "finished";
+  const filtered = leaderboard.filter((submission) => submission.user_name.toLowerCase().includes(search.trim().toLowerCase()));
+  const currentUser = leaderboard.find((submission) => submission.user_name === "Ты");
+
+  return (
+    <div>
+      <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 md:flex-row md:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase text-primary">Ranking</p>
+          <h2 className="mt-2 font-heading text-2xl font-bold">Leaderboard</h2>
+        </div>
+        <div className="flex border border-border p-1">
+          <button type="button" onClick={() => setMode("public")} className={cn("h-8 px-4 text-xs font-semibold", mode === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Public</button>
+          <button
+            type="button"
+            disabled={lockedPrivate}
+            onClick={() => setMode("private")}
+            className={cn("flex h-8 items-center gap-1.5 px-4 text-xs font-semibold", mode === "private" ? "bg-primary text-primary-foreground" : "text-muted-foreground", lockedPrivate && "opacity-50")}
+          >
+            {lockedPrivate && <Lock size={12} />}
+            Private
+          </button>
+        </div>
+      </div>
+
+      {lockedPrivate && (
+        <div className="mt-5 flex gap-3 border border-primary/20 bg-primary/5 p-4">
+          <Lock className="mt-0.5 shrink-0 text-primary" size={17} />
+          <p className="text-xs leading-5 text-muted-foreground">Private score скрыт до завершения. Итоговые места определяются после private-пересчёта.</p>
+        </div>
+      )}
+
+      <div className="relative mt-5">
+        <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+        <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти участника" className="pl-10" />
+      </div>
+
+      {currentUser && (
+        <div className="mt-4 grid grid-cols-[48px_1fr_auto] items-center gap-3 border border-primary/35 bg-primary/5 p-3">
+          <span className="font-heading text-lg font-bold">#{leaderboard.indexOf(currentUser) + 1}</span>
+          <div className="flex items-center gap-3">
+            <Avatar name="Ты" size={32} />
+            <div><p className="text-sm font-semibold">Ты</p><p className="text-xs text-muted-foreground">Закреплённая позиция</p></div>
+          </div>
+          <span className="font-heading font-bold text-primary">{safeScore(currentUser.score, competition.metric)}</span>
+        </div>
+      )}
+
+      <div className="mt-4 overflow-x-auto border-y border-border">
+        <div className="min-w-[700px]">
+          <div className="grid grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] border-b border-border py-3 text-xs text-muted-foreground">
+            <span>Rank</span><span>Участник</span><span>Score</span><span>Submits</span><span>Лучший submit</span>
+          </div>
+          {filtered.map((submission) => {
+            const rank = leaderboard.indexOf(submission) + 1;
+            const submitCount = submissions.filter((item) => item.user_name === submission.user_name).length;
+            return (
+              <Link
+                key={submission.id}
+                to={submission.user_name === "Ты" ? "/profile/me" : "/profile/p1"}
+                className={cn(
+                  "grid min-h-16 grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] items-center border-b border-border text-sm transition-colors hover:bg-secondary/40",
+                  submission.user_name === "Ты" && "bg-primary/5",
+                )}
+              >
+                <span className="font-heading font-bold">#{rank}</span>
+                <div className="flex items-center gap-3">
+                  <Avatar name={submission.user_name} src={submission.user_avatar} size={32} />
+                  <span className="font-semibold">{submission.user_name}</span>
+                  <LeagueBadge rating={1580 - rank * 35} size="sm" />
+                </div>
+                <span className="font-heading font-bold text-primary">{safeScore(submission.score, competition.metric)}</span>
+                <span className="text-muted-foreground">{submitCount || 1}</span>
+                <span className="text-xs text-muted-foreground">{new Date(submission.created_date).toLocaleDateString("ru-RU")}</span>
+              </Link>
+            );
+          })}
+          {!filtered.length && <div className="py-12 text-center text-sm text-muted-foreground">Участник не найден.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RulesTab({ competition }) {
+  const [open, setOpen] = useState(0);
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase text-primary">Fair play</p>
+      <h2 className="mt-2 font-heading text-2xl font-bold">Правила соревнования</h2>
+      <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.rules}</p>
+      <div className="mt-6 border-y border-border">
+        {RULE_SECTIONS.map(([title, text], index) => (
+          <div key={title} className="border-b border-border last:border-b-0">
+            <button type="button" onClick={() => setOpen(open === index ? -1 : index)} className="flex min-h-14 w-full items-center gap-3 text-left">
+              <span className="font-mono text-[10px] text-primary">{String(index + 1).padStart(2, "0")}</span>
+              <span className="flex-1 text-sm font-semibold">{title}</span>
+              <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", open === index && "rotate-180")} />
+            </button>
+            <AnimatePresence initial={false}>
+              {open === index && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <p className="pb-5 pl-9 pr-5 text-sm leading-6 text-muted-foreground">{text}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DiscussionTab({ discussions, newThread, setNewThread, onCreate }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase text-primary">Вопросы и ответы</p>
+      <h2 className="mt-2 font-heading text-2xl font-bold">Обсуждение</h2>
+      <div className="mt-6 border-y border-border py-5">
+        <h3 className="text-sm font-semibold">Задать вопрос</h3>
+        <div className="mt-3 space-y-3">
+          <Input value={newThread.title} onChange={(event) => setNewThread({ ...newThread, title: event.target.value })} placeholder="Короткий заголовок" />
+          <Textarea value={newThread.content} onChange={(event) => setNewThread({ ...newThread, content: event.target.value })} placeholder="Опиши вопрос или проблему" rows={4} />
+          <Button onClick={onCreate} disabled={!newThread.title.trim() || !newThread.content.trim()}><Send size={15} /> Опубликовать</Button>
+        </div>
+      </div>
+      <div className="divide-y divide-border">
+        {discussions.map((discussion) => (
+          <article key={discussion.id} className="flex gap-3 py-5">
+            <Avatar name={discussion.author_name} src={discussion.author_avatar} size={36} />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold">{discussion.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{discussion.content}</p>
+              <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+                <span>{discussion.author_name}</span>
+                <span className="inline-flex items-center gap-1"><MessageSquare size={12} /> {discussion.comments_count || 0}</span>
+              </div>
+            </div>
+          </article>
+        ))}
+        {!discussions.length && <p className="py-12 text-center text-sm text-muted-foreground">Обсуждений пока нет.</p>}
+      </div>
+    </div>
+  );
+}
+
+function ParticipationPanel({ competition, status, joined, submissions, leaderboard, onJoin, onSubmit }) {
+  const mySubmissions = submissions.filter((submission) => submission.user_name === "Ты");
+  const best = mySubmissions.reduce((current, item) => {
+    if (!current) return item;
+    return isHigherBetter(competition.metric)
+      ? (item.score > current.score ? item : current)
+      : (item.score < current.score ? item : current);
+  }, null);
+  const rank = best ? leaderboard.findIndex((item) => item.id === best.id) + 1 : null;
+  const attemptsLeft = Math.max(0, (competition.max_submits_free || 5) - mySubmissions.length);
+
+  return (
+    <aside className="border-y border-border bg-card p-5 lg:sticky lg:top-5">
+      <p className="text-xs font-semibold uppercase text-primary">Моё участие</p>
+      <div className="mt-4 flex items-center gap-3">
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-md", joined ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground")}>
+          {joined ? <Check size={19} /> : <Trophy size={19} />}
+        </div>
+        <div>
+          <p className="text-sm font-semibold">{status === "finished" ? "Соревнование завершено" : joined ? (best ? "Есть валидный submit" : "Вы участвуете") : "Вы ещё не участвуете"}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{status === "active" ? getDeadlineLabel(competition) : "Статус результатов доступен"}</p>
+        </div>
+      </div>
+
+      <div className="mt-5 divide-y divide-border border-y border-border">
+        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Лучший public score</span><span className="font-semibold">{safeScore(best?.score, competition.metric)}</span></div>
+        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Место</span><span className="font-semibold">{rank ? `#${rank}` : "—"}</span></div>
+        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Попыток осталось</span><span className="font-semibold">{status === "active" ? `${attemptsLeft}/${competition.max_submits_free || 5}` : "Закрыто"}</span></div>
+      </div>
+
+      {!joined && status === "active" ? (
+        <Button className="mt-5 w-full" onClick={onJoin} disabled={competition.is_private}>
+          {competition.is_private ? <Lock size={15} /> : <Trophy size={15} />}
+          {competition.is_private ? "Доступ по приглашению" : "Присоединиться"}
+        </Button>
+      ) : status === "active" ? (
+        <Button className="mt-5 w-full" onClick={onSubmit}><Upload size={15} /> Загрузить CSV</Button>
+      ) : status === "upcoming" ? (
+        <Button className="mt-5 w-full" disabled><Clock3 size={15} /> Ещё не началось</Button>
+      ) : (
+        <Button asChild className="mt-5 w-full"><Link to={`/competitions/${competition.id}/leaderboard`}><Trophy size={15} /> Смотреть результаты</Link></Button>
+      )}
+      <p className="mt-3 text-center text-[11px] leading-4 text-muted-foreground">Лимиты рейтингового соревнования одинаковы для всех.</p>
+    </aside>
+  );
+}
+
+export default function CompetitionDetail() {
+  const { id, section } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [joined, setJoined] = useState(["c1", "c2"].includes(id));
+  const [newThread, setNewThread] = useState({ title: "", content: "" });
+  const activeTab = TABS.some((tab) => tab.id === section) ? section : "overview";
+
+  useEffect(() => {
+    setJoined(["c1", "c2"].includes(id));
+  }, [id]);
+
+  const { data: competition, isLoading, isError } = useQuery({
+    queryKey: ["competition", id],
+    queryFn: () => base44.entities.Competition.get(id),
+    enabled: Boolean(id),
+    retry: false,
+  });
+  const { data: submissions = [] } = useQuery({
+    queryKey: ["submissions", id],
+    queryFn: () => base44.entities.Submission.filter({ competition_id: id }, "-score", 100),
+    enabled: Boolean(id),
+  });
+  const { data: discussions = [] } = useQuery({
+    queryKey: ["discussions", id],
+    queryFn: () => base44.entities.Discussion.filter({ competition_id: id }, "-created_date", 50),
+    enabled: Boolean(id),
+  });
+
+  const leaderboard = useMemo(() => {
+    if (!competition) return [];
+    const best = new Map();
+    submissions.forEach((submission) => {
+      if (typeof submission.score !== "number") return;
+      const existing = best.get(submission.user_name);
+      if (!existing || (isHigherBetter(competition.metric) ? submission.score > existing.score : submission.score < existing.score)) {
+        best.set(submission.user_name, submission);
+      }
+    });
+    return Array.from(best.values()).sort((a, b) => isHigherBetter(competition.metric) ? b.score - a.score : a.score - b.score);
+  }, [competition, submissions]);
+
+  const join = () => {
+    setJoined(true);
+    toast.success("Вы участвуете в соревновании");
+  };
+
+  const createThread = async () => {
+    if (!newThread.title.trim() || !newThread.content.trim()) return;
     try {
       await base44.entities.Discussion.create({
         competition_id: id,
-        title: newThread.title,
-        content: newThread.content,
+        title: newThread.title.trim(),
+        content: newThread.content.trim(),
         author_name: "Ты",
       });
       setNewThread({ title: "", content: "" });
       queryClient.invalidateQueries({ queryKey: ["discussions", id] });
-      toast.success("Тема создана");
-    } catch (err) {
-      toast.error("Ошибка: " + (err.message || "неизвестная"));
+      toast.success("Вопрос опубликован");
+    } catch (error) {
+      toast.error(error.message || "Не удалось опубликовать вопрос");
     }
   };
 
+  const onSubmitted = async (score) => {
+    await queryClient.invalidateQueries({ queryKey: ["submissions", id] });
+    toast.success(`Score рассчитан: ${safeScore(score, competition.metric)}`);
+  };
+
   if (isLoading) {
+    return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
+  }
+
+  if (isError || !competition) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+        <AlertCircle className="mx-auto text-destructive" size={28} />
+        <h1 className="mt-4 font-heading text-2xl font-bold">Соревнование не найдено</h1>
+        <Button asChild variant="outline" className="mt-5"><Link to="/competitions"><ArrowLeft size={16} /> К каталогу</Link></Button>
       </div>
     );
   }
 
-  if (!competition) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">Соревнование не найдено</p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link to="/competitions"><ArrowLeft size={16} className="mr-1.5" /> К списку</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const color = TASK_TYPE_COLORS[competition.task_type] || "#7C3AED";
+  const status = getStatus(competition);
+  const meta = META[competition.id] || { difficulty: "Medium", domain: "Other", publicSplit: 30, dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
+  const locked = ["upcoming", "finished", "finalizing"].includes(status) || competition.is_private;
+  const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
-      <Link to="/competitions" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
-        <ArrowLeft size={16} /> Все соревнования
+    <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-5 md:px-6 md:py-7">
+      <Link to="/competitions" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary">
+        <ArrowLeft size={16} />
+        Все соревнования
       </Link>
 
-      {/* Header */}
-      <div className="relative rounded-xl overflow-hidden mb-6 border border-border">
-        <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(135deg, ${color}, transparent)` }} />
-        <div className="absolute top-0 left-0 right-0 h-1" style={{ background: color }} />
-        <div className="relative p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase" style={{ background: `${color}20`, color }}>
-              {TASK_TYPE_LABELS[competition.task_type]}
-            </span>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${competition.status === "active" ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"}`}>
-              {competition.status === "active" ? "Активно" : competition.status === "completed" ? "Завершено" : "Черновик"}
-            </span>
-          </div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">{competition.title}</h1>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Users size={14} /> {competition.participants_count || 0} участников</span>
-            <span className="flex items-center gap-1.5"><Trophy size={14} /> {METRIC_LABELS[competition.metric]}</span>
-            {competition.prize_fund > 0 && (
-              <span className="flex items-center gap-1.5 text-gradient-purple font-medium"><Award size={14} /> {competition.prize_fund.toLocaleString()} ₽</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 overflow-x-auto scrollbar-thin border-b border-border">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-              tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <t.icon size={15} /> {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Overview */}
-      {tab === "overview" && (
-        <div className="space-y-4">
-          <Card className="p-5 bg-card/40 border-border">
-            <h3 className="font-heading font-semibold mb-2">Описание задачи</h3>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{competition.description}</p>
-          </Card>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Card className="p-5 bg-card/40 border-border">
-              <h4 className="text-sm font-semibold mb-1">Метрика</h4>
-              <p className="text-sm text-muted-foreground">{METRIC_LABELS[competition.metric]}</p>
-            </Card>
-            <Card className="p-5 bg-card/40 border-border">
-              <h4 className="text-sm font-semibold mb-1">Лимит сабмитов</h4>
-              <p className="text-sm text-muted-foreground">{competition.max_submits_free} (Free) / {competition.max_submits_pro} (Pro) в день</p>
-            </Card>
-          </div>
+      {status === "finalizing" && (
+        <div className="mt-5 flex gap-3 border border-primary/25 bg-primary/5 p-4">
+          <Loader2 className="mt-0.5 shrink-0 animate-spin text-primary" size={17} />
+          <div><p className="text-sm font-semibold">Идёт private-пересчёт</p><p className="mt-1 text-xs text-muted-foreground">Места могут измениться до публикации итоговых результатов.</p></div>
         </div>
       )}
 
-      {/* Data */}
-      {tab === "data" && (
-        <div className="space-y-4">
-          <Card className="p-5 bg-card/40 border-border">
-            <h3 className="font-heading font-semibold mb-3">Файлы данных</h3>
-            <div className="space-y-2">
-              <a href={competition.data_url || "#"} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                <span className="flex items-center gap-2 text-sm"><Database size={16} /> train.csv</span>
-                <Download size={16} className="text-muted-foreground" />
-              </a>
-              <a href={competition.test_data_url || "#"} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                <span className="flex items-center gap-2 text-sm"><Database size={16} /> test.csv (без ответов)</span>
-                <Download size={16} className="text-muted-foreground" />
-              </a>
+      <header className="mt-5 border-y border-border bg-card">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_390px]">
+          <div className="flex min-h-[260px] flex-col justify-between p-6 md:p-8">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold", status === "active" ? "text-accent" : "text-primary")}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  {statusLabel}
+                </span>
+                <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{TASK_TYPE_LABELS[competition.task_type]}</span>
+                <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{meta.difficulty}</span>
+                {competition.is_private && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> По приглашению</span>}
+              </div>
+              <h1 className="mt-5 max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.description}</p>
             </div>
-          </Card>
-
-          {/* Submit */}
-          <Card className="p-5 bg-card/40 border-border">
-            <h3 className="font-heading font-semibold mb-3">Загрузить решение</h3>
-            <p className="text-sm text-muted-foreground mb-4">Формат: CSV с колонкой предсказаний</p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <label className="flex-1 cursor-pointer">
-                <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-border hover:border-primary/50 transition-colors">
-                  <Upload size={16} className="text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground truncate">
-                    {file ? file.name : "Выберите CSV-файл..."}
-                  </span>
-                </div>
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={(e) => setFile(e.target.files[0])}
-                />
-              </label>
-              <Button onClick={handleFileUpload} disabled={!file || submitting}>
-                {submitting ? <Loader2 size={16} className="mr-1.5 animate-spin" /> : <Send size={16} className="mr-1.5" />}
-                Отправить
-              </Button>
+            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5"><Users size={14} /> {competition.participants_count} участников</span>
+              <span className="inline-flex items-center gap-1.5"><CalendarClock size={14} /> {status === "active" ? getDeadlineLabel(competition) : statusLabel}</span>
+              <span className="inline-flex items-center gap-1.5"><Award size={14} /> {competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без призового фонда"}</span>
             </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Leaderboard */}
-      {tab === "leaderboard" && (
-        <Card className="overflow-hidden bg-card/40 border-border">
-          {leaderboard.length === 0 ? (
-            <div className="text-center py-12">
-              <Trophy className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Пока нет сабмитов</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {leaderboard.map((s, i) => (
-                <div key={s.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-7 text-center text-sm font-medium text-muted-foreground">{i + 1}</span>
-                  <Avatar name={s.user_name} src={s.user_avatar} size={32} />
-                  <span className="flex-1 font-medium text-sm truncate">{s.user_name}</span>
-                  <span className="text-xs text-muted-foreground hidden sm:block">попытка #{s.attempt_number}</span>
-                  <span className="font-bold font-heading tabular-nums text-primary">
-                    {formatScore(s.score, competition.metric)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* Rules */}
-      {tab === "rules" && (
-        <Card className="p-5 bg-card/40 border-border">
-          <h3 className="font-heading font-semibold mb-2">Правила соревнования</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-            {competition.rules || "Стандартные правила: решения оцениваются автоматически по выбранной метрике. Запрещено использование тестовых ответов. Лимит сабмитов: " + competition.max_submits_free + " в день."}
-          </p>
-        </Card>
-      )}
-
-      {/* Discussion */}
-      {tab === "discussion" && (
-        <div className="space-y-4">
-          <Card className="p-5 bg-card/40 border-border">
-            <h3 className="font-heading font-semibold mb-3">Новая тема</h3>
-            <div className="space-y-3">
-              <Input
-                placeholder="Заголовок"
-                value={newThread.title}
-                onChange={(e) => setNewThread({ ...newThread, title: e.target.value })}
-              />
-              <Textarea
-                placeholder="Содержание..."
-                value={newThread.content}
-                onChange={(e) => setNewThread({ ...newThread, content: e.target.value })}
-                rows={3}
-              />
-              <Button onClick={handleCreateThread} disabled={!newThread.title || !newThread.content}>
-                <Send size={14} className="mr-1.5" /> Создать тему
-              </Button>
-            </div>
-          </Card>
-
-          <div className="space-y-3">
-            {discussions?.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-8">Пока нет обсуждений</p>
-            )}
-            {discussions?.map((d) => (
-              <Card key={d.id} className="p-4 bg-card/40 border-border hover:border-primary/30 transition-colors">
-                <div className="flex items-start gap-3">
-                  <Avatar name={d.author_name} src={d.author_avatar} size={36} />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm">{d.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{d.content}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>{d.author_name}</span>
-                      <span className="flex items-center gap-1"><MessageSquare size={11} /> {d.comments_count || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+          </div>
+          <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
+            {[
+              [Target, "Метрика", METRIC_LABELS[competition.metric]],
+              [Trophy, "Призовой фонд", competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без приза"],
+              [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
+              [ShieldCheck, "Leaderboard", `${meta.publicSplit}/${100 - meta.publicSplit}`],
+            ].map(([Icon, label, value], index) => (
+              <div key={label} className={cn("flex min-h-32 flex-col justify-between p-5", index % 2 === 1 && "border-l border-border", index > 1 && "border-t border-border")}>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={15} className="text-primary" /> {label}</div>
+                <p className="font-heading text-lg font-bold leading-tight">{value}</p>
+              </div>
             ))}
           </div>
         </div>
-      )}
+      </header>
+
+      <div className="mt-5"><CompetitionTabs competitionId={id} activeTab={activeTab} /></div>
+
+      <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <main className="min-w-0">
+          {activeTab === "overview" && <OverviewTab competition={competition} meta={meta} />}
+          {activeTab === "data" && <DataTab competition={competition} meta={meta} locked={status === "upcoming" || competition.is_private} />}
+          {activeTab === "submit" && (
+            <SubmitTab
+              competition={competition}
+              submissions={submissions}
+              onSubmitted={onSubmitted}
+              locked={locked}
+              joined={joined}
+              onJoin={join}
+            />
+          )}
+          {activeTab === "leaderboard" && <LeaderboardTab competition={competition} leaderboard={leaderboard} submissions={submissions} />}
+          {activeTab === "rules" && <RulesTab competition={competition} />}
+          {activeTab === "discussion" && (
+            <DiscussionTab
+              discussions={discussions}
+              newThread={newThread}
+              setNewThread={setNewThread}
+              onCreate={createThread}
+            />
+          )}
+        </main>
+
+        <ParticipationPanel
+          competition={competition}
+          status={status}
+          joined={joined}
+          submissions={submissions}
+          leaderboard={leaderboard}
+          onJoin={join}
+          onSubmit={() => navigate(`/competitions/${id}/submit`)}
+        />
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 p-3 backdrop-blur lg:hidden">
+        {!joined && status === "active" ? (
+          <Button className="w-full" onClick={join} disabled={competition.is_private}>
+            {competition.is_private ? <Lock size={15} /> : <Trophy size={15} />}
+            {competition.is_private ? "Доступ по приглашению" : "Присоединиться"}
+          </Button>
+        ) : status === "active" ? (
+          <Button className="w-full" onClick={() => navigate(`/competitions/${id}/submit`)}><Upload size={15} /> Загрузить CSV</Button>
+        ) : status === "upcoming" ? (
+          <Button className="w-full" disabled><Clock3 size={15} /> Ещё не началось</Button>
+        ) : (
+          <Button className="w-full" onClick={() => navigate(`/competitions/${id}/leaderboard`)}><Trophy size={15} /> Смотреть результаты</Button>
+        )}
+      </div>
     </div>
   );
 }

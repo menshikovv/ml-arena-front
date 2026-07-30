@@ -1,120 +1,295 @@
-import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import CompetitionCard from "@/components/ml/CompetitionCard";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Filter, Loader2, Trophy, Archive } from "lucide-react";
-import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  Building2,
+  CalendarClock,
+  ChevronDown,
+  Filter,
+  Loader2,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import CompetitionCard from "@/components/ml/CompetitionCard";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { cn } from "@/lib/utils";
+
+const COMPETITION_META = {
+  c1: { difficulty: "Medium", access: "Открыто", domain: "Fintech", publicSplit: 30 },
+  c2: { difficulty: "Easy", access: "Открыто", domain: "NLP", publicSplit: 30 },
+  c3: { difficulty: "Hard", access: "Открыто", domain: "Fintech", publicSplit: 25 },
+  c4: { difficulty: "Hard", access: "Открыто", domain: "Retail", publicSplit: 30 },
+  c5: { difficulty: "Medium", access: "Открыто", domain: "Mobility", publicSplit: 30 },
+  c6: { difficulty: "Beginner", access: "Открыто", domain: "Synthetic", publicSplit: 30 },
+  c7: { difficulty: "Expert", access: "Открыто", domain: "Research", publicSplit: 20 },
+  c8: { difficulty: "Easy", access: "Открыто", domain: "Telecom", publicSplit: 30 },
+  c9: { difficulty: "Hard", access: "Партнёрское", domain: "HealthTech", publicSplit: 30 },
+  c10: { difficulty: "Expert", access: "По приглашению", domain: "Autonomous", publicSplit: 20 },
+};
+
+const USER_STATES = {
+  c1: { joined: true, rank: 17, score: "2.0731", attemptsLeft: 2 },
+  c2: { joined: true, attemptsLeft: 5 },
+  c6: { joined: true, rank: 12, score: "98.71%" },
+};
+
+function pluralize(value, one, few, many) {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+function getStatus(competition) {
+  if (competition.status === "completed") return "finished";
+  if (competition.status === "draft") return "upcoming";
+  if (competition.status === "active" && competition.deadline && new Date(competition.deadline).getTime() < Date.now()) {
+    return "finalizing";
+  }
+  return "active";
+}
+
+function nearestDeadline(competitions) {
+  const dates = competitions
+    .filter((competition) => getStatus(competition) === "active" && competition.deadline)
+    .map((competition) => new Date(competition.deadline))
+    .sort((a, b) => a - b);
+  if (!dates.length) return "Нет";
+  const days = Math.max(0, Math.ceil((dates[0].getTime() - Date.now()) / 86400000));
+  return days > 0 ? `${days} ${pluralize(days, "день", "дня", "дней")}` : "Сегодня";
+}
 
 export default function Competitions() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [showArchive, setShowArchive] = useState(false);
+  const [sort, setSort] = useState("deadline");
 
-  const { data: competitions, isLoading } = useQuery({
+  const { data: competitions = [], isLoading } = useQuery({
     queryKey: ["competitions"],
     queryFn: () => base44.entities.Competition.list("-created_date", 50),
   });
 
+  const stats = useMemo(() => ({
+    active: competitions.filter((competition) => getStatus(competition) === "active").length,
+    participants: competitions.reduce((sum, competition) => sum + (competition.participants_count || 0), 0),
+    deadline: nearestDeadline(competitions),
+  }), [competitions]);
+
   const filtered = useMemo(() => {
-    if (!competitions) return [];
-    return competitions.filter((c) => {
-      if (showArchive && c.status !== "completed") return false;
-      if (!showArchive && c.status === "completed") return false;
-      if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
-      if (!showArchive && statusFilter !== "all" && c.status !== statusFilter) return false;
-      if (typeFilter !== "all" && c.task_type !== typeFilter) return false;
-      return true;
+    const query = search.trim().toLowerCase();
+    const result = competitions.filter((competition) => {
+      const status = getStatus(competition);
+      const statusMatches = statusFilter === "finished"
+        ? ["finished", "finalizing"].includes(status)
+        : status === statusFilter;
+      const searchMatches = !query
+        || competition.title.toLowerCase().includes(query)
+        || competition.description.toLowerCase().includes(query)
+        || competition.company_name?.toLowerCase().includes(query);
+      return statusMatches && searchMatches && (typeFilter === "all" || competition.task_type === typeFilter);
     });
-  }, [competitions, search, statusFilter, typeFilter, showArchive]);
+
+    return result.sort((a, b) => {
+      if (sort === "participants") return (b.participants_count || 0) - (a.participants_count || 0);
+      if (sort === "prize") return (b.prize_fund || 0) - (a.prize_fund || 0);
+      if (sort === "newest") return String(b.id).localeCompare(String(a.id));
+      return new Date(a.deadline || "2100-01-01") - new Date(b.deadline || "2100-01-01");
+    });
+  }, [competitions, search, sort, statusFilter, typeFilter]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setTypeFilter("all");
+    setSort("deadline");
+  };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
-      <Reveal className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">
-            {showArchive ? "Архив соревнований" : "Соревнования"}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {showArchive
-              ? "Завершённые соревнования и их результаты"
-              : "Участвуй в ML-турнирах и зарабатывай рейтинг"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowArchive((v) => !v)}>
-            <Archive size={16} className="mr-1.5" />
-            {showArchive ? "К активным" : "Архив"}
-          </Button>
-          <Button asChild>
-            <Link to="/company/dashboard">
-              <Trophy size={16} className="mr-1.5" /> Создать соревнование
-            </Link>
-          </Button>
-        </div>
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
+      <Reveal>
+        <section className="border-y border-border bg-card">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
+            <div className="flex min-h-[300px] flex-col justify-between p-6 md:p-9">
+              <div>
+                <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary">
+                  <Sparkles size={15} />
+                  Открытые ML-задачи
+                </div>
+                <h1 className="mt-5 max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
+                  Докажи навык на реальной задаче
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+                  Выбери соревнование, скачай данные, отправь CSV и получи место в общем leaderboard.
+                </p>
+              </div>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  size="lg"
+                  className="h-11 px-6"
+                  onClick={() => document.getElementById("competition-catalog")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  <Trophy size={17} />
+                  Найти соревнование
+                </Button>
+                <Button asChild size="lg" variant="outline" className="h-11 px-6">
+                  <Link to="/competitions/c1">Как это работает <ArrowRight size={16} /></Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
+              {[
+                { icon: Trophy, label: "Активных", value: stats.active || "—" },
+                { icon: Users, label: "Участников", value: stats.participants || "—" },
+                { icon: CalendarClock, label: "Ближайший дедлайн", value: stats.deadline },
+                { icon: ShieldCheck, label: "Рейтинговый лимит", value: "Равный" },
+              ].map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      "flex min-h-36 flex-col justify-between p-5",
+                      index % 2 === 1 && "border-l border-border",
+                      index > 1 && "border-t border-border",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Icon size={15} className="text-primary" />
+                      {item.label}
+                    </div>
+                    <p className="font-heading text-2xl font-bold">{item.value}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       </Reveal>
 
-      {/* Filters */}
-      <Reveal className="flex flex-col md:flex-row gap-3 mb-6" delay={0.08}>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Поиск по названию..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="flex gap-2">
-          {!showArchive && (
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-card border border-border text-sm"
-            >
-              <option value="all">Все статусы</option>
-              <option value="active">Активные</option>
-              <option value="draft">Черновики</option>
-            </select>
-          )}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-card border border-border text-sm"
-          >
-            <option value="all">Все типы</option>
-            {Object.entries(TASK_TYPE_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+      <section id="competition-catalog" className="scroll-mt-4 py-8">
+        <div className="flex flex-col justify-between gap-4 border-b border-border md:flex-row md:items-end">
+          <div className="flex gap-1 overflow-x-auto">
+            {[
+              ["active", "Активные"],
+              ["upcoming", "Скоро"],
+              ["finished", "Завершённые"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(value)}
+                className={cn(
+                  "relative h-11 shrink-0 px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary",
+                  statusFilter === value && "text-primary",
+                )}
+              >
+                {label}
+                {statusFilter === value && <motion.span layoutId="competition-status" className="absolute inset-x-2 bottom-0 h-0.5 bg-primary" />}
+              </button>
             ))}
-          </select>
+          </div>
+          <Button asChild variant="ghost" size="sm" className="mb-2 self-start md:self-auto">
+            <Link to="/company/dashboard"><Building2 size={15} /> Провести соревнование</Link>
+          </Button>
         </div>
-      </Reveal>
 
-      {/* Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Reveal className="mt-5 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_220px_210px]" delay={0.05}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Название, задача или компания"
+              className="h-10 pl-10"
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+              className="h-10 w-full appearance-none rounded-md border border-input bg-card px-3 pr-9 text-sm"
+              aria-label="Тип задачи"
+            >
+              <option value="all">Все направления</option>
+              {Object.entries(TASK_TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
+          </div>
+          <div className="relative">
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+              className="h-10 w-full appearance-none rounded-md border border-input bg-card px-3 pr-9 text-sm"
+              aria-label="Сортировка"
+            >
+              <option value="deadline">Ближайший дедлайн</option>
+              <option value="participants">По участникам</option>
+              <option value="prize">По призовому фонду</option>
+              <option value="newest">Сначала новые</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
+          </div>
+        </Reveal>
+
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">Найдено: {filtered.length}</p>
+          {(search || typeFilter !== "all" || sort !== "deadline") && (
+            <button type="button" onClick={clearFilters} className="text-xs font-medium text-primary hover:underline">
+              Сбросить фильтры
+            </button>
+          )}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20">
-          <Filter className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">
-            {showArchive ? "Архив пуст" : "Соревнования не найдены"}
-          </p>
-        </div>
-      ) : (
-        <Stagger className="flex flex-col gap-4">
-          {filtered.map((c) => (
-            <StaggerItem key={c.id}>
-              <CompetitionCard competition={c} />
-            </StaggerItem>
-          ))}
-        </Stagger>
-      )}
+
+        {isLoading ? (
+          <div className="flex min-h-64 items-center justify-center">
+            <Loader2 className="animate-spin text-primary" size={26} />
+          </div>
+        ) : filtered.length ? (
+          <Stagger className="mt-4 space-y-4" delay={0.06}>
+            {filtered.map((competition) => (
+              <StaggerItem key={competition.id}>
+                <CompetitionCard
+                  competition={competition}
+                  status={getStatus(competition)}
+                  meta={COMPETITION_META[competition.id] || { difficulty: "Medium", access: "Открыто", domain: "Other", publicSplit: 30 }}
+                  userState={USER_STATES[competition.id]}
+                />
+              </StaggerItem>
+            ))}
+          </Stagger>
+        ) : (
+          <div className="mt-5 border-y border-dashed border-border py-16 text-center">
+            <Filter className="mx-auto text-muted-foreground" size={28} />
+            <h2 className="mt-4 font-heading text-lg font-bold">По этим условиям ничего не найдено</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Сбрось фильтры или посмотри соревнования в другой стадии.</p>
+            <Button variant="outline" className="mt-5" onClick={clearFilters}>Сбросить фильтры</Button>
+          </div>
+        )}
+      </section>
+
+      <section className="grid border-y border-border bg-card md:grid-cols-[1fr_1fr_1fr]">
+        {[
+          ["Одинаковые лимиты", "В рейтинговых турнирах Premium не влияет на число попыток."],
+          ["30% public / 70% private", "Public score помогает ориентироваться, private определяет финал."],
+          ["Только CSV", "Код не запускается на платформе, а формат проверяется до scoring."],
+        ].map(([title, text], index) => (
+          <div key={title} className={cn("p-5 md:p-6", index > 0 && "border-t border-border md:border-l md:border-t-0")}>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">{text}</p>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
