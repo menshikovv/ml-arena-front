@@ -3,16 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   Building2,
-  CalendarClock,
   ChevronDown,
   Filter,
   Loader2,
   Search,
-  ShieldCheck,
-  Trophy,
-  Users,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import CompetitionCard from "@/components/ml/CompetitionCard";
@@ -58,16 +53,6 @@ function getStatus(competition) {
   return "active";
 }
 
-function nearestDeadline(competitions) {
-  const dates = competitions
-    .filter((competition) => getStatus(competition) === "active" && competition.deadline)
-    .map((competition) => new Date(competition.deadline))
-    .sort((a, b) => a - b);
-  if (!dates.length) return "Нет";
-  const days = Math.max(0, Math.ceil((dates[0].getTime() - Date.now()) / 86400000));
-  return days > 0 ? `${days} ${pluralize(days, "день", "дня", "дней")}` : "Сегодня";
-}
-
 export default function Competitions() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
@@ -78,12 +63,6 @@ export default function Competitions() {
     queryKey: ["competitions"],
     queryFn: () => base44.entities.Competition.list("-created_date", 50),
   });
-
-  const stats = useMemo(() => ({
-    active: competitions.filter((competition) => getStatus(competition) === "active").length,
-    participants: competitions.reduce((sum, competition) => sum + (competition.participants_count || 0), 0),
-    deadline: nearestDeadline(competitions),
-  }), [competitions]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -115,64 +94,7 @@ export default function Competitions() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
-      <Reveal>
-        <section className="border-y border-border bg-card">
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
-            <div className="flex min-h-[300px] flex-col justify-between p-6 md:p-9">
-              <div>
-                <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
-                  Соревнования, которые определяют сезон
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                  Докажи навык на реальной задаче, отправь решение и займи своё место в общем leaderboard.
-                </p>
-              </div>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  size="lg"
-                  className="h-11 px-6"
-                  onClick={() => document.getElementById("competition-catalog")?.scrollIntoView({ behavior: "smooth" })}
-                >
-                  <Trophy size={17} />
-                  Найти соревнование
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-11 px-6">
-                  <Link to="/competitions/c1">Как это работает <ArrowRight size={16} /></Link>
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
-              {[
-                { icon: Trophy, label: "Событий сезона", value: competitions.length || "—" },
-                { icon: Users, label: "Участников", value: stats.participants || "—" },
-                { icon: CalendarClock, label: "Ближайший дедлайн", value: stats.deadline },
-                { icon: ShieldCheck, label: "Сейчас активно", value: stats.active || "—" },
-              ].map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.label}
-                    className={cn(
-                      "flex min-h-36 flex-col justify-between p-5",
-                      index % 2 === 1 && "border-l border-border",
-                      index > 1 && "border-t border-border",
-                    )}
-                  >
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Icon size={15} className="text-primary" />
-                      {item.label}
-                    </div>
-                    <p className="font-heading text-2xl font-bold">{item.value}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </Reveal>
-
-      <section id="competition-catalog" className="scroll-mt-4 py-8">
+      <section id="competition-catalog">
         <div className="flex flex-col justify-between gap-4 border-b border-border md:flex-row md:items-end">
           <div className="flex gap-1 overflow-x-auto">
             {[
