@@ -10,7 +10,7 @@ import {
 const NAV_ITEMS = [
   { to: "/competitions", label: "Соревнования", icon: Trophy, gradientId: "sidebar-competitions-gradient" },
   { to: "/duels", label: "Дуэли", icon: Swords, gradientId: "sidebar-duels-gradient" },
-  { to: "/leaderboard", label: "Лидерборд", icon: ChartNoAxesColumnIncreasing, gradientId: "sidebar-leaderboard-gradient" },
+  { to: "/leaderboard", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing, gradientId: "sidebar-leaderboard-gradient" },
   { to: "/profile", label: "ML-паспорт", icon: User, gradientId: "sidebar-profile-gradient" },
   { to: "/company/dashboard", label: "Кабинет компании", icon: Building2, gradientId: "sidebar-company-gradient" },
   { to: "/pricing", label: "Подписки", icon: Crown, gradientId: "sidebar-pricing-gradient" },

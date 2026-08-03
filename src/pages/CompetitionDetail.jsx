@@ -47,19 +47,19 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { id: "overview", label: "Обзор", icon: FileText },
   { id: "data", label: "Данные", icon: Database },
-  { id: "submit", label: "Submit", icon: Upload },
-  { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+  { id: "submit", label: "Отправка", icon: Upload },
+  { id: "leaderboard", label: "Рейтинг", icon: Trophy },
   { id: "rules", label: "Правила", icon: ShieldCheck },
   { id: "discussion", label: "Обсуждение", icon: MessageSquare },
 ];
 
 const META = {
-  c1: { difficulty: "Medium", domain: "Fintech", publicSplit: 30, dataVersion: "1.2", dataSize: "48 МБ", baseline: "RMSE 2.5000" },
-  c2: { difficulty: "Easy", domain: "NLP", publicSplit: 30, dataVersion: "1.0", dataSize: "22 МБ", baseline: "F1 0.7810" },
-  c3: { difficulty: "Hard", domain: "Fintech", publicSplit: 25, dataVersion: "2.1", dataSize: "76 МБ", baseline: "ROC-AUC 0.8420" },
-  c4: { difficulty: "Hard", domain: "Retail", publicSplit: 30, dataVersion: "1.1", dataSize: "1.4 ГБ", baseline: "Dice 0.7100" },
-  c5: { difficulty: "Medium", domain: "Mobility", publicSplit: 30, dataVersion: "0.9", dataSize: "18 МБ", baseline: "MAE 32.4000" },
-  c6: { difficulty: "Beginner", domain: "Synthetic", publicSplit: 30, dataVersion: "1.0", dataSize: "34 МБ", baseline: "Accuracy 0.9700" },
+  c1: { difficulty: "Средняя", domain: "Финтех", dataVersion: "1.2", dataSize: "48 МБ", baseline: "RMSE 2.5000" },
+  c2: { difficulty: "Лёгкая", domain: "NLP", dataVersion: "1.0", dataSize: "22 МБ", baseline: "F1 0.7810" },
+  c3: { difficulty: "Высокая", domain: "Финтех", dataVersion: "2.1", dataSize: "76 МБ", baseline: "ROC-AUC 0.8420" },
+  c4: { difficulty: "Высокая", domain: "Ритейл", dataVersion: "1.1", dataSize: "1.4 ГБ", baseline: "Dice 0.7100" },
+  c5: { difficulty: "Средняя", domain: "Транспорт", dataVersion: "0.9", dataSize: "18 МБ", baseline: "MAE 32.4000" },
+  c6: { difficulty: "Начальная", domain: "Синтетика", dataVersion: "1.0", dataSize: "34 МБ", baseline: "Accuracy 0.9700" },
 };
 
 const RULE_SECTIONS = [
@@ -68,7 +68,7 @@ const RULE_SECTIONS = [
   ["Лимиты", "Лимит попыток одинаков для всех участников рейтингового соревнования."],
   ["Внешние данные", "Использование внешних данных допускается только при явном разрешении организатора."],
   ["Предобученные модели", "Открытые предобученные модели разрешены, если в условии не указано обратное."],
-  ["Leaderboard", "Во время турнира виден public score. Итог определяется по private score после завершения."],
+  ["Рейтинг", "Во время турнира виден текущий результат. Итоговые места определяются после финальной проверки."],
   ["Дисквалификация", "Утечки, мультиаккаунты и атаки на платформу приводят к исключению результата."],
   ["Финальная проверка", "Участники top-10 могут получить запрос на воспроизводимый код решения."],
 ];
@@ -167,26 +167,25 @@ function OverviewTab({ competition, meta }) {
           <span className="text-sm font-semibold text-accent">{higher ? "Чем выше, тем лучше" : "Чем ниже, тем лучше"}</span>
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Score рассчитывается на скрытой части тестовой выборки. Используй локальную валидацию, чтобы не подстраиваться под public leaderboard.
+          Результат рассчитывается на скрытой части тестовой выборки. Используй локальную валидацию, чтобы не подстраиваться под текущий рейтинг.
         </p>
       </section>
 
       <section className="border-b border-border py-7">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-heading text-xl font-bold">Public помогает ориентироваться. Private определяет финал.</h2>
+            <h2 className="font-heading text-xl font-bold">{competition.prize_fund ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {competition.prize_fund
+                ? "Лучшие участники получают денежные призы, а сильные решения могут стать поводом для знакомства с компаниями-партнёрами."
+                : "Результат влияет на рейтинг, лигу и видимость ML-паспорта для компаний-партнёров."}
+            </p>
           </div>
-          <Lock className="hidden text-primary sm:block" size={24} />
+          <Trophy className="hidden text-primary sm:block" size={24} />
         </div>
-        <div className="mt-6 flex h-10 overflow-hidden rounded-md text-xs font-semibold">
-          <div className="flex items-center justify-center bg-primary text-primary-foreground" style={{ width: `${meta.publicSplit}%` }}>
-            {meta.publicSplit}% public
-          </div>
-          <div className="flex items-center justify-center bg-secondary text-secondary-foreground" style={{ width: `${100 - meta.publicSplit}%` }}>
-            {100 - meta.publicSplit}% private
-          </div>
-        </div>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">Private score откроется после завершения и финального пересчёта.</p>
+        {competition.prize_fund > 0 && (
+          <p className="mt-5 font-heading text-3xl font-bold text-primary">{competition.prize_fund.toLocaleString("ru-RU")} ₽</p>
+        )}
       </section>
 
       <section className="py-7">
@@ -194,9 +193,9 @@ function OverviewTab({ competition, meta }) {
         <div className="mt-5 grid sm:grid-cols-4">
           {[
             ["01", "Старт", "Данные открыты"],
-            ["02", "Submit", getDeadlineLabel(competition)],
-            ["03", "Private reveal", "После дедлайна"],
-            ["04", "Проверка top-10", "Итоговый результат"],
+            ["02", "Отправка решения", getDeadlineLabel(competition)],
+            ["03", "Финальная проверка", "После дедлайна"],
+            ["04", "Проверка лидеров", "Итоговый результат"],
           ].map(([number, title, text], index) => (
             <div key={number} className={cn("relative border-t border-border p-4", index > 0 && "sm:border-l")}>
               <span className="font-mono text-[10px] text-primary">{number}</span>
@@ -756,7 +755,7 @@ export default function CompetitionDetail() {
   }
 
   const status = getStatus(competition);
-  const meta = META[competition.id] || { difficulty: "Medium", domain: "Other", publicSplit: 30, dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
+  const meta = META[competition.id] || { difficulty: "Средняя", domain: "Другое", dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
   const locked = ["upcoming", "finished", "finalizing"].includes(status) || competition.is_private;
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
 
@@ -801,7 +800,7 @@ export default function CompetitionDetail() {
               [Target, "Метрика", METRIC_LABELS[competition.metric]],
               [Trophy, "Призовой фонд", competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без приза"],
               [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
-              [ShieldCheck, "Leaderboard", `${meta.publicSplit}/${100 - meta.publicSplit}`],
+              [ShieldCheck, "Итоговый результат", "После финальной проверки"],
             ].map(([Icon, label, value], index) => (
               <div key={label} className={cn("flex min-h-32 flex-col justify-between p-5", index % 2 === 1 && "border-l border-border", index > 1 && "border-t border-border")}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={15} className="text-primary" /> {label}</div>

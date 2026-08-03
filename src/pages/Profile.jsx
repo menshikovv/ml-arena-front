@@ -545,8 +545,8 @@ export default function Profile() {
       <Stagger className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(156px,1fr))] gap-3">
         <StaggerItem><MetricTile icon={Trophy} label="Соревнований" value={profile.competitions_participated || 0} detail="завершено с результатом" /></StaggerItem>
         <StaggerItem><MetricTile icon={Swords} label="Дуэлей" value={totalDuels} detail={`${winRate}% побед`} tone="accent" /></StaggerItem>
-        <StaggerItem><MetricTile icon={Send} label="Valid submit" value={validSubmissions} detail={`${validRatio}% без ошибок`} tone="positive" /></StaggerItem>
-        <StaggerItem><MetricTile icon={Medal} label="Private top-10" value={privateTopTen} detail="финальных результатов" /></StaggerItem>
+        <StaggerItem><MetricTile icon={Send} label="Корректные отправки" value={validSubmissions} detail={`${validRatio}% без ошибок`} tone="positive" /></StaggerItem>
+        <StaggerItem><MetricTile icon={Medal} label="Итоговый топ-10" value={privateTopTen} detail="финальных результатов" /></StaggerItem>
         <StaggerItem><MetricTile icon={CalendarDays} label="Активных дней" value={activeDays} detail="за последние 30 дней" tone="neutral" /></StaggerItem>
         <StaggerItem><MetricTile icon={Sparkles} label="Сильный навык" value={bestSkill?.label || "—"} detail={`подтверждение: ${bestSkill?.level || "—"}`} tone="accent" /></StaggerItem>
       </Stagger>
@@ -559,7 +559,7 @@ export default function Profile() {
           {[
             { value: "overview", label: "Обзор", icon: TrendingUp },
             { value: "results", label: "Результаты", icon: Trophy },
-            { value: "submissions", label: "Submit-процесс", icon: GitPullRequest },
+            { value: "submissions", label: "Процесс отправок", icon: GitPullRequest },
             { value: "trust", label: "Дуэли и доверие", icon: ShieldCheck },
           ].map((item) => (
             <Tabs.Trigger

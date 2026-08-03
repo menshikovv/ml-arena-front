@@ -29,12 +29,12 @@ const FEATURES = [
     icon: FileCheck2,
     title: "Разбор от специалиста",
     description: "Раз в месяц отправьте одно решение на разбор и получите рекомендации по улучшению подхода.",
-    note: "1 review credit в месяц",
+    note: "1 разбор в месяц",
   },
   {
     icon: BarChart3,
     title: "Детальная аналитика",
-    description: "Score curve, baseline improvement, public/private gap, ошибки submit-ов и слабые места.",
+    description: "Динамика результата, улучшение базового решения, устойчивость результата и слабые места.",
     note: "Автоматическая аналитика без лимита",
   },
   {
@@ -65,7 +65,7 @@ const FEATURES = [
 
 const COMPARISON_ROWS = [
   { label: "Базовое участие в соревнованиях", free: true, premium: true },
-  { label: "Публичные дуэли и leaderboard", free: true, premium: true },
+  { label: "Публичные дуэли и рейтинг", free: true, premium: true },
   { label: "Базовый ML-паспорт", free: true, premium: true },
   { label: "Детальная аналитика решений", free: false, premium: true },
   { label: "Разбор специалистом", free: false, premium: true },
@@ -76,7 +76,7 @@ const COMPARISON_ROWS = [
 
 const HOW_IT_WORKS = [
   { icon: Target, title: "Решите задачу", description: "Участвуйте в соревнованиях и дуэлях как обычно." },
-  { icon: BarChart3, title: "Изучите аналитику", description: "После submit увидьте score curve, baseline и устойчивость результата." },
+  { icon: BarChart3, title: "Изучите аналитику", description: "После отправки решения увидьте динамику результата, базовое решение и устойчивость результата." },
   { icon: FileCheck2, title: "Отправьте на разбор", description: "Выберите один результат в месяц и получите обратную связь специалиста." },
   { icon: Video, title: "Приходите на вебинар", description: "Разбирайте типовые ошибки и практику вместе с сообществом." },
   { icon: Zap, title: "Улучшайте паспорт", description: "Превращайте каждый результат в следующий шаг роста в ML." },
@@ -85,15 +85,15 @@ const HOW_IT_WORKS = [
 const ACTIVITIES = [
   {
     type: "Вебинар",
-    title: "Как не переобучаться под public leaderboard",
-    detail: "Разбираем validation split, private gap и практические сигналы overfit.",
+    title: "Как не переобучаться под рейтинг",
+    detail: "Разбираем валидационное разделение, расхождение результатов и практические сигналы переобучения.",
     date: "30 июля · 19:00",
     level: "Для всех уровней",
     icon: Video,
   },
   {
     type: "Premium-челлендж",
-    title: "Табличный спринт: от baseline до top-10",
+    title: "Табличный спринт: от базового решения до топ-10",
     detail: "Короткая задача на feature engineering и аккуратную валидацию.",
     date: "2 августа · дедлайн 23:59",
     level: "Средний уровень",
@@ -112,7 +112,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "Что входит в разбор специалистом?",
-    answer: "Вы выбираете один submit или дуэль и получаете рекомендации по подходу, валидации, ошибкам и следующему улучшению.",
+    answer: "Вы выбираете одну отправку решения или дуэль и получаете рекомендации по подходу, валидации, ошибкам и следующему улучшению.",
   },
   {
     question: "Призы гарантированы в каждом закрытом соревновании?",
@@ -214,7 +214,7 @@ export default function Pricing() {
             {[
               { value: "1 разбор", label: "специалиста в месяц" },
               { value: "1–2 события", label: "закрытых вебинара и семинара" },
-              { value: "Без лимита", label: "детальная аналитика submit-ов" },
+              { value: "Без лимита", label: "детальная аналитика отправок" },
             ].map((item) => (
               <div key={item.value} className="border-b border-border px-5 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
                 <p className="font-heading text-lg font-bold">{item.value}</p>
@@ -247,7 +247,7 @@ export default function Pricing() {
 
       <Reveal id="features" className="mt-16" delay={0.1}>
         <section>
-          <SectionTitle title="Что входит в Premium" description="Все преимущества собраны вокруг одного результата: понимать, почему получился такой score, и знать, что улучшать дальше." />
+          <SectionTitle title="Что входит в Premium" description="Все преимущества собраны вокруг одного результата: понимать, почему получилась такая оценка, и знать, что улучшать дальше." />
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feature) => (
               <StaggerItem key={feature.title} className="h-full">
@@ -269,22 +269,22 @@ export default function Pricing() {
       <Reveal className="mt-16" delay={0.12}>
         <section className="grid items-center gap-8 rounded-lg border border-border bg-secondary/35 p-5 md:p-8 lg:grid-cols-[0.76fr_1.24fr]">
           <div>
-            <SectionTitle title="Не просто score. Понимание, как его улучшить." description="После submit Premium превращает сырые цифры в понятную картину: где вы относительно baseline, насколько устойчив private-результат и какие ошибки повторяются." />
+            <SectionTitle title="Не просто результат. Понимание, как его улучшить." description="После отправки решения Premium превращает сырые цифры в понятную картину: где вы относительно базового решения, насколько устойчив итоговый результат и какие ошибки повторяются." />
             <Button variant="outline">Посмотреть пример аналитики <ArrowRight size={16} /></Button>
           </div>
           <Card className="border-border bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
               <div>
                 <p className="font-semibold">Детальная аналитика · Детекция аномалий</p>
-                <p className="mt-1 text-xs text-muted-foreground">Private leaderboard · ROC-AUC</p>
+                <p className="mt-1 text-xs text-muted-foreground">Итоговый рейтинг · ROC-AUC</p>
               </div>
               <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">Разбор готов</span>
             </div>
             <div className="grid grid-cols-2 gap-3 py-5 sm:grid-cols-4">
               {[
-                { label: "Score", value: "0.941", detail: "+12.4% к baseline" },
-                { label: "Private gap", value: "Низкий", detail: "−2 позиции" },
-                { label: "Submit curve", value: "9", detail: "попыток" },
+                { label: "Результат", value: "0.941", detail: "+12.4% к базовому решению" },
+                { label: "Разрыв итогов", value: "Низкий", detail: "−2 позиции" },
+                { label: "Динамика попыток", value: "9", detail: "попыток" },
                 { label: "Позиция", value: "top-1.3%", detail: "8 из 612" },
               ].map((metric) => (
                 <div key={metric.label} className="rounded-lg border border-border bg-secondary/40 p-3">
@@ -295,7 +295,7 @@ export default function Pricing() {
               ))}
             </div>
             <div className="border-t border-border pt-4">
-              <div className="mb-2 flex justify-between text-xs"><span className="text-muted-foreground">Score curve</span><span className="font-semibold text-primary">baseline → best</span></div>
+              <div className="mb-2 flex justify-between text-xs"><span className="text-muted-foreground">Динамика результата</span><span className="font-semibold text-primary">базовое решение → лучший результат</span></div>
               <div className="flex h-20 items-end gap-1.5 rounded-lg bg-secondary/45 px-3 pb-2 pt-3">
                 {[28, 38, 45, 43, 58, 64, 72, 68, 84, 93].map((height, index) => (
                   <div key={index} className="flex-1 rounded-t-sm bg-gradient-to-t from-primary to-accent" style={{ height: `${height}%` }} />
@@ -354,7 +354,7 @@ export default function Pricing() {
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ShieldCheck size={19} /></span>
             <div>
-              <h2 className="font-heading text-lg font-bold">Честность leaderboard сохраняется</h2>
+              <h2 className="font-heading text-lg font-bold">Честность рейтинга сохраняется</h2>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Premium не влияет на рейтинг, не даёт скрытых ответов и не создаёт преимущества в публичных рейтинговых соревнованиях.</p>
             </div>
           </div>
@@ -418,7 +418,7 @@ export default function Pricing() {
           <div className="grid items-center gap-6 p-6 md:grid-cols-[1fr_auto] md:p-10">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-background/70"><Crown size={16} /> ML Арена Premium</div>
-              <h2 className="mt-2 max-w-xl font-heading text-2xl font-bold md:text-3xl">Превращайте каждый score в следующий шаг роста.</h2>
+              <h2 className="mt-2 max-w-xl font-heading text-2xl font-bold md:text-3xl">Превращайте каждый результат в следующий шаг роста.</h2>
               <p className="mt-2 text-sm text-background/65">Обратная связь, аналитика и закрытая практика в одной подписке.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center md:flex-col md:items-end">

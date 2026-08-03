@@ -34,12 +34,12 @@ import { Button } from "@/components/ui/button";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 
 const FEATURES = [
-  { icon: Trophy, title: "Соревнования", desc: "Публичные и закрытые ML-задачи: regression, classification, NLP, CV и tabular. Загружай решения и двигайся вверх по leaderboard.", color: "text-primary bg-primary/10" },
-  { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, submit и сравнением результата. Формат для практики, азарта и проверки себя.", color: "text-accent-foreground bg-accent/20" },
+  { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: regression, classification, NLP, CV и tabular. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
+  { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "text-accent-foreground bg-accent/20" },
   { icon: Medal, title: "Рейтинг и лиги", desc: "Единая система прогресса: соревнования, дуэли, сезоны и переходы из Бронзы к Платине.", color: "text-[hsl(var(--chart-5))] bg-[hsl(var(--chart-5)/0.16)]" },
   { icon: Brain, title: "ML-паспорт", desc: "Score, бейджи, сильные стороны и подтвержденные результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
   { icon: Building2, title: "Компании", desc: "HR-воронка для поиска junior ML/DS и молодых AI-специалистов, которые уже показали практический результат.", color: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.16)]" },
-  { icon: Zap, title: "Автопроверка", desc: "CSV-submit, расчет score, обновление leaderboard и понятная обратная связь по решению.", color: "text-primary bg-primary/10" },
+  { icon: Zap, title: "Автопроверка", desc: "Отправка CSV, расчет результата, обновление рейтинга и понятная обратная связь по решению.", color: "text-primary bg-primary/10" },
 ];
 
 const LEAGUES = [
@@ -59,17 +59,17 @@ const PROBLEMS = [
 const WORKFLOW = [
   { icon: Target, title: "Задача", desc: "Выбираешь соревнование из каталога, скачиваешь датасет и читаешь описание — какая метрика, какие ограничения и что ожидается от решения." },
   { icon: Code2, title: "Модель", desc: "Пишешь решение на Python: pandas, sklearn, CatBoost, PyTorch — любой стек. Работаешь локально, как привычно." },
-  { icon: Upload, title: "CSV", desc: "Загружаешь готовый CSV-файл. Платформа автоматически проверяет формат, считает score по метрике соревнования и фиксирует результат." },
-  { icon: BarChart3, title: "Leaderboard", desc: "Сразу видишь свою позицию относительно других участников. Сравниваешь подходы и понимаешь, где твой текущий уровень." },
+  { icon: Upload, title: "CSV", desc: "Загружаешь готовый CSV-файл. Платформа автоматически проверяет формат, считает результат по метрике соревнования и фиксирует его." },
+  { icon: BarChart3, title: "Рейтинг", desc: "Сразу видишь свою позицию относительно других участников. Сравниваешь подходы и понимаешь, где твой текущий уровень." },
   { icon: LineChart, title: "Рейтинг", desc: "Каждый результат влияет на рейтинг. Растешь через соревнования, побеждаешь в дуэлях и поднимаешься по лигам от Бронзы к Платине." },
-  { icon: Radar, title: "ML-паспорт", desc: "Все результаты, score и бейджи собираются в один профиль — подтвержденное доказательство навыков для работодателей и коллег." },
+  { icon: Radar, title: "ML-паспорт", desc: "Все результаты и бейджи собираются в один профиль — подтвержденное доказательство навыков для работодателей и коллег." },
 ];
 
 const AUDIENCES = [
-  { icon: Rocket, title: "Новички", desc: "Starter-задачи, baseline и разборы помогают сделать первый валидный submit." },
+  { icon: Rocket, title: "Новички", desc: "Начальные задачи, базовые решения и разборы помогают сделать первую корректную отправку." },
   { icon: GraduationCap, title: "Студенты", desc: "Сравнивай себя с участниками из других вузов и участвуй в кампусных челленджах." },
-  { icon: ShieldCheck, title: "Junior ML/DS", desc: "Покажи практический уровень через score, стабильность и решения на задачах." },
-  { icon: Flame, title: "Сильные участники", desc: "Соревнуйся в рейтинговых турнирах, дуэлях и private leaderboard." },
+  { icon: ShieldCheck, title: "Junior ML/DS", desc: "Покажи практический уровень через результаты, стабильность и решения на задачах." },
+  { icon: Flame, title: "Сильные участники", desc: "Соревнуйся в рейтинговых турнирах и дуэлях, получай денежные призы и карьерные возможности за сильные результаты." },
   { icon: Building2, title: "Компании", desc: "Находите людей, которые уже доказали результат на практических задачах." },
 ];
 
@@ -123,15 +123,22 @@ function HeroCompanion({ reduceMotion }) {
       <div className="absolute left-1/2 top-1/2 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-300/30" />
       <div className="absolute left-1/2 top-1/2 h-[330px] w-[330px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-300/35" />
 
-      <div className="relative w-full max-w-[600px]">
+      <motion.div
+        className="relative w-full max-w-[600px]"
+        animate={reduceMotion ? undefined : { y: [0, -5, 0], rotate: [0, 0.35, 0] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+      >
         <video
           className="pointer-events-none block h-auto w-full select-none rounded-[24px]"
           src="/hero_robo_video.mp4"
           autoPlay
-          loop
           muted
           playsInline
           preload="auto"
+          onEnded={(event) => {
+            event.currentTarget.currentTime = 0;
+            event.currentTarget.play().catch(() => {});
+          }}
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
@@ -152,7 +159,7 @@ function HeroCompanion({ reduceMotion }) {
           </span>
           <span>
             <span className="block text-[13px] font-bold text-neutral-900">CSV проверен</span>
-            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">score 0.9412</span>
+            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">результат 0.9412</span>
           </span>
         </motion.div>
 
@@ -187,16 +194,16 @@ function HeroCompanion({ reduceMotion }) {
             <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">рейтинг 1420</span>
           </span>
         </motion.div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
 
 function ArenaPreview() {
   const rows = [
-    { rank: "01", name: "datawizard", task: "Credit Scoring", score: "0.9412", change: "+24" },
-    { rank: "02", name: "ml_ninja", task: "NLP Sentiment", score: "0.9368", change: "+18" },
-    { rank: "03", name: "Ты", task: "House Prices", score: "0.9214", change: "+31", active: true },
+    { rank: "01", name: "datawizard", task: "Кредитный скоринг", score: "0.9412", change: "+24" },
+    { rank: "02", name: "ml_ninja", task: "Тональность отзывов", score: "0.9368", change: "+18" },
+    { rank: "03", name: "Ты", task: "Цены на жильё", score: "0.9214", change: "+31", active: true },
   ];
 
   return (
@@ -204,9 +211,9 @@ function ArenaPreview() {
       <div className="flex items-center justify-between border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-2 font-medium text-foreground">
           <span className="h-2 w-2 rounded-full bg-accent" />
-          Live leaderboard
+          Онлайн-рейтинг
         </span>
-        <span>Season 01</span>
+        <span>Сезон 01</span>
       </div>
       <div className="divide-y divide-border/70">
         {rows.map((row, index) => (
@@ -257,16 +264,16 @@ function PassportPreview() {
           </div>
           <div>
             <div className="font-heading font-bold">ML-паспорт</div>
-            <div className="text-sm text-muted-foreground">Junior ML Engineer</div>
+            <div className="text-sm text-muted-foreground">Младший ML-инженер</div>
           </div>
         </div>
         <LeagueBadge rating={1420} />
       </div>
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          ["12", "submit"],
+          ["12", "отправок"],
           ["4", "задачи"],
-          ["86%", "percentile"],
+          ["86%", "перцентиль"],
         ].map(([value, label]) => (
           <div key={label} className="rounded-lg bg-secondary/70 p-3 text-center">
             <div className="font-heading text-xl font-bold">{value}</div>
@@ -289,7 +296,7 @@ function PassportPreview() {
       </div>
       <div className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-background/70 p-3 text-sm text-muted-foreground">
         <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-accent" />
-        Подтвержденные результаты, score и бейджи вместо самооценки в профиле.
+        Подтвержденные результаты и бейджи вместо самооценки в профиле.
       </div>
     </div>
   );
@@ -338,7 +345,7 @@ export default function Landing() {
               <Link
                 key={to}
                 to={to}
-                className="font-[var(--font-sans)] text-[15px] font-semibold text-[#0B2B55] transition-all duration-300 hover:text-[#0084FF] hover:drop-shadow-[0_0_7px_rgba(0,132,255,0.75)]"
+                className="relative py-2 font-[var(--font-sans)] text-[15px] font-semibold text-[#0B2B55] transition-colors duration-300 after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[#0084FF] after:transition-[width] after:duration-300 hover:text-[#0084FF] hover:after:w-full"
               >
                 {label}
               </Link>
@@ -438,7 +445,7 @@ export default function Landing() {
                     ))}
                   </div>
                   <span className="font-[var(--font-sans)] text-[12px] text-black/75">
-                    Founder Season · <strong className="text-neutral-900">регистрация открыта</strong>
+                    Сезон основателей · <strong className="text-neutral-900">регистрация открыта</strong>
                   </span>
                 </div>
 
@@ -492,10 +499,10 @@ export default function Landing() {
                   initial={reduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: 0.65 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  whileHover={reduceMotion ? undefined : { y: -2, scale: 1.02 }}
-                  className="group flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px]"
+                  whileHover={reduceMotion ? undefined : { y: -3 }}
+                  className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px]"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF] transition-transform group-hover:scale-110">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF]">
                     <stat.icon size={17} />
                   </span>
                   <span>
@@ -519,14 +526,14 @@ export default function Landing() {
           >
             <div className="relative">
 
-              <h2 className="font-heading text-4xl md:text-5xl font-bold mb-4">Founder Season</h2>
+              <h2 className="font-heading text-4xl md:text-5xl font-bold mb-4">Сезон основателей</h2>
               <p className="max-w-xl text-muted-foreground leading-relaxed">
                 ML-Арена еще находится в разработке. В предсезоне первые участники получат мини-задачи,
                 разборы, ранний рейтинг, подготовку к соревнованию открытия и специальные награды.
               </p>
               <Button asChild className="mt-6">
                 <Link to="/register">
-                  Попасть в Founder Season <ArrowRight size={16} className="ml-1" />
+                  Попасть в сезон основателей <ArrowRight size={16} className="ml-1" />
                 </Link>
               </Button>
             </div>
@@ -534,7 +541,7 @@ export default function Landing() {
               <div className="pointer-events-none absolute left-8 right-8 top-9 hidden h-px bg-gradient-to-r from-primary/10 via-primary/35 to-cyan-400/20 sm:block" />
               {FOUNDER_STEPS.map((step, index) => (
                 <motion.div
-                  key={step.title}
+                  key={`${step.title}-${index}`}
                   whileHover={reduceMotion ? undefined : { y: -5 }}
                   className="group relative overflow-hidden rounded-[22px] border border-white/80 bg-background/75 p-5 shadow-[0_18px_45px_-32px_rgba(37,99,235,0.55)] ring-1 ring-black/5 backdrop-blur-xl"
                 >
@@ -599,7 +606,7 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 border-l border-t border-border">
               {WORKFLOW.map((step, index) => (
                 <motion.div
-                  key={step.title}
+                  key={`${step.title}-${index}`}
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true, amount: 0.25 }}
@@ -653,7 +660,7 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 py-20 lg:py-24">
             <SectionTitle
               title={<>Четыре лиги.<br />Один понятный маршрут.</>}
-              desc="Каждый результат меняет позицию в live leaderboard и приближает к следующей лиге."
+              desc="Каждый результат меняет позицию в рейтинге и приближает к следующей лиге."
             />
             <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-stretch">
               <div className="grid grid-cols-2 border-l border-t border-border">
@@ -662,13 +669,25 @@ export default function Landing() {
                     key={league.name}
                     initial="hidden"
                     whileInView="visible"
+                    whileHover={reduceMotion ? undefined : { y: -5, scale: 1.015 }}
                     viewport={{ once: true, amount: 0.4 }}
                     variants={reveal}
                     transition={{ ...transition, delay: index * 0.08 }}
-                    className="relative border-b border-r border-border bg-background p-5 text-center md:p-7"
+                    className="group relative border-b border-r border-border bg-background p-5 text-center transition-shadow hover:z-10 hover:shadow-lg md:p-7"
                   >
-                    <div className="absolute left-0 right-0 top-0 h-1 bg-primary" style={{ opacity: 0.35 + index * 0.2 }} />
-                    <div className="mb-4 inline-block"><LeagueBadge rating={league.rating} size="lg" /></div>
+                    <motion.div
+                      className="absolute left-0 right-0 top-0 h-1 bg-primary"
+                      style={{ opacity: 0.35 + index * 0.2 }}
+                      animate={reduceMotion ? undefined : { scaleX: [0.75, 1, 0.75] }}
+                      transition={{ duration: 2.8 + index * 0.25, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <motion.div
+                      className="mb-4 inline-block"
+                      animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
+                      transition={{ duration: 3.2 + index * 0.2, delay: index * 0.15, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <LeagueBadge rating={league.rating} size="lg" />
+                    </motion.div>
                     <div className="font-heading font-semibold">{league.name}</div>
                     <div className="font-mono text-xs text-muted-foreground">{league.range}</div>
                   </motion.div>
@@ -687,12 +706,19 @@ export default function Landing() {
                 key={audience.title}
                 initial="hidden"
                 whileInView="visible"
+                whileHover={reduceMotion ? undefined : { y: -5 }}
                 viewport={{ once: true, amount: 0.4 }}
                 variants={reveal}
                 transition={{ ...transition, delay: index * 0.05 }}
-                className="bg-background p-5 md:p-6"
+                className="group bg-background p-5 transition-shadow hover:z-10 hover:shadow-lg md:p-6"
               >
-                <audience.icon size={23} className="text-primary mb-7" />
+                <motion.div
+                  className="mb-7 w-fit text-primary"
+                  animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
+                  transition={{ duration: 3 + index * 0.18, delay: index * 0.12, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <audience.icon size={23} />
+                </motion.div>
                 <h3 className="font-heading font-semibold mb-2">{audience.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{audience.desc}</p>
               </motion.div>
@@ -714,7 +740,7 @@ export default function Landing() {
                 Навыки, которые не нужно доказывать словами
               </h2>
               <p className="max-w-xl text-muted-foreground leading-relaxed">
-                Score, лиги, бейджи и история submit собираются в одном профиле и показывают работодателям реальный уровень.
+                Результаты, лиги, бейджи и история отправок собираются в одном профиле и показывают работодателям реальный уровень.
               </p>
               <div className="mt-6 flex items-center gap-3 text-sm font-medium">
                 <Award size={18} className="text-primary" />

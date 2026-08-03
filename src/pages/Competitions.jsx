@@ -18,16 +18,16 @@ import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 
 const COMPETITION_META = {
-  c1: { difficulty: "Medium", access: "Открыто", domain: "Fintech", publicSplit: 30 },
-  c2: { difficulty: "Easy", access: "Открыто", domain: "NLP", publicSplit: 30 },
-  c3: { difficulty: "Hard", access: "Открыто", domain: "Fintech", publicSplit: 25 },
-  c4: { difficulty: "Hard", access: "Открыто", domain: "Retail", publicSplit: 30 },
-  c5: { difficulty: "Medium", access: "Открыто", domain: "Mobility", publicSplit: 30 },
-  c6: { difficulty: "Beginner", access: "Открыто", domain: "Synthetic", publicSplit: 30 },
-  c7: { difficulty: "Expert", access: "Открыто", domain: "Research", publicSplit: 20 },
-  c8: { difficulty: "Easy", access: "Открыто", domain: "Telecom", publicSplit: 30 },
-  c9: { difficulty: "Hard", access: "Партнёрское", domain: "HealthTech", publicSplit: 30 },
-  c10: { difficulty: "Expert", access: "По приглашению", domain: "Autonomous", publicSplit: 20 },
+  c1: { difficulty: "Средняя", access: "Открыто", domain: "Финтех" },
+  c2: { difficulty: "Лёгкая", access: "Открыто", domain: "NLP" },
+  c3: { difficulty: "Высокая", access: "Открыто", domain: "Финтех" },
+  c4: { difficulty: "Высокая", access: "Открыто", domain: "Ритейл" },
+  c5: { difficulty: "Средняя", access: "Открыто", domain: "Транспорт" },
+  c6: { difficulty: "Начальная", access: "Открыто", domain: "Синтетика" },
+  c7: { difficulty: "Экспертная", access: "Открыто", domain: "Исследования" },
+  c8: { difficulty: "Лёгкая", access: "Открыто", domain: "Телеком" },
+  c9: { difficulty: "Высокая", access: "Партнёрское", domain: "Здравоохранение" },
+  c10: { difficulty: "Экспертная", access: "По приглашению", domain: "Беспилотники" },
 };
 
 const USER_STATES = {
@@ -193,7 +193,7 @@ export default function Competitions() {
                 <CompetitionCard
                   competition={competition}
                   status={getStatus(competition)}
-                  meta={COMPETITION_META[competition.id] || { difficulty: "Medium", access: "Открыто", domain: "Other", publicSplit: 30 }}
+                  meta={COMPETITION_META[competition.id] || { difficulty: "Средняя", access: "Открыто", domain: "Другое" }}
                   userState={USER_STATES[competition.id]}
                   featured={index === 0}
                   sequence={index + 1}
@@ -214,8 +214,8 @@ export default function Competitions() {
       <section className="grid border-y border-border bg-card md:grid-cols-[1fr_1fr_1fr]">
         {[
           ["Одинаковые лимиты", "В рейтинговых турнирах Premium не влияет на число попыток."],
-          ["30% public / 70% private", "Public score помогает ориентироваться, private определяет финал."],
-          ["Только CSV", "Код не запускается на платформе, а формат проверяется до scoring."],
+          ["Призы и возможности", "Лучшие участники получают денежные призы, позиции в рейтинге и внимание компаний-партнёров."],
+          ["Только CSV", "Код не запускается на платформе, а формат проверяется до расчёта результата."],
         ].map(([title, text], index) => (
           <div key={title} className={cn("p-5 md:p-6", index > 0 && "border-t border-border md:border-l md:border-t-0")}>
             <p className="text-sm font-semibold">{title}</p>

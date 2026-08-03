@@ -31,7 +31,7 @@ function pluralize(value, one, few, many) {
 
 function getTimeLabel(competition, status) {
   if (status === "finished") return "Результаты опубликованы";
-  if (status === "finalizing") return "Идёт private-пересчёт";
+  if (status === "finalizing") return "Идёт финальный пересчёт";
   if (!competition.deadline) return "Дата уточняется";
 
   const diff = new Date(competition.deadline).getTime() - Date.now();
@@ -55,7 +55,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
       : status === "upcoming"
         ? "Открыть описание"
         : userState?.rank
-          ? "Открыть leaderboard"
+          ? "Открыть рейтинг"
           : userState?.joined
             ? "Продолжить участие"
             : isRestricted
@@ -129,7 +129,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
                   </span>
                 </div>
                 <span className={cn("font-mono text-xs", featured ? "text-background/40" : "text-muted-foreground")}>
-                  EVENT {sequenceLabel}
+                  Событие {sequenceLabel}
                 </span>
               </div>
 
@@ -184,15 +184,10 @@ export default function CompetitionCard({ competition, status, meta, userState, 
               <p className={cn("mt-2 font-heading font-bold", featured ? "text-3xl text-background md:text-4xl" : "text-2xl")}>
                 {competition.prize_fund > 0 ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Рейтинговое"}
               </p>
-              <div className={cn("mt-6", featured ? "text-background/60" : "text-muted-foreground")}>
-                <div className="mb-2 flex items-center justify-between text-[10px] font-medium uppercase">
-                  <span>Public {meta.publicSplit}%</span>
-                  <span>Private {100 - meta.publicSplit}%</span>
-                </div>
-                <div className={cn("flex h-1.5 overflow-hidden", featured ? "bg-background/10" : "bg-secondary")}>
-                  <span className="bg-primary" style={{ width: `${meta.publicSplit}%` }} />
-                  <span className={featured ? "bg-background/35" : "bg-foreground/20"} style={{ width: `${100 - meta.publicSplit}%` }} />
-                </div>
+              <div className={cn("mt-6 border-t pt-5 text-xs leading-5", featured ? "border-background/15 text-background/60" : "border-border text-muted-foreground")}>
+                {competition.prize_fund > 0
+                  ? "Денежные призы получают лучшие участники. Сильный результат также заметят компании-партнёры."
+                  : "Результат влияет на рейтинг, лигу и видимость вашего ML-паспорта для компаний."}
               </div>
             </div>
 
@@ -203,7 +198,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
                   <span className={cn("font-semibold", featured ? "text-background" : "text-accent")}>#{userState.rank}</span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs">
-                  <span className={featured ? "text-background/55" : "text-muted-foreground"}>Public score</span>
+                  <span className={featured ? "text-background/55" : "text-muted-foreground"}>Текущий результат</span>
                   <span className={cn("font-semibold", featured && "text-background")}>{userState.score}</span>
                 </div>
               </div>
