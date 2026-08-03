@@ -496,11 +496,10 @@ export default function Landing() {
               {STATS.map((stat, index) => (
                 <motion.div
                   key={stat.label}
-                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{ duration: 0.55, delay: 0.65 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  whileHover={reduceMotion ? undefined : { y: -3, transition: { duration: 0.18, delay: 0, ease: "easeOut" } }}
-                  className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px]"
+                  className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px] transition-transform duration-150 ease-out hover:-translate-y-[3px]"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF]">
                     <stat.icon size={17} />
