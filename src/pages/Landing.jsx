@@ -34,11 +34,11 @@ import { Button } from "@/components/ui/button";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 
 const FEATURES = [
-  { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: regression, classification, NLP, CV и tabular. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
+  { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: регрессия, классификация, NLP, CV и табличные данные. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
   { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "text-accent-foreground bg-accent/20" },
   { icon: Medal, title: "Рейтинг и лиги", desc: "Единая система прогресса: соревнования, дуэли, сезоны и переходы из Бронзы к Платине.", color: "text-[hsl(var(--chart-5))] bg-[hsl(var(--chart-5)/0.16)]" },
-  { icon: Brain, title: "ML-паспорт", desc: "Score, бейджи, сильные стороны и подтвержденные результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
-  { icon: Building2, title: "Компании", desc: "HR-воронка для поиска junior ML/DS и молодых AI-специалистов, которые уже показали практический результат.", color: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.16)]" },
+  { icon: Brain, title: "ML-паспорт", desc: "Рейтинг, бейджи, сильные стороны и подтверждённые результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
+  { icon: Building2, title: "Компании", desc: "Инструмент для поиска начинающих ML/DS и AI-специалистов, которые уже показали практический результат.", color: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.16)]" },
   { icon: Zap, title: "Автопроверка", desc: "Отправка CSV, расчет результата, обновление рейтинга и понятная обратная связь по решению.", color: "text-primary bg-primary/10" },
 ];
 
@@ -59,16 +59,16 @@ const PROBLEMS = [
 const WORKFLOW = [
   { icon: Target, title: "Задача", desc: "Выбираешь соревнование из каталога, скачиваешь датасет и читаешь описание — какая метрика, какие ограничения и что ожидается от решения." },
   { icon: Code2, title: "Модель", desc: "Пишешь решение на Python: pandas, sklearn, CatBoost, PyTorch — любой стек. Работаешь локально, как привычно." },
-  { icon: Upload, title: "CSV", desc: "Загружаешь готовый CSV-файл. Платформа автоматически проверяет формат, считает результат по метрике соревнования и фиксирует его." },
-  { icon: BarChart3, title: "Рейтинг", desc: "Сразу видишь свою позицию относительно других участников. Сравниваешь подходы и понимаешь, где твой текущий уровень." },
+  { icon: Upload, title: "Решение", desc: "Загружаешь готовый CSV-файл. Платформа автоматически проверяет формат, считает результат по метрике соревнования и фиксирует его." },
+  { icon: BarChart3, title: "Позиция в рейтинге", desc: "Сразу видишь свою позицию относительно других участников. Сравниваешь подходы и понимаешь, где твой текущий уровень." },
   { icon: LineChart, title: "Рейтинг", desc: "Каждый результат влияет на рейтинг. Растешь через соревнования, побеждаешь в дуэлях и поднимаешься по лигам от Бронзы к Платине." },
   { icon: Radar, title: "ML-паспорт", desc: "Все результаты и бейджи собираются в один профиль — подтвержденное доказательство навыков для работодателей и коллег." },
 ];
 
 const AUDIENCES = [
   { icon: Rocket, title: "Новички", desc: "Начальные задачи, базовые решения и разборы помогают сделать первую корректную отправку." },
-  { icon: GraduationCap, title: "Студенты", desc: "Сравнивай себя с участниками из других вузов и участвуй в кампусных челленджах." },
-  { icon: ShieldCheck, title: "Junior ML/DS", desc: "Покажи практический уровень через результаты, стабильность и решения на задачах." },
+  { icon: GraduationCap, title: "Студенты", desc: "Сравнивай себя с участниками из других вузов и участвуй в университетских соревнованиях." },
+  { icon: ShieldCheck, title: "Начинающие ML/DS", desc: "Покажи практический уровень через результаты, стабильность и решения на задачах." },
   { icon: Flame, title: "Сильные участники", desc: "Соревнуйся в рейтинговых турнирах и дуэлях, получай денежные призы и карьерные возможности за сильные результаты." },
   { icon: Building2, title: "Компании", desc: "Находите людей, которые уже доказали результат на практических задачах." },
 ];
@@ -250,9 +250,9 @@ function ArenaPreview() {
 
 function PassportPreview() {
   const skills = [
-    { label: "Tabular", value: "92%" },
-    { label: "Classification", value: "88%" },
-    { label: "Feature engineering", value: "81%" },
+    { label: "Табличные данные", value: "92%" },
+    { label: "Классификация", value: "88%" },
+    { label: "Инженерия признаков", value: "81%" },
   ];
 
   return (
@@ -296,7 +296,7 @@ function PassportPreview() {
       </div>
       <div className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-background/70 p-3 text-sm text-muted-foreground">
         <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-accent" />
-        Подтвержденные результаты и бейджи вместо самооценки в профиле.
+        Подтверждённые результаты в ML-паспорте.
       </div>
     </div>
   );
@@ -445,7 +445,7 @@ export default function Landing() {
                     ))}
                   </div>
                   <span className="font-[var(--font-sans)] text-[12px] text-black/75">
-                    Сезон основателей · <strong className="text-neutral-900">регистрация открыта</strong>
+                    ML-Арена Founder Season · <strong className="text-neutral-900">регистрация открыта</strong>
                   </span>
                 </div>
 
@@ -499,7 +499,7 @@ export default function Landing() {
                   initial={reduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: 0.65 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  whileHover={reduceMotion ? undefined : { y: -3 }}
+                  whileHover={reduceMotion ? undefined : { y: -3, transition: { duration: 0.18, delay: 0, ease: "easeOut" } }}
                   className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px]"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF]">
@@ -526,14 +526,14 @@ export default function Landing() {
           >
             <div className="relative">
 
-              <h2 className="font-heading text-4xl md:text-5xl font-bold mb-4">Сезон основателей</h2>
+              <h2 className="font-heading text-4xl md:text-5xl font-bold mb-4">ML-Арена Founder Season</h2>
               <p className="max-w-xl text-muted-foreground leading-relaxed">
-                ML-Арена еще находится в разработке. В предсезоне первые участники получат мини-задачи,
-                разборы, ранний рейтинг, подготовку к соревнованию открытия и специальные награды.
+                Предсезон для первых участников: мини-задачи, разборы, ранний рейтинг,
+                подготовка к соревнованию открытия и специальные награды.
               </p>
               <Button asChild className="mt-6">
                 <Link to="/register">
-                  Попасть в сезон основателей <ArrowRight size={16} className="ml-1" />
+                  Попасть в ML-Арена Founder Season <ArrowRight size={16} className="ml-1" />
                 </Link>
               </Button>
             </div>
@@ -630,7 +630,7 @@ export default function Landing() {
 
         <section className="max-w-7xl mx-auto px-4 py-20 lg:py-28">
           <SectionTitle
-            title="Все для роста в одном контуре"
+            title="Всё для роста в одном месте"
             desc="Практика, соревнование и карьерный профиль связаны между собой, поэтому каждый результат работает дальше."
           />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

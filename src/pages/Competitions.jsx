@@ -211,11 +211,11 @@ export default function Competitions() {
         )}
       </section>
 
-      <section className="grid border-y border-border bg-card md:grid-cols-[1fr_1fr_1fr]">
+      <section className="mt-8 grid border-y border-border bg-card md:grid-cols-[1fr_1fr_1fr]">
         {[
           ["Одинаковые лимиты", "В рейтинговых турнирах Premium не влияет на число попыток."],
           ["Призы и возможности", "Лучшие участники получают денежные призы, позиции в рейтинге и внимание компаний-партнёров."],
-          ["Только CSV", "Код не запускается на платформе, а формат проверяется до расчёта результата."],
+          ["Обратная связь", "Участники загружают CSV и код итогового решения. Для работ, занявших призовые места, код проверяется на воспроизводимость."],
         ].map(([title, text], index) => (
           <div key={title} className={cn("p-5 md:p-6", index > 0 && "border-t border-border md:border-l md:border-t-0")}>
             <p className="text-sm font-semibold">{title}</p>
