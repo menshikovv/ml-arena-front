@@ -190,37 +190,57 @@ function OverviewTab({ competition, meta }) {
 
       <section className="py-7">
         <h2 className="font-heading text-xl font-bold">Этапы соревнования</h2>
-        <div className="mt-5 grid sm:grid-cols-4">
+        <div className="mt-5 grid gap-3 sm:grid-cols-4">
           {[
             ["01", "Старт", "Данные открыты"],
             ["02", "Отправка решения", getDeadlineLabel(competition)],
             ["03", "Финальная проверка", "После дедлайна"],
             ["04", "Проверка лидеров", "Итоговый результат"],
           ].map(([number, title, text], index) => (
-            <div key={number} className={cn("relative border-t border-border p-4", index > 0 && "sm:border-l")}>
-              <span className="font-mono text-[10px] text-primary">{number}</span>
-              <p className="mt-3 text-sm font-semibold">{title}</p>
+            <motion.div
+              key={number}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.45 }}
+              transition={{ duration: 0.28, delay: index * 0.07, ease: "easeOut" }}
+              className="group relative min-h-36 overflow-hidden rounded-lg border border-border bg-card p-4 transition-shadow duration-200 hover:shadow-md"
+            >
+              <span className="absolute inset-x-0 top-0 h-0.5 bg-primary/70" />
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono text-[10px] font-medium text-primary transition-transform duration-200 group-hover:-translate-y-0.5">{number}</span>
+              <p className="mt-5 text-sm font-semibold">{title}</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      <section className="grid border-y border-border md:grid-cols-2">
-        <div className="p-5 md:p-6">
-          <FileCode2 className="text-primary" size={21} />
-          <h3 className="mt-4 font-heading text-lg font-bold">Начать с baseline</h3>
+      <section className="grid gap-4 border-t border-border py-7 md:grid-cols-2">
+        <motion.article
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="group rounded-lg border border-border bg-card p-5 md:p-6"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:-translate-y-0.5"><FileCode2 size={21} /></span>
+          <h3 className="mt-5 font-heading text-lg font-bold">Начать с baseline</h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">Базовое решение даёт {meta.baseline} и показывает полный путь от данных до submit.</p>
           <Button variant="outline" className="mt-4" onClick={() => downloadCsv("baseline.py", "# Baseline ML Arena\n# Load train.csv, fit model, save submission.csv")}>
             <Download size={15} />
             Скачать baseline
           </Button>
-        </div>
-        <div className="border-t border-border p-5 md:border-l md:border-t-0 md:p-6">
-          <ShieldCheck className="text-accent" size={21} />
-          <h3 className="mt-4 font-heading text-lg font-bold">Одинаковые правила для всех</h3>
+        </motion.article>
+        <motion.article
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.3, delay: 0.08, ease: "easeOut" }}
+          className="group rounded-lg border border-border bg-card p-5 md:p-6"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent-foreground transition-transform duration-200 group-hover:-translate-y-0.5"><ShieldCheck size={21} /></span>
+          <h3 className="mt-5 font-heading text-lg font-bold">Одинаковые правила для всех</h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">Premium не меняет лимит submit-ов, score, положение в leaderboard или доступ к public данным.</p>
-        </div>
+        </motion.article>
       </section>
     </div>
   );

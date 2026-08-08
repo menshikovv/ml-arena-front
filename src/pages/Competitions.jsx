@@ -1,19 +1,27 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowUpDown,
+  BadgeCheck,
   Building2,
   ChevronDown,
   Filter,
+  Layers3,
   Loader2,
   Search,
+  Send,
+  Scale,
+  Trophy,
+  X,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { base44 } from "@/api/base44Client";
 import CompetitionCard from "@/components/ml/CompetitionCard";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +43,33 @@ const USER_STATES = {
   c2: { joined: true, attemptsLeft: 5 },
   c6: { joined: true, rank: 12, score: "98.71%" },
 };
+
+const COMPETITION_BENEFITS = [
+  {
+    number: "01",
+    title: "Одинаковые лимиты",
+    text: "В рейтинговых турнирах Premium не влияет на число попыток.",
+    icon: Scale,
+    iconClass: "bg-primary/10 text-primary",
+    accentClass: "bg-primary",
+  },
+  {
+    number: "02",
+    title: "Призы и возможности",
+    text: "Лучшие участники получают денежные призы, позиции в рейтинге и внимание компаний-партнёров.",
+    icon: Trophy,
+    iconClass: "bg-[hsl(var(--chart-5)/0.16)] text-[hsl(var(--chart-5))]",
+    accentClass: "bg-[hsl(var(--chart-5))]",
+  },
+  {
+    number: "03",
+    title: "Обратная связь",
+    text: "Участники загружают CSV и код итогового решения. Для работ, занявших призовые места, код проверяется на воспроизводимость.",
+    icon: BadgeCheck,
+    iconClass: "bg-accent/20 text-accent-foreground",
+    accentClass: "bg-accent",
+  },
+];
 
 function pluralize(value, one, few, many) {
   const mod10 = value % 10;
@@ -58,6 +93,19 @@ export default function Competitions() {
   const [statusFilter, setStatusFilter] = useState("active");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sort, setSort] = useState("deadline");
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestForm, setRequestForm] = useState({ company: "", name: "", contact: "", prize: "", description: "" });
+
+  useEffect(() => {
+    if (!requestOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setRequestOpen(false);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [requestOpen]);
 
   const { data: competitions = [], isLoading } = useQuery({
     queryKey: ["competitions"],
@@ -92,6 +140,13 @@ export default function Competitions() {
     setSort("deadline");
   };
 
+  const submitRequest = (event) => {
+    event.preventDefault();
+    toast.success("Заявка отправлена. Мы свяжемся с вами в ближайшее время.");
+    setRequestOpen(false);
+    setRequestForm({ company: "", name: "", contact: "", prize: "", description: "" });
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
       <section id="competition-catalog">
@@ -116,8 +171,8 @@ export default function Competitions() {
               </button>
             ))}
           </div>
-          <Button asChild variant="ghost" size="sm" className="mb-2 self-start md:self-auto">
-            <Link to="/company/dashboard"><Building2 size={15} /> Провести соревнование</Link>
+          <Button variant="ghost" size="sm" className="mb-2 self-start md:self-auto" onClick={() => setRequestOpen(true)}>
+            <Building2 size={15} /> Провести соревнование
           </Button>
         </div>
 
@@ -132,10 +187,11 @@ export default function Competitions() {
             />
           </div>
           <div className="relative">
+            <Layers3 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <select
               value={typeFilter}
               onChange={(event) => setTypeFilter(event.target.value)}
-              className="h-10 w-full appearance-none rounded-md border border-input bg-card px-3 pr-9 text-sm"
+              className="h-10 w-full appearance-none rounded-md border border-input bg-card pl-10 pr-9 text-sm"
               aria-label="Тип задачи"
             >
               <option value="all">Все направления</option>
@@ -144,10 +200,11 @@ export default function Competitions() {
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
           </div>
           <div className="relative">
+            <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <select
               value={sort}
               onChange={(event) => setSort(event.target.value)}
-              className="h-10 w-full appearance-none rounded-md border border-input bg-card px-3 pr-9 text-sm"
+              className="h-10 w-full appearance-none rounded-md border border-input bg-card pl-10 pr-9 text-sm"
               aria-label="Сортировка"
             >
               <option value="deadline">Ближайший дедлайн</option>
@@ -211,18 +268,106 @@ export default function Competitions() {
         )}
       </section>
 
-      <section className="mt-8 grid border-y border-border bg-card md:grid-cols-[1fr_1fr_1fr]">
-        {[
-          ["Одинаковые лимиты", "В рейтинговых турнирах Premium не влияет на число попыток."],
-          ["Призы и возможности", "Лучшие участники получают денежные призы, позиции в рейтинге и внимание компаний-партнёров."],
-          ["Обратная связь", "Участники загружают CSV и код итогового решения. Для работ, занявших призовые места, код проверяется на воспроизводимость."],
-        ].map(([title, text], index) => (
-          <div key={title} className={cn("p-5 md:p-6", index > 0 && "border-t border-border md:border-l md:border-t-0")}>
-            <p className="text-sm font-semibold">{title}</p>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">{text}</p>
-          </div>
-        ))}
+      <section className="mt-8 grid overflow-hidden border border-border bg-card md:grid-cols-3">
+        {COMPETITION_BENEFITS.map((benefit, index) => {
+          const Icon = benefit.icon;
+
+          return (
+            <motion.article
+              key={benefit.title}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.35 }}
+              transition={{ duration: 0.32, delay: index * 0.08, ease: "easeOut" }}
+              className={cn("group relative min-h-48 overflow-hidden p-6 md:p-7", index > 0 && "border-t border-border md:border-l md:border-t-0")}
+            >
+              <span className={cn("absolute inset-x-0 top-0 h-1", benefit.accentClass)} />
+              <div className="flex items-start justify-between gap-4">
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg transition-transform duration-200 group-hover:-translate-y-0.5", benefit.iconClass)}>
+                  <Icon size={19} />
+                </div>
+                <span className="font-mono text-[11px] font-medium text-muted-foreground">{benefit.number}</span>
+              </div>
+              <div className="mt-8">
+                <h3 className="font-heading text-base font-semibold">{benefit.title}</h3>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{benefit.text}</p>
+              </div>
+            </motion.article>
+          );
+        })}
       </section>
+
+      <AnimatePresence>
+        {requestOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setRequestOpen(false);
+            }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="competition-request-title"
+              className="w-full max-w-xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="flex items-start justify-between gap-5 border-b border-border px-5 py-5 md:px-6">
+                <div className="flex gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Building2 size={19} />
+                  </span>
+                  <div>
+                    <h2 id="competition-request-title" className="font-heading text-xl font-bold">Провести соревнование</h2>
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">Расскажите о задаче — мы предложим формат и поможем с запуском.</p>
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setRequestOpen(false)} aria-label="Закрыть форму">
+                  <X size={17} />
+                </Button>
+              </div>
+
+              <form className="space-y-4 px-5 py-5 md:px-6" onSubmit={submitRequest}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-1.5 text-sm font-medium">
+                    <span>Компания или проект</span>
+                    <Input required value={requestForm.company} onChange={(event) => setRequestForm({ ...requestForm, company: event.target.value })} placeholder="Название компании" />
+                  </label>
+                  <label className="space-y-1.5 text-sm font-medium">
+                    <span>Ваше имя</span>
+                    <Input required value={requestForm.name} onChange={(event) => setRequestForm({ ...requestForm, name: event.target.value })} placeholder="Как к вам обращаться" />
+                  </label>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-1.5 text-sm font-medium">
+                    <span>Email или Telegram</span>
+                    <Input required value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" />
+                  </label>
+                  <label className="space-y-1.5 text-sm font-medium">
+                    <span>Призовой фонд</span>
+                    <Input value={requestForm.prize} onChange={(event) => setRequestForm({ ...requestForm, prize: event.target.value })} placeholder="Например, 300 000 ₽" />
+                  </label>
+                </div>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  <span>Кратко о задаче</span>
+                  <Textarea required rows={4} value={requestForm.description} onChange={(event) => setRequestForm({ ...requestForm, description: event.target.value })} placeholder="Что нужно решить, для кого соревнование и какой результат вы ожидаете" />
+                </label>
+                <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
+                  <Button type="button" variant="outline" onClick={() => setRequestOpen(false)}>Отмена</Button>
+                  <Button type="submit"><Send size={15} /> Отправить заявку</Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

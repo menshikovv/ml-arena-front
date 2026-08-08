@@ -7,6 +7,7 @@ import {
   BarChart3,
   Check,
   ChevronRight,
+  CircleHelp,
   Clock3,
   History,
   Loader2,
@@ -17,6 +18,7 @@ import {
   Swords,
   Target,
   Trophy,
+  Upload,
   UserRoundSearch,
   X,
   Zap,
@@ -42,11 +44,11 @@ const CURRENT_USER = {
 };
 
 const OPPONENTS = [
-  { id: "p13", name: "ai_glider", rating: 1320, wins: 14, losses: 9, online: true, focus: ["cv", "classification"] },
-  { id: "p11", name: "ml_ninja", rating: 1180, wins: 21, losses: 13, online: true, focus: ["nlp", "classification"] },
-  { id: "p10", name: "datawizard", rating: 1050, wins: 12, losses: 10, online: true, focus: ["regression", "tabular"] },
-  { id: "p4", name: "neuralfox", rating: 990, wins: 30, losses: 10, online: false, focus: ["classification", "nlp"] },
-  { id: "p3", name: "tensorlord", rating: 1450, wins: 35, losses: 14, online: true, focus: ["cv", "regression"] },
+  { id: "p13", name: "ai_glider", rating: 1320, wins: 14, losses: 9, online: true, focus: ["cv", "classification", "ranking"] },
+  { id: "p11", name: "ml_ninja", rating: 1180, wins: 21, losses: 13, online: true, focus: ["nlp", "classification", "clustering"] },
+  { id: "p10", name: "datawizard", rating: 1050, wins: 12, losses: 10, online: true, focus: ["regression", "time_series", "recsys"] },
+  { id: "p4", name: "neuralfox", rating: 990, wins: 30, losses: 10, online: false, focus: ["classification", "nlp", "clustering"] },
+  { id: "p3", name: "tensorlord", rating: 1450, wins: 35, losses: 14, online: true, focus: ["cv", "regression", "ranking"] },
 ];
 
 const TASKS = {
@@ -69,16 +71,34 @@ const TASKS = {
     metric: "accuracy",
   },
   cv: {
-    label: "Computer Vision",
+    label: "Компьютерное зрение",
     title: "Классификация изображений товаров",
     description: "Определи категорию товара по изображению. Метрика качества — F1.",
     metric: "f1",
   },
-  tabular: {
+  time_series: {
     label: "Временные ряды",
     title: "Прогноз спроса по часам",
     description: "Предскажи следующий шаг временного ряда. Метрика качества — MAE.",
     metric: "mae",
+  },
+  ranking: {
+    label: "Ранжирование",
+    title: "Ранжирование результатов поиска",
+    description: "Упорядочь документы по релевантности запросу. Метрика качества — NDCG.",
+    metric: "ndcg",
+  },
+  clustering: {
+    label: "Кластеризация",
+    title: "Сегментация пользовательских профилей",
+    description: "Раздели пользователей на устойчивые группы по поведению. Метрика качества — Silhouette score.",
+    metric: "silhouette",
+  },
+  recsys: {
+    label: "RecSys",
+    title: "Персональные рекомендации товаров",
+    description: "Подбери товары, которые с высокой вероятностью заинтересуют пользователя. Метрика качества — NDCG.",
+    metric: "ndcg",
   },
 };
 
@@ -247,8 +267,88 @@ function RecentDuels({ duels, isLoading }) {
   );
 }
 
+function DuelGuideDialog({ open, onClose }) {
+  const steps = [
+    { number: "01", icon: Target, title: "Выбери направление", text: "Определи тип задачи и начни быструю дуэль или вызови конкретного соперника." },
+    { number: "02", icon: Swords, title: "Получи общий старт", text: "Оба участника получают одну задачу, одинаковые условия и одинаковый лимит времени." },
+    { number: "03", icon: Upload, title: "Загрузи решение", text: "На решение даётся 60 минут. Загрузи CSV, после чего платформа проверит формат и результат." },
+    { number: "04", icon: Trophy, title: "Получи результат", text: "Итог меняет рейтинг, а завершённая дуэль пополняет ML-паспорт подтверждённым результатом." },
+  ];
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) onClose();
+          }}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="duel-guide-title"
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-6 border-b border-border p-5 md:p-6">
+              <div>
+                <p className="text-xs font-semibold text-primary">ДУЭЛИ 1×1</p>
+                <h2 id="duel-guide-title" className="mt-2 font-heading text-2xl font-bold">Как проходит дуэль</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Короткий рейтинговый матч, в котором условия одинаковы для обоих участников.</p>
+              </div>
+              <button type="button" onClick={onClose} title="Закрыть" aria-label="Закрыть инструкцию" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid gap-px bg-border sm:grid-cols-2">
+              {steps.map((step) => {
+                const Icon = step.icon;
+
+                return (
+                  <div key={step.number} className="relative min-h-44 bg-card p-5 md:p-6">
+                    <span className="absolute right-5 top-5 font-mono text-[11px] text-muted-foreground">{step.number}</span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon size={19} /></span>
+                    <h3 className="mt-5 font-heading text-base font-bold">{step.title}</h3>
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{step.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-start gap-3 border-t border-border bg-secondary/45 p-5 text-sm leading-6 text-muted-foreground md:px-6">
+              <ShieldCheck size={19} className="mt-0.5 shrink-0 text-accent" />
+              Premium не даёт преимущества в подборе соперника, числе попыток или результате матча.
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setTaskType }) {
   const [searchNick, setSearchNick] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
   const matchedOpponent = useMemo(() => {
     if (!searchNick.trim()) return null;
     return OPPONENTS.find((opponent) => opponent.name.toLowerCase().includes(searchNick.trim().toLowerCase()));
@@ -265,7 +365,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
                   Дуэли 1×1 по машинному обучению
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                  Получи задачу, реши её за 60 минут, загрузи CSV и проверь навык в прямом матче с соперником.
+                  Получи задачу, реши её за 60 минут, загрузи CSV и проверь навык в прямом матче с соперником. Каждый завершённый матч пополняет ML-паспорт подтверждённым результатом.
                 </p>
               </div>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -284,6 +384,10 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
                   <UserRoundSearch size={17} />
                   Вызвать по нику
                 </Button>
+                <Button variant="outline" size="lg" className="h-11 px-5" onClick={() => setGuideOpen(true)}>
+                  <CircleHelp size={17} />
+                  Как это работает
+                </Button>
               </div>
             </div>
             <RatingSummary />
@@ -298,7 +402,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
           </div>
           <span className="hidden text-xs text-muted-foreground md:block">Рейтинг соперника: ±200 Elo</span>
         </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5" role="radiogroup" aria-label="Направление дуэли">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4" role="radiogroup" aria-label="Направление дуэли">
           {Object.entries(TASKS).map(([key, task]) => (
             <button
               key={key}
@@ -436,6 +540,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
           </div>
         </div>
       </section>
+      <DuelGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>
   );
 }

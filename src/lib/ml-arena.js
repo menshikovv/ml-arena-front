@@ -21,14 +21,20 @@ export const METRIC_LABELS = {
   roc_auc: "ROC-AUC (↑ лучше)",
   f1: "F1 (↑ лучше)",
   mae: "MAE (↓ лучше)",
+  ndcg: "NDCG (↑ лучше)",
+  silhouette: "Коэффициент силуэта (↑ лучше)",
 };
 
 export const TASK_TYPE_LABELS = {
   regression: "Регрессия",
   classification: "Классификация",
   nlp: "NLP",
-  cv: "Computer Vision",
+  cv: "Компьютерное зрение",
   tabular: "Табличные данные",
+  time_series: "Временные ряды",
+  ranking: "Ранжирование",
+  clustering: "Кластеризация",
+  recsys: "RecSys",
 };
 
 export const TASK_TYPE_COLORS = {
@@ -37,13 +43,18 @@ export const TASK_TYPE_COLORS = {
   nlp: "#EC4899",
   cv: "#F59E0B",
   tabular: "#10B981",
+  time_series: "#14B8A6",
+  ranking: "#2563EB",
+  clustering: "#8B5CF6",
+  recsys: "#EC4899",
 };
 
 export function isHigherBetter(metric) {
-  return ["accuracy", "roc_auc", "f1"].includes(metric);
+  return ["accuracy", "roc_auc", "f1", "ndcg", "silhouette"].includes(metric);
 }
 
 export function formatScore(score, metric) {
+  if (metric === "silhouette") return score.toFixed(3);
   if (isHigherBetter(metric)) {
     return (score * 100).toFixed(2) + "%";
   }

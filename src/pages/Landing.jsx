@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Code2,
-  FileSpreadsheet,
   Flame,
   GraduationCap,
   FileCheck2,
@@ -34,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 
 const FEATURES = [
-  { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: регрессия, классификация, NLP, CV и табличные данные. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
+  { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: Классификация, Регрессия, NLP, Компьютерное зрение, Временные ряды, Ранжирование, Кластеризация, RecSys. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
   { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "text-accent-foreground bg-accent/20" },
   { icon: Medal, title: "Рейтинг и лиги", desc: "Единая система прогресса: соревнования, дуэли, сезоны и переходы из Бронзы к Платине.", color: "text-[hsl(var(--chart-5))] bg-[hsl(var(--chart-5)/0.16)]" },
   { icon: Brain, title: "ML-паспорт", desc: "Рейтинг, бейджи, сильные стороны и подтверждённые результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
@@ -69,13 +68,13 @@ const AUDIENCES = [
   { icon: Rocket, title: "Новички", desc: "Начальные задачи, базовые решения и разборы помогают сделать первую корректную отправку." },
   { icon: GraduationCap, title: "Студенты", desc: "Сравнивай себя с участниками из других вузов и участвуй в университетских соревнованиях." },
   { icon: ShieldCheck, title: "Начинающие ML/DS", desc: "Покажи практический уровень через результаты, стабильность и решения на задачах." },
-  { icon: Flame, title: "Сильные участники", desc: "Соревнуйся в рейтинговых турнирах и дуэлях, получай денежные призы и карьерные возможности за сильные результаты." },
+  { icon: Flame, title: "Сильные участники", desc: "Соревнуйся в рейтинговых турнирах и дуэлях, получай денежные призы за сильные результаты." },
   { icon: Building2, title: "Компании", desc: "Находите людей, которые уже доказали результат на практических задачах." },
 ];
 
 const STATS = [
-  { value: "Founder", label: "предсезон до запуска", icon: Sparkles },
-  { value: "CSV", label: "формат решений", icon: FileSpreadsheet },
+  { value: "Founder Season", label: "предсезон до запуска", icon: Sparkles },
+  { value: "Призы", label: "денежный фонд", icon: Trophy },
   { value: "1x1", label: "дуэли и сезоны", icon: Swords },
   { value: "4", label: "лиги роста", icon: Medal },
 ];
@@ -98,20 +97,11 @@ function SectionTitle({ title, desc, align = "center" }) {
 }
 
 function HeroCompanion({ reduceMotion }) {
-  const float = (x, y, duration) => reduceMotion
+  const float = (x, y) => reduceMotion
     ? undefined
-    : {
-        x,
-        y,
-        transition: {
-          duration,
-          repeat: Infinity,
-          repeatType: "mirror",
-          ease: "easeInOut",
-        },
-      };
+    : { x, y };
 
-  const glassClass = "absolute z-20 flex items-center gap-3 rounded-[20px] border border-white/70 bg-gradient-to-br from-white/80 to-white/45 px-4 py-3 text-left shadow-[inset_0_2.5px_4px_rgba(255,255,255,0.8),0_12px_32px_-4px_rgba(0,132,255,0.14)] ring-1 ring-black/5 backdrop-blur-[24px] pointer-events-auto";
+  const glassClass = "absolute z-20 rounded-[20px] border border-white/70 bg-gradient-to-br from-white/80 to-white/45 px-4 py-3 text-left shadow-[inset_0_2.5px_4px_rgba(255,255,255,0.8),0_12px_32px_-4px_rgba(0,132,255,0.14)] ring-1 ring-black/5 backdrop-blur-[24px] pointer-events-auto";
 
   return (
     <motion.div
@@ -148,51 +138,60 @@ function HeroCompanion({ reduceMotion }) {
         />
 
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 12 }}
-          animate={{ opacity: 1, scale: 1, ...float([0, 2, 0], [0, -8, 0], 5) }}
+          initial={false}
+          animate={float([0, 2, 0], [0, -8, 0])}
           whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: 1 }}
-          transition={{ type: "spring", damping: 20, stiffness: 100, delay: 0.6 }}
+          transition={{ duration: 5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           className={`${glassClass} right-0 top-[13%] sm:-right-3 lg:-right-5`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0084FF] to-[#0066CC] text-white shadow-[0_4px_12px_rgba(0,132,255,0.3)]">
-            <FileCheck2 size={17} />
-          </span>
-          <span>
-            <span className="block text-[13px] font-bold text-neutral-900">CSV проверен</span>
-            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">результат 0.9412</span>
-          </span>
+          <Link to="/competitions" aria-label="Перейти к соревнованиям" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0084FF] to-[#0066CC] text-white shadow-[0_4px_12px_rgba(0,132,255,0.3)]">
+              <FileCheck2 size={17} />
+            </span>
+            <span>
+              <span className="block text-[13px] font-bold text-neutral-900">CSV проверен</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">результат 0.9412</span>
+            </span>
+          </div>
         </motion.div>
 
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 12 }}
-          animate={{ opacity: 1, scale: 1, ...float([0, -2, 0], [0, 8, 0], 5.5) }}
+          initial={false}
+          animate={float([0, -2, 0], [0, 8, 0])}
           whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: -1 }}
-          transition={{ type: "spring", damping: 20, stiffness: 100, delay: 0.8 }}
+          transition={{ duration: 5.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           className={`${glassClass} left-0 top-[47%] sm:-left-4 lg:-left-8`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-            <Swords size={17} />
-          </span>
-          <span>
-            <span className="block text-[13px] font-bold text-neutral-900">Дуэль 1×1</span>
-            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">соперник найден</span>
-          </span>
+          <Link to="/duels" aria-label="Перейти к дуэлям" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
+              <Swords size={17} />
+            </span>
+            <span>
+              <span className="block text-[13px] font-bold text-neutral-900">Дуэль 1×1</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">соперник найден</span>
+            </span>
+          </div>
         </motion.div>
 
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 12 }}
-          animate={{ opacity: 1, scale: 1, ...float([0, -1, 0], [0, -10, 0], 4.8) }}
+          initial={false}
+          animate={float([0, -1, 0], [0, -10, 0])}
           whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: 1.5 }}
-          transition={{ type: "spring", damping: 20, stiffness: 100, delay: 1 }}
+          transition={{ duration: 4.8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           className={`${glassClass} bottom-[12%] right-1 sm:-right-2 lg:-right-4`}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#9333EA] to-[#7E22CE] text-white shadow-[0_4px_12px_rgba(147,51,234,0.3)]">
-            <Brain size={17} />
-          </span>
-          <span>
-            <span className="block text-[13px] font-bold text-neutral-900">ML-паспорт</span>
-            <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">рейтинг 1420</span>
-          </span>
+          <Link to="/profile" aria-label="Перейти в ML-паспорт" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#9333EA] to-[#7E22CE] text-white shadow-[0_4px_12px_rgba(147,51,234,0.3)]">
+              <Brain size={17} />
+            </span>
+            <span>
+              <span className="block text-[13px] font-bold text-neutral-900">ML-паспорт</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">рейтинг 1420</span>
+            </span>
+          </div>
         </motion.div>
       </motion.div>
     </motion.div>
@@ -249,19 +248,39 @@ function ArenaPreview() {
 }
 
 function PassportPreview() {
+  const reduceMotion = useReducedMotion();
   const skills = [
-    { label: "Табличные данные", value: "92%" },
-    { label: "Классификация", value: "88%" },
-    { label: "Инженерия признаков", value: "81%" },
+    { label: "Табличные данные", value: "92%", progress: 92 },
+    { label: "Классификация", value: "88%", progress: 88 },
+    { label: "Инженерия признаков", value: "81%", progress: 81 },
+  ];
+  const stats = [
+    ["12", "отправок"],
+    ["4", "задачи"],
+    ["86%", "перцентиль"],
   ];
 
   return (
-    <div className="border border-border bg-card p-5 shadow-2xl shadow-primary/10 md:p-6">
-      <div className="flex items-center justify-between gap-4 border-b border-border pb-4 mb-4">
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.35 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative overflow-hidden border border-border bg-card p-5 shadow-[0_24px_60px_rgba(37,99,235,0.12)] md:p-6"
+    >
+      <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+      <div className="pointer-events-none absolute -right-12 -top-14 text-primary/[0.045]">
+        <Brain size={180} strokeWidth={1} />
+      </div>
+      <div className="relative flex items-center justify-between gap-4 border-b border-border pb-4 mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+          <motion.div
+            animate={reduceMotion ? undefined : { rotate: [0, -4, 4, 0] }}
+            transition={{ duration: 1.1, delay: 0.55, ease: "easeInOut" }}
+            className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20"
+          >
             <Brain size={24} className="text-white" />
-          </div>
+          </motion.div>
           <div>
             <div className="font-heading font-bold">ML-паспорт</div>
             <div className="text-sm text-muted-foreground">Младший ML-инженер</div>
@@ -269,36 +288,47 @@ function PassportPreview() {
         </div>
         <LeagueBadge rating={1420} />
       </div>
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        {[
-          ["12", "отправок"],
-          ["4", "задачи"],
-          ["86%", "перцентиль"],
-        ].map(([value, label]) => (
-          <div key={label} className="rounded-lg bg-secondary/70 p-3 text-center">
+      <div className="relative grid grid-cols-3 gap-3 mb-5">
+        {stats.map(([value, label], index) => (
+          <motion.div
+            key={label}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.32, delay: 0.15 + index * 0.08 }}
+            className="rounded-lg border border-border/70 bg-secondary/60 p-3 text-center"
+          >
             <div className="font-heading text-xl font-bold">{value}</div>
-            <div className="text-xs text-muted-foreground">{label}</div>
-          </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
+          </motion.div>
         ))}
       </div>
-      <div className="space-y-4">
-        {skills.map((skill) => (
+      <div className="relative space-y-4">
+        {skills.map((skill, index) => (
           <div key={skill.label}>
             <div className="flex justify-between text-sm mb-1.5">
               <span className="font-medium">{skill.label}</span>
               <span className="text-muted-foreground">{skill.value}</span>
             </div>
             <div className="h-2 rounded-full bg-secondary">
-              <div className="h-2 rounded-full bg-primary" style={{ width: skill.value }} />
+              <motion.div
+                initial={{ width: reduceMotion ? `${skill.progress}%` : "0%" }}
+                whileInView={{ width: `${skill.progress}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.65, delay: 0.25 + index * 0.1, ease: "easeOut" }}
+                className="relative h-2 rounded-full bg-primary"
+              >
+                <span className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 translate-x-0.5 rounded-full bg-white shadow-[0_0_0_3px_rgba(37,99,235,0.14)]" />
+              </motion.div>
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-background/70 p-3 text-sm text-muted-foreground">
+      <div className="relative mt-5 flex items-start gap-2 rounded-lg border border-primary/15 bg-primary/[0.035] p-3 text-sm text-muted-foreground">
         <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-accent" />
         Подтверждённые результаты в ML-паспорте.
       </div>
-    </div>
+    </motion.div>
   );
 }
 
