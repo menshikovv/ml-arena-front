@@ -90,7 +90,6 @@ ml-arena/
 ├── jsconfig.json                # Path alias @/ → ./src/
 ├── tailwind.config.js           # shadcn/ui theme (HSL vars, dark mode: class)
 ├── vite.config.js               # @base44/vite-plugin + @vitejs/plugin-react
-├── vercel.json
 ├── index.html
 └── package.json
 ```
