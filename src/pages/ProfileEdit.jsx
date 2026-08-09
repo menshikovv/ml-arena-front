@@ -113,9 +113,6 @@ export default function ProfileEdit() {
               <p className="mt-3 text-xs leading-5 text-muted-foreground">JPG, PNG или WebP до 5 МБ</p>
               <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
             </div>
-            <div className="border-t border-border bg-secondary/35 px-5 py-4">
-              <div className="flex items-start gap-3 text-xs leading-5 text-muted-foreground"><ShieldCheck size={16} className="mt-0.5 shrink-0 text-primary" /> Изменения появятся в профиле сразу после сохранения.</div>
-            </div>
           </aside>
 
           <div className="space-y-6">
