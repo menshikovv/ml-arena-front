@@ -95,21 +95,9 @@ export default function ProfileEdit() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
       <form onSubmit={handleSubmit}>
-        <header className="border-y border-border bg-card px-5 py-6 md:px-8 md:py-7">
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-            <div>
-              <button type="button" onClick={goBack} className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"><ArrowLeft size={15} /> Вернуться в профиль</button>
-              <h1 className="font-heading text-3xl font-bold leading-tight md:text-4xl">Редактирование профиля</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Настройте данные, которые формируют ваш профиль и ML-паспорт.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {dirty && <span className="hidden text-xs font-medium text-amber-600 sm:block">Есть несохранённые изменения</span>}
-              <Button type="submit" size="lg" disabled={loading || !dirty} className="min-w-36">{loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Сохранить</Button>
-            </div>
-          </div>
-        </header>
+        <button type="button" onClick={goBack} className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"><ArrowLeft size={15} /> Вернуться в профиль</button>
 
-        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[290px_minmax(0,1fr)]">
+        <div className="grid items-start gap-6 lg:grid-cols-[290px_minmax(0,1fr)]">
           <aside className="border-y border-border bg-card lg:sticky lg:top-0">
             <div className="flex flex-col items-center px-6 py-7 text-center">
               <div className="relative">
