@@ -150,7 +150,7 @@ function HeroCompanion({ reduceMotion }) {
               <FileCheck2 size={17} />
             </span>
             <span>
-              <span className="block text-[13px] font-bold text-neutral-900">CSV проверен</span>
+              <span className="block text-[13px] font-bold text-neutral-900">Соревнование</span>
               <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">результат 0.9412</span>
             </span>
           </div>

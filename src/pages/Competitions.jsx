@@ -5,8 +5,10 @@ import {
   ArrowUpDown,
   BadgeCheck,
   Building2,
+  CalendarClock,
   ChevronDown,
   Filter,
+  History,
   Layers3,
   Loader2,
   Search,
@@ -14,6 +16,7 @@ import {
   Scale,
   Trophy,
   X,
+  Zap,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { base44 } from "@/api/base44Client";
@@ -153,19 +156,20 @@ export default function Competitions() {
         <div className="flex flex-col justify-between gap-4 border-b border-border md:flex-row md:items-end">
           <div className="flex gap-1 overflow-x-auto">
             {[
-              ["active", "Активные"],
-              ["upcoming", "Скоро"],
-              ["finished", "Завершённые"],
-            ].map(([value, label]) => (
+              ["active", "Активные", Zap],
+              ["upcoming", "Скоро", CalendarClock],
+              ["finished", "Завершённые", History],
+            ].map(([value, label, Icon]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setStatusFilter(value)}
                 className={cn(
-                  "relative h-11 shrink-0 px-4 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary",
+                  "relative flex h-11 shrink-0 items-center gap-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-primary",
                   statusFilter === value && "text-primary",
                 )}
               >
+                <Icon size={16} />
                 {label}
                 {statusFilter === value && <motion.span layoutId="competition-status" className="absolute inset-x-2 bottom-0 h-0.5 bg-primary" />}
               </button>
