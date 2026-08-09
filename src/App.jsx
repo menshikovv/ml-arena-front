@@ -1,97 +1,74 @@
-import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import ScrollToTop from './components/ScrollToTop';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import AppLayout from '@/components/ml/AppLayout';
-// Add page imports here
-import Landing from '@/pages/Landing';
-import Competitions from '@/pages/Competitions';
-import CompetitionDetail from '@/pages/CompetitionDetail';
-import Duels from '@/pages/Duels';
-import DuelLobby from '@/pages/DuelLobby';
-import Leaderboard from '@/pages/Leaderboard';
-import Profile from '@/pages/Profile';
-import CompanyDashboard from '@/pages/CompanyDashboard';
-import Pricing from '@/pages/Pricing';
-import Admin from '@/pages/Admin';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
+import { QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import AppLayout from "@/components/ml/AppLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import ScrollToTop from "@/components/ScrollToTop";
+import { Toaster } from "@/components/ui/toaster";
+import UserNotRegisteredError from "@/components/UserNotRegisteredError";
+import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import PageNotFound from "@/lib/PageNotFound";
+import { queryClientInstance } from "@/lib/query-client";
+import ForgotPassword from "@/pages/ForgotPassword";
+import Admin from "@/pages/Admin";
+import CompanyDashboard from "@/pages/CompanyDashboard";
+import FounderPlaceholder from "@/pages/FounderPlaceholder";
+import FounderProfile from "@/pages/FounderProfile";
+import Landing from "@/pages/Landing";
+import LegalNotice from "@/pages/LegalNotice";
+import Login from "@/pages/Login";
+import ProfileEdit from "@/pages/ProfileEdit";
+import Pricing from "@/pages/Pricing";
+import Register from "@/pages/Register";
+import ResetPassword from "@/pages/ResetPassword";
+import VerifyEmail from "@/pages/VerifyEmail";
 
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+function AppRoutes() {
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
+    return <div className="fixed inset-0 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" /></div>;
   }
-
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
-  }
+  if (authError?.type === "user_not_registered") return <UserNotRegisteredError />;
 
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<AppLayout />}>
-          <Route path="/competitions" element={<Competitions />} />
-          <Route path="/competitions/:id" element={<CompetitionDetail />} />
-          <Route path="/competitions/:id/:section" element={<CompetitionDetail />} />
-          <Route path="/duels" element={<Duels />} />
-          <Route path="/duels/matchmaking" element={<Duels />} />
-          <Route path="/duels/history" element={<Duels />} />
-          <Route path="/duels/rating" element={<Duels />} />
-          <Route path="/duels/:id" element={<DuelLobby />} />
-          <Route path="/duels/:id/lobby" element={<DuelLobby />} />
-          <Route path="/duels/:id/live" element={<DuelLobby />} />
-          <Route path="/duels/:id/overtime" element={<DuelLobby />} />
-          <Route path="/duels/:id/result" element={<DuelLobby />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/profile" element={<Navigate to="/profile/me" replace />} />
-          <Route path="/profile/:id" element={<Profile />} />
+      <Route path="/terms" element={<LegalNotice type="terms" />} />
+      <Route path="/privacy" element={<LegalNotice type="privacy" />} />
+
+      <Route element={<AppLayout />}>
+        <Route path="/competitions/*" element={<FounderPlaceholder section="competitions" />} />
+        <Route path="/duels/*" element={<FounderPlaceholder section="duels" />} />
+        <Route path="/rating" element={<FounderPlaceholder section="rating" />} />
+        <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
+        <Route path="/ml-passport" element={<FounderPlaceholder section="passport" />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile" element={<FounderProfile />} />
+          <Route path="/profile/me" element={<Navigate to="/profile" replace />} />
+          <Route path="/profile/edit" element={<ProfileEdit />} />
           <Route path="/company/dashboard" element={<CompanyDashboard />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/admin" element={<Admin />} />
         </Route>
       </Route>
+
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
-};
+}
 
-
-function App() {
-
+export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <AuthenticatedApp />
-        </Router>
+        <Router><ScrollToTop /><AppRoutes /></Router>
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
-
-export default App

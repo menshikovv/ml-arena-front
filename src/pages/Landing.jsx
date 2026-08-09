@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -14,8 +14,10 @@ import {
   GraduationCap,
   FileCheck2,
   LineChart,
+  LogOut,
   Medal,
   Menu,
+  Pencil,
   Play,
   Radar,
   Rocket,
@@ -25,10 +27,12 @@ import {
   Target,
   Trophy,
   Upload,
+  UserRound,
   Users,
   X,
   Zap,
 } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 
@@ -182,7 +186,7 @@ function HeroCompanion({ reduceMotion }) {
           transition={{ duration: 4.8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           className={`${glassClass} bottom-[12%] right-1 sm:-right-2 lg:-right-4`}
         >
-          <Link to="/profile" aria-label="Перейти в ML-паспорт" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
+          <Link to="/ml-passport" aria-label="Перейти в ML-паспорт" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#9333EA] to-[#7E22CE] text-white shadow-[0_4px_12px_rgba(147,51,234,0.3)]">
               <Brain size={17} />
@@ -345,6 +349,10 @@ function ArenaLogoMark({ className = "h-8 w-8" }) {
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const { isAuthenticated, logout } = useAuth();
+  const registrationTarget = `/register${location.search}`;
+  const primaryTarget = isAuthenticated ? "/profile" : registrationTarget;
   const reduceMotion = useReducedMotion();
   const reveal = {
     hidden: reduceMotion ? {} : { opacity: 0, y: 22 },
@@ -369,8 +377,8 @@ export default function Landing() {
             {[
               ["/competitions", "Соревнования"],
               ["/duels", "Дуэли"],
-              ["/leaderboard", "Лидерборд"],
-              ["/pricing", "Тарифы"],
+              ["/rating", "Рейтинг"],
+              ["/ml-passport", "ML-паспорт"],
             ].map(([to, label]) => (
               <Link
                 key={to}
@@ -382,13 +390,19 @@ export default function Landing() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Link
-              to="/login"
-              className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex"
-            >
-              Войти на арену
-              <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex">
+                  <UserRound size={15} /> Профиль
+                </Link>
+                <button type="button" onClick={logout} className="hidden h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] hover:bg-white/55 sm:flex" title="Выйти"><LogOut size={15} /></button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-4 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex">Войти</Link>
+                <Link to={registrationTarget} className="group hidden h-9 items-center gap-2 rounded-[12px] bg-[#0084FF] px-4 font-[var(--font-sans)] text-[14px] font-semibold text-white transition-colors hover:bg-[#0074E0] lg:flex">Предрегистрация <ArrowRight size={14} /></Link>
+              </>
+            )}
             <button
               type="button"
               className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] md:hidden"
@@ -428,8 +442,8 @@ export default function Landing() {
               {[
                 ["/competitions", "Соревнования"],
                 ["/duels", "Дуэли"],
-                ["/leaderboard", "Лидерборд"],
-                ["/pricing", "Тарифы"],
+                ["/rating", "Рейтинг"],
+                ["/ml-passport", "ML-паспорт"],
               ].map(([to, label]) => (
                 <Link
                   key={to}
@@ -441,13 +455,18 @@ export default function Landing() {
                 </Link>
               ))}
             </nav>
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="mt-6 flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white"
-            >
-              Войти на арену <ArrowRight size={15} />
-            </Link>
+            {isAuthenticated ? (
+              <div className="mt-6 space-y-2">
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white"><UserRound size={16} /> Профиль</Link>
+                <Link to="/profile/edit" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black"><Pencil size={15} /> Редактировать</Link>
+                <button type="button" onClick={() => { logout(); setMobileMenuOpen(false); }} className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] px-5 font-[var(--font-sans)] text-sm font-semibold text-black/60"><LogOut size={15} /> Выйти</button>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-2">
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black">Войти</Link>
+                <Link to={registrationTarget} onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white">Предрегистрация <ArrowRight size={15} /></Link>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
@@ -495,11 +514,11 @@ export default function Landing() {
                     whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   >
                     <Link
-                      to="/register"
+                      to={primaryTarget}
                       className="group flex w-fit items-center gap-4 rounded-[16px] bg-[#0084FF] py-2 pl-6 pr-2 font-[var(--font-sans)] text-sm font-bold text-white transition-colors hover:bg-[#0074E0]"
                       style={{ boxShadow: "inset 0 4px 4px rgba(255,255,255,0.35), 0 10px 25px -5px rgba(0,132,255,0.25)" }}
                     >
-                      Регистрация
+                      {isAuthenticated ? "Открыть профиль" : "Предрегистрация"}
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#0084FF]">
                         <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                       </span>
@@ -561,8 +580,8 @@ export default function Landing() {
                 подготовка к соревнованию открытия и специальные награды.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/register">
-                  Попасть в ML-Арена Founder Season <ArrowRight size={16} className="ml-1" />
+                <Link to={primaryTarget}>
+                  {isAuthenticated ? "Открыть профиль Founder Season" : "Попасть в ML-Арена Founder Season"} <ArrowRight size={16} className="ml-1" />
                 </Link>
               </Button>
             </div>
@@ -796,13 +815,13 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button asChild size="lg" variant="secondary" className="h-12 px-8">
-                <Link to="/register">
-                  Регистрация <ArrowRight size={18} className="ml-1" />
+                <Link to={primaryTarget}>
+                  {isAuthenticated ? "Открыть профиль" : "Предрегистрация"} <ArrowRight size={18} className="ml-1" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-12 border-primary-foreground/30 bg-transparent px-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-                <Link to="/login">
-                  <Users size={18} className="mr-2" /> Уже есть аккаунт
+                <Link to={isAuthenticated ? "/competitions" : "/login"}>
+                  <Users size={18} className="mr-2" /> {isAuthenticated ? "Будущие разделы" : "Уже есть аккаунт"}
                 </Link>
               </Button>
             </div>

@@ -773,7 +773,6 @@ function ResultView({ duel }) {
           </div>
           <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
             <span className="text-xs text-muted-foreground">{TASK_TYPE_LABELS[duel.task_type]}</span>
-            <span className="text-xs font-semibold text-primary">Докажи ML-навык результатом</span>
           </div>
         </div>
         <div>

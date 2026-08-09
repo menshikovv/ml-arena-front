@@ -358,7 +358,6 @@ export default function Pricing() {
               <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Premium не влияет на рейтинг, не даёт скрытых ответов и не создаёт преимущества в публичных рейтинговых соревнованиях.</p>
             </div>
           </div>
-          <span className="shrink-0 text-xs font-semibold text-primary">Одинаковые правила для всех</span>
         </section>
       </Reveal>
 

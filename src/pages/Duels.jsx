@@ -311,8 +311,7 @@ function DuelGuideDialog({ open, onClose }) {
           >
             <div className="flex items-start justify-between gap-6 border-b border-border p-5 md:p-6">
               <div>
-                <p className="text-xs font-semibold text-primary">ДУЭЛИ 1×1</p>
-                <h2 id="duel-guide-title" className="mt-2 font-heading text-2xl font-bold">Как проходит дуэль</h2>
+                <h2 id="duel-guide-title" className="font-heading text-2xl font-bold">Как проходит дуэль</h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Короткий рейтинговый матч, в котором условия одинаковы для обоих участников.</p>
               </div>
               <button type="button" onClick={onClose} title="Закрыть" aria-label="Закрыть инструкцию" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
