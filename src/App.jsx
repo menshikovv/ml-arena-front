@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "@/components/ml/AppLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -27,6 +28,48 @@ import Profile from "@/pages/Profile";
 import Register from "@/pages/Register";
 import ResetPassword from "@/pages/ResetPassword";
 import VerifyEmail from "@/pages/VerifyEmail";
+
+const defaultMeta = {
+  title: "ML-Арена — соревнования по ИИ и машинному обучению",
+  description: "Решайте реальные задачи, участвуйте в дуэлях и подтверждайте навыки результатами.",
+};
+
+const pageMeta = [
+  ["/competitions", "Соревнования — ML-Арена", "Соревнования по машинному обучению с реальными задачами, рейтингом и призами."],
+  ["/duels", "Дуэли 1×1 — ML-Арена", "Быстрые ML-дуэли один на один для проверки навыков и пополнения ML-паспорта."],
+  ["/rating", "Рейтинг участников — ML-Арена", "Общий рейтинг участников ML-Арены и путь от Бронзы до Платины."],
+  ["/leaderboard", "Рейтинг участников — ML-Арена", "Общий рейтинг участников ML-Арены и путь от Бронзы до Платины."],
+  ["/ml-passport", "ML-паспорт — ML-Арена", "Подтвержденные результаты, навыки и достижения участника ML-Арены."],
+  ["/profile/edit", "Редактирование профиля — ML-Арена", "Настройка профиля и данных ML-паспорта."],
+  ["/profile", "ML-паспорт — ML-Арена", "Подтвержденные результаты, навыки и достижения участника ML-Арены."],
+  ["/company/dashboard", "Кабинет компании — ML-Арена", "Управление соревнованиями и поиск ML-специалистов с подтвержденными навыками."],
+  ["/pricing", "Тарифы — ML-Арена", "Тарифы ML-Арены для тренировок, соревнований и развития ML-навыков."],
+  ["/admin", "Панель администратора — ML-Арена", "Управление платформой ML-Арена."],
+  ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
+  ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
+  ["/verify-email", "Подтверждение почты — ML-Арена", "Подтвердите адрес электронной почты для входа в ML-Арену."],
+  ["/forgot-password", "Восстановление пароля — ML-Арена", "Восстановите доступ к аккаунту ML-Арены."],
+  ["/reset-password", "Новый пароль — ML-Арена", "Задайте новый пароль для аккаунта ML-Арены."],
+  ["/terms", "Условия использования — ML-Арена", "Условия использования платформы ML-Арена."],
+  ["/privacy", "Политика конфиденциальности — ML-Арена", "Политика обработки персональных данных ML-Арены."],
+];
+
+function PageMetadata() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const matched = pageMeta.find(([path]) => pathname === path || pathname.startsWith(`${path}/`));
+    const meta = matched ? { title: matched[1], description: matched[2] } : defaultMeta;
+    document.title = meta.title;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description);
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", meta.title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", meta.description);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute("content", meta.title);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute("content", meta.description);
+  }, [pathname]);
+
+  return null;
+}
 
 function AppRoutes() {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -87,7 +130,7 @@ export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router><ScrollToTop /><AppRoutes /></Router>
+        <Router><PageMetadata /><ScrollToTop /><AppRoutes /></Router>
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>

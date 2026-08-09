@@ -213,7 +213,8 @@ export const base44 = {
   integrations: {
     Core: {
       async UploadFile({ file }) {
-        const handle = `pending-upload:${crypto.randomUUID()}`;
+        const uploadId = globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+        const handle = `pending-upload:${uploadId}`;
         pendingFiles.set(handle, file);
         return { file_url: handle };
       },
