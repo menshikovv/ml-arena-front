@@ -3,7 +3,6 @@ import {
   BarChart3,
   BriefcaseBusiness,
   Check,
-  CheckCircle2,
   Clock3,
   ExternalLink,
   Github,
@@ -75,13 +74,7 @@ export default function FounderProfile() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 className="break-words font-heading text-4xl font-bold leading-tight sm:text-5xl">{user?.nickname || "Участник"}</h1>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${confirmed ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" : "border-amber-500/20 bg-amber-500/10 text-amber-700"}`}>
-                      {confirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />}
-                      {confirmed ? "Почта подтверждена" : "Ожидает подтверждения"}
-                    </span>
-                  </div>
+                  <h1 className="break-words font-heading text-4xl font-bold leading-tight sm:text-5xl">{user?.nickname || "Участник"}</h1>
                   {user?.full_name && <p className="mt-2 text-lg font-semibold text-foreground/80">{user.full_name}</p>}
                   <p className="mt-3 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                     <Mail size={16} className="shrink-0" />
