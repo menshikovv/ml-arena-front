@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState(null);
 
   const clearSession = useCallback(() => {
     setUser(null);
@@ -76,6 +77,7 @@ export const AuthProvider = ({ children }) => {
       accepted_privacy: true,
     });
     sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+    setPendingCredentials({ email, password });
     return result;
   }, []);
 
@@ -85,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     setUser(current);
     setIsAuthenticated(true);
     setAuthError(null);
+    setPendingCredentials(null);
     sessionStorage.removeItem(PENDING_EMAIL_KEY);
     return current;
   }, []);
@@ -101,9 +104,14 @@ export const AuthProvider = ({ children }) => {
 
   const verifyEmail = useCallback(async ({ email, code }) => {
     const verified = await api.auth.confirmVerification(email, code);
-    sessionStorage.setItem(PENDING_EMAIL_KEY, email);
-    return verified;
-  }, []);
+    const credentials = pendingCredentials?.email === email ? pendingCredentials : null;
+    if (!credentials) {
+      sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+      return { verified, authenticated: false };
+    }
+    const current = await login(credentials);
+    return { verified, authenticated: true, user: current };
+  }, [login, pendingCredentials]);
 
   const resendVerification = useCallback(async (email) => {
     const target = email || sessionStorage.getItem(PENDING_EMAIL_KEY) || user?.email;
@@ -123,8 +131,6 @@ export const AuthProvider = ({ children }) => {
       kaggle_url: changes.kaggle_url || null,
       visible_to_employers: changes.visible_to_employers,
       public_profile: changes.public_profile,
-      show_real_name: changes.show_real_name,
-      show_career_details: changes.show_career_details,
     };
     Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
     const profile = await api.profiles.updateMe(body);

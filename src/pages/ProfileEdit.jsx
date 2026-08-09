@@ -24,8 +24,6 @@ export default function ProfileEdit() {
     bio: user?.bio || "",
     visible_to_employers: Boolean(user?.visible_to_employers),
     public_profile: user?.public_profile ?? true,
-    show_real_name: user?.show_real_name ?? true,
-    show_career_details: user?.show_career_details ?? true,
   }), [user]);
   const [form, setForm] = useState(initial);
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || "");
@@ -140,8 +138,6 @@ export default function ProfileEdit() {
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Toggle checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль можно открыть по прямой ссылке и найти в поиске." />
             <Toggle checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Виден работодателям" text="Организации смогут находить профиль при поиске специалистов." />
-            <Toggle checked={form.show_real_name} onChange={(value) => update("show_real_name", value)} title="Показывать настоящее имя" text="Имя и фамилия будут видны в публичном профиле." />
-            <Toggle checked={form.show_career_details} onChange={(value) => update("show_career_details", value)} title="Показывать карьерные данные" text="Город, университет, компания и внешние профили будут публичными." />
           </div>
         </section>
 

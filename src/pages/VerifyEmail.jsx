@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, MailCheck, RefreshCw } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { maskEmail } from "@/lib/founder-season";
 
 export default function VerifyEmail() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { pendingEmail, verifyEmail, resendVerification } = useAuth();
   const [email, setEmail] = useState(searchParams.get("email") || pendingEmail || "");
@@ -32,7 +33,11 @@ export default function VerifyEmail() {
     setLoading(true);
     setError("");
     try {
-      await verifyEmail({ email: email.trim().toLowerCase(), code });
+      const result = await verifyEmail({ email: email.trim().toLowerCase(), code });
+      if (result.authenticated) {
+        navigate("/profile", { replace: true });
+        return;
+      }
       setComplete(true);
     } catch (submitError) {
       if (submitError.code === "VERIFICATION_CODE_EXPIRED") setError("Срок действия кода закончился. Запросите новый.");
@@ -58,7 +63,7 @@ export default function VerifyEmail() {
 
   if (complete) {
     return (
-      <AuthLayout icon={CheckCircle2} title="Email подтверждён" subtitle="Аккаунт активирован. Теперь войдите с указанным email и паролем.">
+      <AuthLayout icon={CheckCircle2} title="Email подтверждён" subtitle="Аккаунт активирован. Войдите с указанным email и паролем.">
         <Button asChild className="h-12 w-full"><Link to={`/login?email=${encodeURIComponent(email)}`}>Перейти ко входу</Link></Button>
       </AuthLayout>
     );
