@@ -67,7 +67,7 @@ export default function AppLayout() {
         ) : (
           <div className={`space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
             <Button asChild size={collapsed ? "icon" : "sm"} variant="outline" className={collapsed ? "" : "w-full"}><Link to="/login" onClick={() => setMobileOpen(false)} title="Войти"><LogIn size={16} />{!collapsed && "Войти"}</Link></Button>
-            <Button asChild size={collapsed ? "icon" : "sm"} className={collapsed ? "" : "w-full"}><Link to="/register" onClick={() => setMobileOpen(false)} title="Предрегистрация"><UserRound size={16} />{!collapsed && "Предрегистрация"}</Link></Button>
+            <Button asChild size={collapsed ? "icon" : "sm"} className={collapsed ? "" : "w-full"}><Link to="/register" onClick={() => setMobileOpen(false)} title="Регистрация"><UserRound size={16} />{!collapsed && "Регистрация"}</Link></Button>
           </div>
         )}
       </div>

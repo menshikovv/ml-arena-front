@@ -1,128 +1,166 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { api, uploadFile } from "@/api/mlArenaApi";
 import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
-const USER_KEY = "ml-arena-founder-user";
-const AUTH_KEY = "ml-arena-founder-auth";
+const PENDING_EMAIL_KEY = "ml-arena-pending-email";
 const AuthContext = createContext(null);
 
-function readStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || "null");
-  } catch {
-    return null;
-  }
+function mapUser(account = {}, profile = {}) {
+  return {
+    ...account,
+    ...profile,
+    id: account.id || profile.user_id,
+    nickname: profile.user_name || account.username || account.email?.split("@")[0],
+    education_status: profile.university || "",
+    organization: profile.company || account.organization_name || "",
+    account_status: account.status === "pending_email" ? "pending_verification" : account.status,
+    preregistration_status: account.email_verified ? "confirmed" : "pending_email",
+    registered_at: profile.created_at,
+    ml_interests: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
+  };
 }
 
-function hasSession() {
-  return localStorage.getItem(AUTH_KEY) === "1" || sessionStorage.getItem(AUTH_KEY) === "1";
+async function loadUser(account) {
+  const authUser = account || await api.auth.me();
+  const profile = authUser.role === "user" ? await api.profiles.me() : {};
+  return mapUser(authUser, profile);
 }
-
-function persistUser(user) {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-const pause = (milliseconds = 450) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 export const AuthProvider = ({ children }) => {
-  const storedUser = readStoredUser();
-  const [user, setUser] = useState(storedUser);
-  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(storedUser && hasSession()));
-  const [isLoadingAuth] = useState(false);
-  const [isLoadingPublicSettings] = useState(false);
-  const [authError] = useState(null);
-  const [authChecked] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const register = useCallback(async ({ email, nickname, marketingConsent = false, attribution = {} }) => {
-    await pause();
-    const existing = readStoredUser();
-    if (existing?.email === email) throw new Error("email_exists");
-    if (existing?.nickname?.toLowerCase() === nickname.toLowerCase()) throw new Error("nickname_exists");
-
-    const nextUser = {
-      id: `founder-${Date.now()}`,
-      email,
-      nickname,
-      full_name: "",
-      city: "",
-      education_status: "",
-      organization: "",
-      ml_level: "beginner",
-      ml_interests: [],
-      github_url: "",
-      telegram_username: "",
-      bio: "",
-      avatar_url: "",
-      account_status: "pending_verification",
-      preregistration_status: "pending_email",
-      registered_at: new Date().toISOString(),
-      marketing_consent: marketingConsent,
-      attribution,
-    };
-    persistUser(nextUser);
-    sessionStorage.setItem(AUTH_KEY, "1");
-    setUser(nextUser);
-    setIsAuthenticated(true);
-    return nextUser;
-  }, []);
-
-  const login = useCallback(async ({ email, remember }) => {
-    await pause();
-    const existing = readStoredUser();
-    if (!existing || existing.email.toLowerCase() !== email.toLowerCase()) {
-      throw new Error("invalid_credentials");
-    }
-    if (remember) localStorage.setItem(AUTH_KEY, "1");
-    else sessionStorage.setItem(AUTH_KEY, "1");
-    setUser(existing);
-    setIsAuthenticated(true);
-    return existing;
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_KEY);
-    sessionStorage.removeItem(AUTH_KEY);
-    setIsAuthenticated(false);
+  const clearSession = useCallback(() => {
     setUser(null);
+    setIsAuthenticated(false);
   }, []);
 
-  const verifyEmail = useCallback(async () => {
-    await pause(300);
-    const current = readStoredUser();
-    if (!current) return null;
-    const updated = { ...current, account_status: "active", preregistration_status: "confirmed" };
-    persistUser(updated);
-    setUser(updated);
+  const checkUserAuth = useCallback(async () => {
+    setIsLoadingAuth(true);
+    try {
+      const restored = await api.auth.restore();
+      const current = await loadUser(restored.user);
+      setUser(current);
+      setIsAuthenticated(true);
+      setAuthError(null);
+      return true;
+    } catch (error) {
+      clearSession();
+      if (error.code !== "AUTHENTICATION_REQUIRED" && error.code !== "TOKEN_REVOKED") setAuthError(error);
+      return false;
+    } finally {
+      setAuthChecked(true);
+      setIsLoadingAuth(false);
+    }
+  }, [clearSession]);
+
+  useEffect(() => {
+    checkUserAuth();
+  }, [checkUserAuth]);
+
+  useEffect(() => {
+    const handleExpired = () => clearSession();
+    window.addEventListener("ml-arena:session-expired", handleExpired);
+    return () => window.removeEventListener("ml-arena:session-expired", handleExpired);
+  }, [clearSession]);
+
+  const register = useCallback(async ({ email, nickname, password }) => {
+    const result = await api.auth.register({
+      email,
+      password,
+      username: nickname,
+      accepted_terms: true,
+      accepted_privacy: true,
+    });
+    sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+    return result;
+  }, []);
+
+  const login = useCallback(async ({ email, password }) => {
+    const result = await api.auth.login(email, password);
+    const current = await loadUser(result.user);
+    setUser(current);
     setIsAuthenticated(true);
-    sessionStorage.setItem(AUTH_KEY, "1");
-    return updated;
+    setAuthError(null);
+    sessionStorage.removeItem(PENDING_EMAIL_KEY);
+    return current;
   }, []);
 
-  const resendVerification = useCallback(async () => {
-    await pause(250);
+  const logout = useCallback(async () => {
+    clearSession();
+    try {
+      await api.auth.logout();
+    } catch {
+      return false;
+    }
     return true;
+  }, [clearSession]);
+
+  const verifyEmail = useCallback(async ({ email, code }) => {
+    const verified = await api.auth.confirmVerification(email, code);
+    sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+    return verified;
   }, []);
+
+  const resendVerification = useCallback(async (email) => {
+    const target = email || sessionStorage.getItem(PENDING_EMAIL_KEY) || user?.email;
+    if (!target) throw new Error("Укажите email");
+    return api.auth.requestVerification(target);
+  }, [user?.email]);
 
   const updateProfile = useCallback(async (changes) => {
-    await pause();
-    const current = readStoredUser();
-    if (!current) throw new Error("auth_required");
-    const updated = { ...current, ...changes };
-    persistUser(updated);
-    setUser(updated);
-    return updated;
-  }, []);
+    const body = {
+      user_name: changes.nickname,
+      full_name: changes.full_name || null,
+      bio: changes.bio || null,
+      city: changes.city || null,
+      university: changes.education_status || null,
+      company: changes.organization || null,
+      github_url: changes.github_url || null,
+      kaggle_url: changes.kaggle_url || null,
+      visible_to_employers: changes.visible_to_employers,
+      public_profile: changes.public_profile,
+      show_real_name: changes.show_real_name,
+      show_career_details: changes.show_career_details,
+    };
+    Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
+    const profile = await api.profiles.updateMe(body);
+    const current = mapUser(user, profile);
+    setUser(current);
+    return current;
+  }, [user]);
 
-  const checkUserAuth = useCallback(async () => Boolean(readStoredUser() && hasSession()), []);
-  const checkAppState = useCallback(async () => true, []);
+  const updateAvatar = useCallback(async (file) => {
+    const upload = await uploadFile(file, "profile_avatar");
+    const profile = await api.profiles.setAvatar(upload.id);
+    const current = mapUser(user, profile);
+    setUser(current);
+    return current;
+  }, [user]);
+
+  const deleteAvatar = useCallback(async () => {
+    const profile = await api.profiles.deleteAvatar();
+    const current = mapUser(user, profile);
+    setUser(current);
+    return current;
+  }, [user]);
+
+  const forgotPassword = useCallback((email) => api.auth.forgotPassword(email), []);
+  const resetPassword = useCallback((token, password) => api.auth.resetPassword(token, password), []);
   const navigateToLogin = useCallback(() => { window.location.href = "/login"; }, []);
+  const checkAppState = useCallback(async () => true, []);
 
   const value = useMemo(() => ({
     user,
     isAuthenticated,
     isLoadingAuth,
-    isLoadingPublicSettings,
+    isLoadingPublicSettings: false,
     authError,
     authChecked,
+    pendingEmail: sessionStorage.getItem(PENDING_EMAIL_KEY),
     appPublicSettings: { telegram_url: FOUNDER_TELEGRAM_URL },
     register,
     login,
@@ -130,10 +168,14 @@ export const AuthProvider = ({ children }) => {
     verifyEmail,
     resendVerification,
     updateProfile,
+    updateAvatar,
+    deleteAvatar,
+    forgotPassword,
+    resetPassword,
     navigateToLogin,
     checkUserAuth,
     checkAppState,
-  }), [checkAppState, checkUserAuth, isAuthenticated, login, logout, navigateToLogin, register, resendVerification, updateProfile, user, verifyEmail]);
+  }), [authChecked, authError, checkAppState, checkUserAuth, deleteAvatar, forgotPassword, isAuthenticated, isLoadingAuth, login, logout, navigateToLogin, register, resendVerification, resetPassword, updateAvatar, updateProfile, user, verifyEmail]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

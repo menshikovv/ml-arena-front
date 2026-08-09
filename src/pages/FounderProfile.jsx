@@ -43,7 +43,7 @@ export default function FounderProfile() {
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">{confirmed ? `Вы в списке участников Founder Season${registeredAt ? ` с ${registeredAt}` : ""}` : "Откройте письмо от ML Арены и перейдите по ссылке, чтобы завершить предрегистрацию."}</p>
               </div>
             </div>
-            {!confirmed && <Button asChild size="sm"><Link to="/verify-email?token=demo">Подтвердить в демо</Link></Button>}
+            {!confirmed && <Button asChild size="sm"><Link to={`/verify-email?email=${encodeURIComponent(user?.email || "")}`}>Подтвердить email</Link></Button>}
           </div>
         </section>
 

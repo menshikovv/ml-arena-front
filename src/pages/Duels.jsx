@@ -32,6 +32,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 
 const CURRENT_USER = {
@@ -42,14 +43,6 @@ const CURRENT_USER = {
   losses: 11,
   streak: 3,
 };
-
-const OPPONENTS = [
-  { id: "p13", name: "ai_glider", rating: 1320, wins: 14, losses: 9, online: true, focus: ["cv", "classification", "ranking"] },
-  { id: "p11", name: "ml_ninja", rating: 1180, wins: 21, losses: 13, online: true, focus: ["nlp", "classification", "clustering"] },
-  { id: "p10", name: "datawizard", rating: 1050, wins: 12, losses: 10, online: true, focus: ["regression", "time_series", "recsys"] },
-  { id: "p4", name: "neuralfox", rating: 990, wins: 30, losses: 10, online: false, focus: ["classification", "nlp", "clustering"] },
-  { id: "p3", name: "tensorlord", rating: 1450, wins: 35, losses: 14, online: true, focus: ["cv", "regression", "ranking"] },
-];
 
 const TASKS = {
   classification: {
@@ -345,13 +338,13 @@ function DuelGuideDialog({ open, onClose }) {
   );
 }
 
-function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setTaskType }) {
+function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, taskType, setTaskType }) {
   const [searchNick, setSearchNick] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const matchedOpponent = useMemo(() => {
     if (!searchNick.trim()) return null;
-    return OPPONENTS.find((opponent) => opponent.name.toLowerCase().includes(searchNick.trim().toLowerCase()));
-  }, [searchNick]);
+    return opponents.find((opponent) => opponent.name.toLowerCase().includes(searchNick.trim().toLowerCase()));
+  }, [opponents, searchNick]);
 
   return (
     <>
@@ -477,7 +470,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
             <span className="text-xs text-muted-foreground">Win rate</span>
           </div>
           <div className="space-y-2">
-            {OPPONENTS.slice(0, 3).map((opponent) => (
+            {opponents.slice(0, 3).map((opponent) => (
               <OpponentCard
                 key={opponent.id}
                 opponent={opponent}
@@ -544,7 +537,7 @@ function OverviewView({ duels, isLoading, createDuel, isCreating, taskType, setT
   );
 }
 
-function MatchmakingView({ onCreate, pending, taskType, setTaskType }) {
+function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }) {
   const [status, setStatus] = useState("idle");
   const [seconds, setSeconds] = useState(0);
   const [opponent, setOpponent] = useState(null);
@@ -563,12 +556,12 @@ function MatchmakingView({ onCreate, pending, taskType, setTaskType }) {
     timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000);
     matchRef.current = window.setTimeout(() => {
       window.clearInterval(timerRef.current);
-      const candidates = OPPONENTS.filter(
+      const candidates = opponents.filter(
         (item) => item.online && Math.abs(CURRENT_USER.rating - item.rating) <= 200 && item.focus.includes(taskType),
       );
-      const fallback = OPPONENTS.filter((item) => item.online && Math.abs(CURRENT_USER.rating - item.rating) <= 200);
+      const fallback = opponents.filter((item) => item.online && Math.abs(CURRENT_USER.rating - item.rating) <= 200);
       setOpponent(candidates[0] || fallback[0]);
-      setStatus("found");
+      setStatus(candidates[0] || fallback[0] ? "found" : "empty");
     }, 1800);
   };
 
@@ -805,6 +798,7 @@ function RatingView() {
 }
 
 export default function Duels() {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -821,11 +815,27 @@ export default function Duels() {
     queryKey: ["duels"],
     queryFn: () => base44.entities.Duel.list("-created_date", 30),
   });
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["duel-opponents"],
+    queryFn: () => base44.entities.MLProfile.list("-rating", 50),
+  });
+  const opponents = useMemo(() => profiles
+    .filter((profile) => profile.id && profile.id !== user?.id)
+    .map((profile) => ({
+      id: profile.id,
+      name: profile.user_name || profile.nickname,
+      rating: profile.rating || 1000,
+      wins: profile.duels_won || 0,
+      losses: profile.duels_lost || 0,
+      online: true,
+      focus: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
+    })), [profiles, user?.id]);
 
   const createDuelMutation = useMutation({
     mutationFn: ({ opponent, selectedTask }) => {
       const task = TASKS[selectedTask];
       return base44.entities.Duel.create({
+        opponent_user_id: opponent.id,
         player1_name: CURRENT_USER.name,
         player1_rating: CURRENT_USER.rating,
         player2_name: opponent.name,
@@ -844,8 +854,8 @@ export default function Duels() {
     },
     onSuccess: (duel) => {
       queryClient.invalidateQueries({ queryKey: ["duels"] });
-      toast.success("Соперник принял вызов");
-      navigate(`/duels/${duel.id}/lobby`);
+      toast.success("Вызов отправлен сопернику");
+      navigate("/duels");
     },
     onError: (error) => toast.error(error.message || "Не удалось создать дуэль"),
   });
@@ -860,6 +870,7 @@ export default function Duels() {
       {view === "overview" && (
         <OverviewView
           duels={duels}
+          opponents={opponents}
           isLoading={isLoading}
           createDuel={createDuel}
           isCreating={createDuelMutation.isPending}
@@ -870,6 +881,7 @@ export default function Duels() {
       {view === "matchmaking" && (
         <MatchmakingView
           onCreate={createDuel}
+          opponents={opponents}
           pending={createDuelMutation.isPending}
           taskType={taskType}
           setTaskType={setTaskType}

@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { base44 } from "@/api/base44Client";
+import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
@@ -72,8 +73,6 @@ const RULE_SECTIONS = [
   ["Дисквалификация", "Утечки, мультиаккаунты и атаки на платформу приводят к исключению результата."],
   ["Финальная проверка", "Участники top-10 могут получить запрос на воспроизводимый код решения."],
 ];
-
-const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 function pluralize(value, one, few, many) {
   const mod10 = value % 10;
@@ -246,13 +245,31 @@ function OverviewTab({ competition, meta }) {
   );
 }
 
-function DataTab({ competition, meta, locked }) {
-  const files = [
-    { name: "train.csv", size: meta.dataSize, description: "Признаки и целевая переменная", icon: Database, content: "id,feature_1,feature_2,target\n1,0.41,12.8,1\n2,0.19,9.4,0" },
-    { name: "test.csv", size: "18 МБ", description: "Признаки без ответов", icon: Database, content: "id,feature_1,feature_2\n10001,0.52,11.1\n10002,0.24,8.9" },
-    { name: "sample_submission.csv", size: "2 КБ", description: "Обязательный шаблон id + prediction", icon: FileCheck2, content: "id,prediction\n10001,0.5\n10002,0.5" },
-    { name: "baseline.py", size: "8 КБ", description: `Стартовое решение · ${meta.baseline}`, icon: FileCode2, content: "# ML Arena baseline\n# Fit your model and write submission.csv" },
-  ];
+function DataTab({ competition, locked }) {
+  const [downloadingId, setDownloadingId] = useState(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["competition-files", competition.id],
+    queryFn: () => api.competitions.files(competition.id),
+    enabled: !locked,
+    retry: false,
+  });
+  const files = data?.files || [];
+  const download = async (file) => {
+    setDownloadingId(file.id);
+    try {
+      const result = await api.competitions.fileUrl(competition.id, file.id);
+      window.location.assign(result.url);
+    } catch (downloadError) {
+      toast.error(downloadError.message || "Не удалось скачать файл");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+  const sizeLabel = (bytes = 0) => {
+    if (bytes < 1024) return `${bytes} Б`;
+    if (bytes < 1024 ** 2) return `${Math.ceil(bytes / 1024)} КБ`;
+    return `${(bytes / 1024 ** 2).toFixed(1)} МБ`;
+  };
 
   return (
     <div>
@@ -269,30 +286,39 @@ function DataTab({ competition, meta, locked }) {
         <div>
           <h2 className="font-heading text-2xl font-bold">Файлы соревнования</h2>
         </div>
-        <div className="text-xs text-muted-foreground">Версия {meta.dataVersion} · обновлено 28.07.2026</div>
+        {data?.version && <div className="text-xs text-muted-foreground">Версия {data.version}</div>}
       </div>
+      {isLoading && <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="animate-spin" size={17} /> Загружаем список файлов</div>}
+      {error && <p className="my-5 border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error.message}</p>}
       <div className="grid gap-3 py-5 md:grid-cols-2">
         {files.map((file) => {
-          const Icon = file.icon;
+          const Icon = file.kind === "sample_submission" ? FileCheck2 : file.kind === "baseline" ? FileCode2 : Database;
+          const filename = file.file?.original_filename || file.kind;
+          const description = {
+            train: "Признаки и целевая переменная",
+            test: "Признаки без ответов",
+            sample_submission: "Обязательный шаблон ответа",
+            baseline: "Стартовое решение",
+          }[file.kind] || "Файл соревнования";
           return (
-            <div key={file.name} className="flex min-h-32 flex-col justify-between border border-border bg-card p-4">
+            <div key={file.id} className="flex min-h-32 flex-col justify-between border border-border bg-card p-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon size={18} /></div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{file.name}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{file.description}</p>
+                  <p className="truncate text-sm font-semibold">{filename}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                <span className="text-xs text-muted-foreground">{file.size}</span>
+                <span className="text-xs text-muted-foreground">{sizeLabel(file.file?.size_bytes)}</span>
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={locked}
-                  onClick={() => downloadCsv(file.name, file.content)}
-                  aria-label={`Скачать ${file.name}`}
+                  disabled={locked || downloadingId === file.id}
+                  onClick={() => download(file)}
+                  aria-label={`Скачать ${filename}`}
                 >
-                  <Download size={14} />
+                  {downloadingId === file.id ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
                   Скачать
                 </Button>
               </div>
@@ -349,25 +375,19 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
     try {
       setStatus("uploading");
       setProgress(24);
-      await sleep(200);
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setProgress(100);
       setStatus("validating");
-      await sleep(500);
-      setStatus("queued");
-      await sleep(450);
       setStatus("scoring");
-      await sleep(650);
-      const score = isHigherBetter(competition.metric) ? 0.84 + Math.random() * 0.1 : 1.7 + Math.random() * 0.8;
-      await base44.entities.Submission.create({
+      const submission = await base44.entities.Submission.create({
         competition_id: competition.id,
         user_name: "Ты",
         file_url,
-        score,
-        status: "evaluated",
         attempt_number: mySubmissions.length + 1,
         created_date: new Date().toISOString(),
       });
+      const score = Number(submission.public_score ?? submission.score);
+      if (!Number.isFinite(score)) throw new Error("Проверка завершилась без результата");
       setStatus("scored");
       setFile(null);
       await onSubmitted(score);
@@ -675,7 +695,7 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
       </div>
 
       {!joined && status === "active" ? (
-        <Button className="mt-5 w-full" onClick={onJoin} disabled={competition.is_private}>
+        <Button className="mt-5 w-full" onClick={onJoin}>
           {competition.is_private ? <Lock size={15} /> : <Trophy size={15} />}
           {competition.is_private ? "Доступ по приглашению" : "Присоединиться"}
         </Button>
@@ -695,17 +715,27 @@ export default function CompetitionDetail() {
   const { id, section } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [joined, setJoined] = useState(["c1", "c2"].includes(id));
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [newThread, setNewThread] = useState({ title: "", content: "" });
   const activeTab = TABS.some((tab) => tab.id === section) ? section : "overview";
-
-  useEffect(() => {
-    setJoined(["c1", "c2"].includes(id));
-  }, [id]);
 
   const { data: competition, isLoading, isError } = useQuery({
     queryKey: ["competition", id],
     queryFn: () => base44.entities.Competition.get(id),
+    enabled: Boolean(id),
+    retry: false,
+  });
+  const { data: participation } = useQuery({
+    queryKey: ["competition-participation", id],
+    queryFn: async () => {
+      try {
+        return await api.competitions.participation(id);
+      } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+      }
+    },
     enabled: Boolean(id),
     retry: false,
   });
@@ -733,9 +763,24 @@ export default function CompetitionDetail() {
     return Array.from(best.values()).sort((a, b) => isHigherBetter(competition.metric) ? b.score - a.score : a.score - b.score);
   }, [competition, submissions]);
 
-  const join = () => {
-    setJoined(true);
-    toast.success("Вы участвуете в соревновании");
+  useEffect(() => {
+    setJoined(Boolean(participation));
+  }, [participation]);
+
+  const join = async () => {
+    if (joining || joined || !competition) return;
+    setJoining(true);
+    try {
+      const rules = await api.competitions.rules(id);
+      await api.competitions.join(id, rules.version || competition.rules_version || "v1");
+      setJoined(true);
+      await queryClient.invalidateQueries({ queryKey: ["competition-participation", id] });
+      toast.success("Вы участвуете в соревновании");
+    } catch (error) {
+      toast.error(error.message || "Не удалось присоединиться к соревнованию");
+    } finally {
+      setJoining(false);
+    }
   };
 
   const createThread = async () => {
@@ -776,7 +821,7 @@ export default function CompetitionDetail() {
 
   const status = getStatus(competition);
   const meta = META[competition.id] || { difficulty: "Средняя", domain: "Другое", dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
-  const locked = ["upcoming", "finished", "finalizing"].includes(status) || competition.is_private;
+  const locked = ["upcoming", "finished", "finalizing"].includes(status) || (competition.is_private && !joined);
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
 
   return (
@@ -836,7 +881,7 @@ export default function CompetitionDetail() {
       <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_310px]">
         <main className="min-w-0">
           {activeTab === "overview" && <OverviewTab competition={competition} meta={meta} />}
-          {activeTab === "data" && <DataTab competition={competition} meta={meta} locked={status === "upcoming" || competition.is_private} />}
+          {activeTab === "data" && <DataTab competition={competition} locked={status === "upcoming" || !joined} />}
           {activeTab === "submit" && (
             <SubmitTab
               competition={competition}
@@ -872,7 +917,7 @@ export default function CompetitionDetail() {
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 p-3 backdrop-blur lg:hidden">
         {!joined && status === "active" ? (
-          <Button className="w-full" onClick={join} disabled={competition.is_private}>
+          <Button className="w-full" onClick={join}>
             {competition.is_private ? <Lock size={15} /> : <Trophy size={15} />}
             {competition.is_private ? "Доступ по приглашению" : "Присоединиться"}
           </Button>

@@ -35,7 +35,7 @@ import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { METRIC_LABELS, TASK_TYPE_LABELS, formatScore, isHigherBetter } from "@/lib/ml-arena";
+import { METRIC_LABELS, TASK_TYPE_LABELS, formatScore } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 
 const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -274,14 +274,13 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
       setState("scoring");
       await sleep(700);
 
-      const higherIsBetter = isHigherBetter(duel.metric);
-      const userScore = higherIsBetter ? 0.88 + Math.random() * 0.07 : 1.4 + Math.random() * 0.7;
       const submittedAt = new Date().toISOString();
-      await base44.entities.Duel.update(duel.id, {
+      const updatedDuel = await base44.entities.Duel.update(duel.id, {
         player1_file_url: file_url,
-        player1_score: userScore,
         player1_submitted_at: submittedAt,
       });
+      const userScore = Number(updatedDuel.player1_score);
+      if (!Number.isFinite(userScore)) throw new Error("Проверка завершилась без результата");
 
       setScore(userScore);
       setSubmissions((items) => [
@@ -296,18 +295,8 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
       ].slice(0, 5));
       setState("scored");
       setFile(null);
-      toast.success(`Submit проверен: ${safeScore(userScore, duel.metric)}`);
-
-      if (!duel.player2_file_url) {
-        await sleep(900);
-        const opponentScore = higherIsBetter ? 0.87 + Math.random() * 0.07 : 1.5 + Math.random() * 0.8;
-        await base44.entities.Duel.update(duel.id, {
-          player2_file_url: "#opponent-submit",
-          player2_score: opponentScore,
-          player2_submitted_at: new Date().toISOString(),
-        });
-      }
-      await onFinished();
+      toast.success(`Решение проверено: ${safeScore(userScore, duel.metric)}`);
+      await onFinished(updatedDuel.status === "completed");
     } catch (uploadError) {
       setState("failed");
       setError(uploadError.message || "Scoring временно недоступен. Попробуй отправить файл ещё раз.");
@@ -817,24 +806,32 @@ export default function DuelLobby() {
     if (!duel || starting) return;
     setStarting(true);
     try {
-      await base44.entities.Duel.update(duel.id, {
+      const updated = await base44.entities.Duel.update(duel.id, {
         status: "active",
         started_at: new Date().toISOString(),
       });
       await queryClient.invalidateQueries({ queryKey: ["duel", duel.id] });
-      toast.success("Дуэль началась");
-      navigate(`/duels/${duel.id}/live`, { replace: true });
+      if (["live", "active"].includes(updated.status)) {
+        toast.success("Дуэль началась");
+        navigate(`/duels/${duel.id}/live`, { replace: true });
+      } else {
+        toast.success("Готовность подтверждена. Ждём соперника");
+      }
     } catch (error) {
       toast.error(error.message || "Не удалось начать дуэль");
       setStarting(false);
     }
   }, [duel, navigate, queryClient, starting]);
 
-  const finishScoring = useCallback(async () => {
+  const finishScoring = useCallback(async (completed = false) => {
     await queryClient.invalidateQueries({ queryKey: ["duel", id] });
     await refetch();
-    toast.success("Оба результата готовы");
-    navigate(`/duels/${id}/result`, { replace: true });
+    if (completed) {
+      toast.success("Оба результата готовы");
+      navigate(`/duels/${id}/result`, { replace: true });
+    } else {
+      toast.success("Результат сохранён. Ждём решение соперника");
+    }
   }, [id, navigate, queryClient, refetch]);
 
   if (isLoading) {

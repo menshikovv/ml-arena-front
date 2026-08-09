@@ -23,6 +23,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  React.useEffect(() => {
+    const emailFromQuery = searchParams.get("email");
+    if (emailFromQuery) setEmail(emailFromQuery);
+  }, [searchParams]);
+
   if (isAuthenticated) return <Navigate to="/profile" replace />;
 
   const handleSubmit = async (event) => {
@@ -32,15 +37,19 @@ export default function Login() {
     try {
       await login({ email: email.trim().toLowerCase(), password, remember });
       navigate(safeReturnTo(searchParams.get("return_to") || location.state?.from), { replace: true });
-    } catch {
-      setError("Неверный email или пароль");
+    } catch (loginError) {
+      if (loginError.code === "EMAIL_VERIFICATION_REQUIRED") {
+        navigate(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        return;
+      }
+      setError(loginError.code === "NETWORK_ERROR" ? "Бэкенд ML Арены недоступен" : "Неверный email или пароль");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout icon={LogIn} title="Войти в ML Арену" subtitle="Продолжите подготовку к первому соревнованию Founder Season." footer={<>Нет аккаунта? <Link to="/register" className="font-medium text-primary hover:underline">Пройти предрегистрацию</Link></>}>
+    <AuthLayout icon={LogIn} title="Войти в ML Арену" subtitle="Продолжите подготовку к первому соревнованию Founder Season." footer={<>Нет аккаунта? <Link to="/register" className="font-medium text-primary hover:underline">Зарегистрироваться</Link></>}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

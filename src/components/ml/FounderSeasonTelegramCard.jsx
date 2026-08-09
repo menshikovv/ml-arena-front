@@ -6,10 +6,10 @@ import { FOUNDER_TELEGRAM_URL, trackFounderEvent } from "@/lib/founder-season";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 
-export default function FounderSeasonTelegramCard({ compact = false, embedded = false }) {
+export default function FounderSeasonTelegramCard({ compact = false, embedded = false, pending = false }) {
   const { isAuthenticated, user, resendVerification } = useAuth();
   const location = useLocation();
-  const pendingEmail = isAuthenticated && user?.account_status === "pending_verification";
+  const pendingEmail = pending || (isAuthenticated && user?.account_status === "pending_verification");
   const telegramAvailable = Boolean(FOUNDER_TELEGRAM_URL);
   const [resending, setResending] = useState(false);
 
@@ -48,23 +48,23 @@ export default function FounderSeasonTelegramCard({ compact = false, embedded = 
               <div className="mt-5 flex items-start gap-2 text-sm font-medium">
                 {pendingEmail ? <Mail className="mt-0.5 shrink-0 text-primary" size={17} /> : <CheckCircle2 className="mt-0.5 shrink-0 text-accent" size={17} />}
                 <span>
-                  {!isAuthenticated
+                {pendingEmail
+                    ? "Предрегистрация создана. Осталось подтвердить email."
+                  : !isAuthenticated
                     ? "Создайте аккаунт, чтобы попасть в первое соревнование."
-                    : pendingEmail
-                      ? "Предрегистрация создана. Осталось подтвердить email."
-                      : "Вы зарегистрировались на первое соревнование."}
+                    : "Вы зарегистрировались на первое соревнование."}
                 </span>
               </div>
             </div>
           </div>
 
           <div className="flex min-w-52 flex-col gap-3">
-            {!isAuthenticated ? (
-              <Button asChild>
-                <Link to="/register"><UserPlus size={16} /> Пройти предрегистрацию</Link>
-              </Button>
-            ) : pendingEmail ? (
+            {pendingEmail ? (
               <Button type="button" onClick={handleResend} disabled={resending}>{resending ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Отправить письмо ещё раз</Button>
+            ) : !isAuthenticated ? (
+              <Button asChild>
+                <Link to="/register"><UserPlus size={16} /> Зарегистрироваться</Link>
+              </Button>
             ) : telegramAvailable ? (
               <Button asChild>
                 <a href={FOUNDER_TELEGRAM_URL} target="_blank" rel="noopener noreferrer" onClick={openTelegram}>

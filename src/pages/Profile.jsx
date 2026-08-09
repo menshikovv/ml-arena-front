@@ -364,9 +364,8 @@ export default function Profile() {
   const [selectedResultId, setSelectedResultId] = useState(RESULT_BLUEPRINTS[0].id);
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ["profile", id],
-    queryFn: () => base44.entities.MLProfile.get(id),
-    enabled: !!id,
+    queryKey: ["profile", id || "me"],
+    queryFn: () => base44.entities.MLProfile.get(id || "me"),
   });
 
   const { data: badges } = useQuery({

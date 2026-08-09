@@ -29,7 +29,7 @@ export default function FounderPlaceholder({ section }) {
               <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">{content.description}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 {!isAuthenticated ? (
-                  <Button asChild size="lg"><Link to="/register">Пройти предрегистрацию <ArrowRight size={16} /></Link></Button>
+                  <Button asChild size="lg"><Link to="/register">Зарегистрироваться <ArrowRight size={16} /></Link></Button>
                 ) : (
                   <Button asChild size="lg" variant="outline"><Link to="/profile">Открыть профиль <ArrowRight size={16} /></Link></Button>
                 )}
