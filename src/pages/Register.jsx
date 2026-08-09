@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, UserPlus } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Eye, EyeOff, Loader2, Lock, Mail, MailCheck, RefreshCw, UserPlus } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import FounderSeasonTelegramCard from "@/components/ml/FounderSeasonTelegramCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/AuthContext";
 import { maskEmail } from "@/lib/founder-season";
@@ -13,7 +13,8 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const nicknamePattern = /^[\p{L}\d_.-]{3,30}$/u;
 
 export default function Register() {
-  const { isAuthenticated, register } = useAuth();
+  const { isAuthenticated, register, resendVerification, verifyEmail } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ email: "", nickname: "", password: "", confirmation: "", acceptLegal: false, marketing: false });
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +22,8 @@ export default function Register() {
   const [error, setError] = useState("");
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [devCode, setDevCode] = useState("");
+  const [code, setCode] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
   const passwordValid = form.password.length >= 8 && form.password.length <= 128 && /[\p{L}]/u.test(form.password) && /\d/.test(form.password);
   const isValid = useMemo(() => (
@@ -33,6 +36,12 @@ export default function Register() {
   ), [form, passwordValid]);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+
+  useEffect(() => {
+    if (!cooldown) return;
+    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -61,19 +70,63 @@ export default function Register() {
     }
   };
 
+  const handleVerification = async (event) => {
+    event.preventDefault();
+    if (code.length !== 6 || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await verifyEmail({ email: registeredEmail, code });
+      navigate(result.authenticated ? "/profile" : `/login?email=${encodeURIComponent(registeredEmail)}`, { replace: true });
+    } catch (verificationError) {
+      if (verificationError.code === "VERIFICATION_CODE_EXPIRED") setError("Срок действия кода закончился. Запросите новый.");
+      else if (verificationError.code === "VERIFICATION_ATTEMPTS_EXCEEDED") setError("Попытки закончились. Запросите новый код.");
+      else if (verificationError.code === "INVALID_VERIFICATION_CODE") setError(`Неверный код.${verificationError.details?.attempts_left != null ? ` Осталось попыток: ${verificationError.details.attempts_left}.` : ""}`);
+      else setError(verificationError.message || "Не удалось подтвердить email.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (cooldown || loading) return;
+    setError("");
+    try {
+      const result = await resendVerification(registeredEmail);
+      setCooldown(result.retry_after_seconds || 60);
+      setDevCode(result.dev_code || "");
+    } catch (requestError) {
+      setError(requestError.message || "Не удалось отправить новый код.");
+    }
+  };
+
   if (isAuthenticated && !registeredEmail) return <Navigate to="/profile" replace />;
 
   if (registeredEmail) {
     return (
-      <AuthLayout wide icon={CheckCircle2} title="Предрегистрация создана" subtitle={`Мы подготовили письмо для ${maskEmail(registeredEmail)}. Подтвердите email, чтобы завершить регистрацию.`}>
-        <div className="space-y-5">
-          <div className="rounded-lg border border-primary/15 bg-primary/5 p-4 text-sm leading-6">
-            Аккаунт ML Арены создан, а вы добавлены в предрегистрацию первого соревнования.
+      <AuthLayout icon={MailCheck} title="Подтвердите email" subtitle={<>Код отправлен на <span className="font-medium text-foreground">{maskEmail(registeredEmail)}</span>. После подтверждения сразу откроется ваш профиль.</>}>
+        <form onSubmit={handleVerification} className="space-y-6">
+          <div className="space-y-3 text-center">
+            <Label className="block text-sm">Шестизначный код</Label>
+            <InputOTP maxLength={6} value={code} onChange={setCode} inputMode="numeric" pattern="[0-9]*" autoFocus containerClassName="justify-center">
+              <InputOTPGroup>{Array.from({ length: 6 }, (_, index) => <InputOTPSlot key={index} index={index} className="h-12 w-11 text-lg font-semibold" />)}</InputOTPGroup>
+            </InputOTP>
           </div>
-          {devCode && <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-900">Код для локальной разработки: <strong className="font-mono text-base">{devCode}</strong></div>}
-          <Button asChild className="w-full"><Link to={`/verify-email?email=${encodeURIComponent(registeredEmail)}`}>Ввести код подтверждения</Link></Button>
-          <FounderSeasonTelegramCard compact embedded pending />
-        </div>
+
+          {devCode && <button type="button" onClick={() => setCode(devCode)} className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-primary">Код разработки: <span className="font-mono font-semibold">{devCode}</span></button>}
+          {error && <p className="border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+
+          <Button type="submit" className="h-12 w-full" disabled={loading || code.length !== 6}>
+            {loading ? <><Loader2 className="animate-spin" size={16} /> Подтверждаем…</> : "Подтвердить и войти"}
+          </Button>
+
+          <div className="flex flex-col items-center gap-2 border-t border-border pt-5 text-sm">
+            <Button type="button" variant="ghost" size="sm" onClick={handleResend} disabled={cooldown > 0 || loading}>
+              <RefreshCw size={14} /> {cooldown ? `Новый код через ${cooldown} сек.` : "Отправить код ещё раз"}
+            </Button>
+            <button type="button" onClick={() => { setRegisteredEmail(""); setCode(""); setError(""); }} className="text-xs text-muted-foreground transition-colors hover:text-foreground">Указать другой email</button>
+          </div>
+        </form>
       </AuthLayout>
     );
   }

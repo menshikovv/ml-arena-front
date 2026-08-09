@@ -109,8 +109,12 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.setItem(PENDING_EMAIL_KEY, email);
       return { verified, authenticated: false };
     }
-    const current = await login(credentials);
-    return { verified, authenticated: true, user: current };
+    try {
+      const current = await login(credentials);
+      return { verified, authenticated: true, user: current };
+    } catch (loginError) {
+      return { verified, authenticated: false, loginError };
+    }
   }, [login, pendingCredentials]);
 
   const resendVerification = useCallback(async (email) => {
