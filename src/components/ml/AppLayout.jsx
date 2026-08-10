@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { ChartNoAxesColumnIncreasing, ChevronLeft, LifeBuoy, LogIn, LogOut, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
 import Avatar from "@/components/ml/Avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
@@ -10,13 +10,14 @@ const NAV_ITEMS = [
   { to: "/duels", label: "Дуэли", icon: Swords, gradientId: "sidebar-duels-gradient" },
   { to: "/rating", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing, gradientId: "sidebar-rating-gradient" },
   { to: "/ml-passport", label: "ML-паспорт", icon: UserRoundCheck, gradientId: "sidebar-passport-gradient" },
+  { to: "/help", label: "Контакты", icon: LifeBuoy, gradientId: "sidebar-help-gradient" },
 ];
 
 function ArenaLogoMark({ className = "h-8 w-8" }) {
   return <img src="/logo.svg" alt="" className={`shrink-0 object-contain ${className}`} aria-hidden="true" />;
 }
 
-export default function AppLayout() {
+export default function AppLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -89,7 +90,7 @@ export default function AppLayout() {
           <Link to="/" className="flex items-center gap-2"><ArenaLogoMark className="h-7 w-7" /><span className="font-heading font-bold">ML-Арена</span></Link>
         </header>
         {mobileOpen && <div className="fixed inset-0 z-50 flex md:hidden"><div className="w-72 max-w-[85vw] bg-card"><div className="absolute left-[min(18rem,85vw)] top-3 z-10"><button type="button" onClick={() => setMobileOpen(false)} className="ml-3 flex h-9 w-9 items-center justify-center rounded-full bg-card shadow" title="Закрыть меню"><X size={18} /></button></div><SidebarContent /></div><button type="button" aria-label="Закрыть меню" className="flex-1 bg-black/40" onClick={() => setMobileOpen(false)} /></div>}
-        <main className="scrollbar-thin min-w-0 flex-1 overflow-x-hidden overflow-y-auto"><Outlet /></main>
+        <main className="scrollbar-thin min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children || <Outlet />}</main>
       </div>
     </div>
   );

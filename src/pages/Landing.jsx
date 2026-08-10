@@ -379,6 +379,7 @@ export default function Landing() {
               ["/duels", "Дуэли"],
               ["/rating", "Рейтинг"],
               ["/ml-passport", "ML-паспорт"],
+              ["/help#contacts", "Контакты"],
             ].map(([to, label]) => (
               <Link
                 key={to}
@@ -444,6 +445,7 @@ export default function Landing() {
                 ["/duels", "Дуэли"],
                 ["/rating", "Рейтинг"],
                 ["/ml-passport", "ML-паспорт"],
+                ["/help#contacts", "Контакты"],
               ].map(([to, label]) => (
                 <Link
                   key={to}
@@ -830,12 +832,16 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-border py-9">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="flex items-center gap-2">
             <ArenaLogoMark className="h-8 w-8" />
             <span className="font-heading font-bold">ML-Арена</span>
           </div>
           <p className="text-sm text-muted-foreground">© 2026 ML-Арена. Практика, рейтинг и ML-паспорт.</p>
+          <nav className="flex items-center gap-5 text-sm text-muted-foreground">
+            <Link to="/help" className="transition-colors hover:text-foreground">Помощь</Link>
+            <Link to="/help#contacts" className="font-medium transition-colors hover:text-primary">Контакты</Link>
+          </nav>
         </div>
       </footer>
     </div>

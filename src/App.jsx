@@ -18,6 +18,7 @@ import DuelLobby from "@/pages/DuelLobby";
 import Duels from "@/pages/Duels";
 import FounderPlaceholder from "@/pages/FounderPlaceholder";
 import FounderProfile from "@/pages/FounderProfile";
+import Help from "@/pages/Help";
 import Landing from "@/pages/Landing";
 import Leaderboard from "@/pages/Leaderboard";
 import LegalNotice from "@/pages/LegalNotice";
@@ -45,6 +46,7 @@ const pageMeta = [
   ["/company/dashboard", "Кабинет компании — ML-Арена", "Управление соревнованиями и поиск ML-специалистов с подтвержденными навыками."],
   ["/pricing", "Тарифы — ML-Арена", "Тарифы ML-Арены для тренировок, соревнований и развития ML-навыков."],
   ["/admin", "Панель администратора — ML-Арена", "Управление платформой ML-Арена."],
+  ["/help", "Помощь и контакты — ML-Арена", "Ответы на частые вопросы и связь с командой ML-Арены."],
   ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
   ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
   ["/verify-email", "Подтверждение почты — ML-Арена", "Подтвердите адрес электронной почты для входа в ML-Арену."],
@@ -72,7 +74,7 @@ function PageMetadata() {
 }
 
 function AppRoutes() {
-  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
+  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const founderMode = import.meta.env.VITE_FOUNDER_MODE !== "false";
 
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -90,6 +92,9 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<LegalNotice type="terms" />} />
       <Route path="/privacy" element={<LegalNotice type="privacy" />} />
+      <Route path="/help" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
+      <Route path="/contacts" element={<Navigate to="/help#contacts" replace />} />
+      <Route path="/support" element={<Navigate to="/help#support" replace />} />
 
       <Route element={<AppLayout />}>
         {founderMode ? (
