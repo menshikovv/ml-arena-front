@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, BookOpenText, CalendarDays, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
 import BlogCover from "@/components/ml/BlogCover";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";

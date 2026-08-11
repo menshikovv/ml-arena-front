@@ -124,23 +124,21 @@ function HeroCompanion({ reduceMotion }) {
         transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <video
-          className="hero-robot-video pointer-events-none block h-auto w-full select-none rounded-[24px]"
-          src="/hero_robo_video.mp4"
+          className="hero-robot-video pointer-events-none block h-auto w-full select-none"
           autoPlay
+          loop
           muted
           playsInline
           preload="auto"
-          onEnded={(event) => {
-            event.currentTarget.currentTime = 0;
-            event.currentTarget.play().catch(() => {});
-          }}
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
           controlsList="nodownload noremoteplayback noplaybackrate nofullscreen"
           aria-label="Интерактивный помощник ML Арены"
           style={{ filter: "brightness(1.02) contrast(1.04)" }}
-        />
+        >
+          <source src="/hero_robo.webm" type="video/webm" />
+        </video>
 
         <motion.div
           initial={false}

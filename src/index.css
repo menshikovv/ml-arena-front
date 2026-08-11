@@ -157,10 +157,6 @@
     max-width: 82rem;
   }
 
-  .dark .hero-robot-video {
-    -webkit-mask-image: radial-gradient(ellipse 74% 82% at 50% 50%, #000 55%, rgb(0 0 0 / 0.88) 68%, transparent 100%);
-    mask-image: radial-gradient(ellipse 74% 82% at 50% 50%, #000 55%, rgb(0 0 0 / 0.88) 68%, transparent 100%);
-  }
 }
 
 
