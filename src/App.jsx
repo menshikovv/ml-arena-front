@@ -7,10 +7,13 @@ import ScrollToTop from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
 import UserNotRegisteredError from "@/components/UserNotRegisteredError";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import { getBlogPost } from "@/lib/blog-data";
 import PageNotFound from "@/lib/PageNotFound";
 import { queryClientInstance } from "@/lib/query-client";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Admin from "@/pages/Admin";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 import CompanyDashboard from "@/pages/CompanyDashboard";
 import CompetitionDetail from "@/pages/CompetitionDetail";
 import Competitions from "@/pages/Competitions";
@@ -36,6 +39,7 @@ const defaultMeta = {
 };
 
 const pageMeta = [
+  ["/blog", "Блог — ML-Арена", "Новости ML-Арены, разборы задач, подготовка к соревнованиям и практические материалы по машинному обучению."],
   ["/competitions", "Соревнования — ML-Арена", "Соревнования по машинному обучению с реальными задачами, рейтингом и призами."],
   ["/duels", "Дуэли 1×1 — ML-Арена", "Быстрые ML-дуэли один на один для проверки навыков и пополнения ML-паспорта."],
   ["/rating", "Рейтинг участников — ML-Арена", "Общий рейтинг участников ML-Арены и путь от Бронзы до Платины."],
@@ -60,8 +64,11 @@ function PageMetadata() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    const blogPost = pathname.startsWith("/blog/") ? getBlogPost(pathname.slice("/blog/".length)) : null;
     const matched = pageMeta.find(([path]) => pathname === path || pathname.startsWith(`${path}/`));
-    const meta = matched ? { title: matched[1], description: matched[2] } : defaultMeta;
+    const meta = blogPost
+      ? { title: `${blogPost.title} — ML-Арена`, description: blogPost.excerpt }
+      : matched ? { title: matched[1], description: matched[2] } : defaultMeta;
     document.title = meta.title;
     document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description);
     document.querySelector('meta[property="og:title"]')?.setAttribute("content", meta.title);
@@ -97,6 +104,8 @@ function AppRoutes() {
       <Route path="/support" element={<Navigate to="/help#support" replace />} />
 
       <Route element={<AppLayout />}>
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         {founderMode ? (
           <>
             <Route path="/competitions/*" element={<FounderPlaceholder section="competitions" />} />

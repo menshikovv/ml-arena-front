@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { BookOpenText, ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
 import Avatar from "@/components/ml/Avatar";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: "/duels", label: "Дуэли", icon: Swords },
   { to: "/rating", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing },
   { to: "/ml-passport", label: "ML-паспорт", icon: UserRoundCheck },
+  { to: "/blog", label: "Блог", icon: BookOpenText },
   { to: "/help", label: "Контакты", icon: Mail },
 ];
 
@@ -20,6 +21,7 @@ const PAGE_TITLES = [
   ["/rating", "Рейтинг"],
   ["/leaderboard", "Рейтинг"],
   ["/ml-passport", "ML-паспорт"],
+  ["/blog", "Блог"],
   ["/profile/edit", "Редактирование профиля"],
   ["/profile", "Профиль"],
   ["/company/dashboard", "Кабинет компании"],

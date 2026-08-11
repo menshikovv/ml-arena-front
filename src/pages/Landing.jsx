@@ -374,12 +374,13 @@ export default function Landing() {
             <ArenaLogoMark className="h-8 w-8" />
             ML-Арена
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
+          <nav className="hidden items-center gap-6 xl:flex">
             {[
               ["/competitions", "Соревнования"],
               ["/duels", "Дуэли"],
               ["/rating", "Рейтинг"],
               ["/ml-passport", "ML-паспорт"],
+              ["/blog", "Блог"],
               ["/help#contacts", "Контакты"],
             ].map(([to, label]) => (
               <Link
@@ -408,7 +409,7 @@ export default function Landing() {
             )}
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] dark:border-white/10 dark:bg-white/5 dark:text-white md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] dark:border-white/10 dark:bg-white/5 dark:text-white xl:hidden"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Открыть меню"
             >
@@ -450,6 +451,7 @@ export default function Landing() {
                 ["/duels", "Дуэли"],
                 ["/rating", "Рейтинг"],
                 ["/ml-passport", "ML-паспорт"],
+                ["/blog", "Блог"],
                 ["/help#contacts", "Контакты"],
               ].map(([to, label]) => (
                 <Link
@@ -844,6 +846,7 @@ export default function Landing() {
           </div>
           <p className="text-sm text-muted-foreground">© 2026 ML-Арена. Практика, рейтинг и ML-паспорт.</p>
           <nav className="flex items-center gap-5 text-sm text-muted-foreground">
+            <Link to="/blog" className="transition-colors hover:text-foreground">Блог</Link>
             <Link to="/help" className="transition-colors hover:text-foreground">Помощь</Link>
             <Link to="/help#contacts" className="font-medium transition-colors hover:text-primary">Контакты</Link>
           </nav>
