@@ -68,13 +68,13 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener("ml-arena:session-expired", handleExpired);
   }, [clearSession]);
 
-  const register = useCallback(async ({ email, nickname, password }) => {
+  const register = useCallback(async ({ email, nickname, password, acceptedTerms, acceptedPrivacy }) => {
     const result = await api.auth.register({
       email,
       password,
       username: nickname,
-      accepted_terms: true,
-      accepted_privacy: true,
+      accepted_terms: acceptedTerms,
+      accepted_privacy: acceptedPrivacy,
     });
     sessionStorage.setItem(PENDING_EMAIL_KEY, email);
     setPendingCredentials({ email, password });

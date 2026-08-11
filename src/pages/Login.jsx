@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Loader2, Lock, LogIn, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/AuthContext";
@@ -49,8 +50,8 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout icon={LogIn} title="Войти в ML Арену" subtitle="Продолжите подготовку к первому соревнованию Founder Season." footer={<>Нет аккаунта? <Link to="/register" className="font-medium text-primary hover:underline">Зарегистрироваться</Link></>}>
-      <form onSubmit={handleSubmit} className="space-y-5">
+    <AuthLayout compact title="Вход" footer={<>Нет аккаунта? <Link to="/register" className="font-medium text-primary hover:underline">Зарегистрироваться</Link></>}>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
@@ -71,9 +72,9 @@ export default function Login() {
             </button>
           </div>
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-          <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="h-4 w-4 accent-primary" />
-          Запомнить меня
+        <label htmlFor="remember" className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-3 text-sm transition-colors ${remember ? "border-primary/25 bg-primary/[0.045] text-foreground" : "border-transparent bg-secondary/45 text-muted-foreground hover:border-border hover:bg-secondary/70"}`}>
+          <Checkbox id="remember" checked={remember} onCheckedChange={(value) => setRemember(Boolean(value))} />
+          <span>Запомнить меня</span>
         </label>
         {error && <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
         <Button type="submit" className="h-12 w-full" disabled={!email || !password || loading}>
