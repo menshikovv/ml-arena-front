@@ -19,45 +19,55 @@ export default function FounderPlaceholder({ section }) {
   const confirmed = user?.preregistration_status === "confirmed";
 
   return (
-    <div className="min-h-full bg-secondary/25 px-4 py-10 sm:px-7 lg:px-10 lg:py-14">
-      <div className="mx-auto max-w-6xl">
-        <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-cyan-400 to-violet-500" />
-          <div className="grid lg:grid-cols-[1.4fr_0.75fr]">
-            <div className="px-6 py-12 sm:px-10 lg:px-14 lg:py-16">
-              <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">{content.title}</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">{content.description}</p>
-              <div className="mt-8 flex flex-wrap gap-3">
+    <div className="min-h-full px-4 py-7 sm:px-7 lg:px-10 lg:py-10">
+      <div className="mx-auto max-w-7xl">
+        <section className="arena-chamfer-panel relative overflow-hidden border border-border bg-card shadow-[0_24px_70px_rgba(30,64,175,0.09)]">
+          <div className="flex min-h-14 items-center justify-between gap-5 border-b border-border px-5 sm:px-8">
+            <div className="flex items-center gap-3">
+              <span className="h-2.5 w-2.5 bg-primary" />
+              <span className="font-heading text-sm font-extrabold">ML-Арена Founder Season</span>
+            </div>
+            <span className="font-mono text-[11px] text-muted-foreground">Раздел готовится к запуску</span>
+          </div>
+
+          <div className="grid lg:grid-cols-[minmax(0,1.5fr)_minmax(310px,0.62fr)]">
+            <div className="px-6 py-12 sm:px-10 sm:py-14 lg:px-14 lg:py-20 xl:px-16">
+              <h1 className="max-w-4xl font-heading text-4xl font-extrabold leading-[1.04] sm:text-5xl lg:text-6xl">{content.title}</h1>
+              <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">{content.description}</p>
+              <div className="mt-9 flex flex-wrap gap-3">
                 {!isAuthenticated ? (
-                  <Button asChild size="lg"><Link to="/register">Зарегистрироваться <ArrowRight size={16} /></Link></Button>
+                  <Button asChild size="lg" className="rounded-none"><Link to="/register">Зарегистрироваться <ArrowRight size={16} /></Link></Button>
                 ) : (
-                  <Button asChild size="lg" variant="outline"><Link to="/profile">Открыть профиль <ArrowRight size={16} /></Link></Button>
+                  <Button asChild size="lg" variant="outline" className="rounded-none"><Link to="/profile">Открыть профиль <ArrowRight size={16} /></Link></Button>
                 )}
               </div>
               {isAuthenticated && (
-                <div className={`mt-9 flex max-w-xl items-start gap-3 rounded-md border p-4 text-sm ${confirmed ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+                <div className={`mt-10 flex max-w-2xl items-start gap-3 border-l-2 px-5 py-4 text-sm leading-6 ${confirmed ? "border-emerald-500 bg-emerald-500/[0.06] text-emerald-950" : "border-amber-500 bg-amber-500/[0.07] text-amber-950"}`}>
                   <MailCheck className="mt-0.5 shrink-0" size={17} />
                   <span>{confirmed ? "Предрегистрация подтверждена. Доступ появится после запуска раздела." : "Предрегистрация создана. Подтвердите email, чтобы завершить её."}</span>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-border bg-secondary/45 px-6 py-10 sm:px-10 lg:border-l lg:border-t-0 lg:px-9 lg:py-14">
-              <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-primary/15 bg-card text-primary shadow-sm">
-                <Icon size={27} strokeWidth={1.8} />
+            <div className="relative flex flex-col overflow-hidden border-t border-primary/20 bg-primary px-7 py-10 text-primary-foreground sm:px-10 lg:border-l lg:border-t-0 lg:px-9 lg:py-14">
+              <div className="absolute -right-7 -top-9 font-display text-[11rem] font-black leading-none text-primary-foreground/[0.055]">ML</div>
+              <div className="relative flex h-16 w-16 items-center justify-center border border-primary-foreground/20 bg-primary-foreground/10">
+                <Icon size={30} strokeWidth={1.8} />
               </div>
-              <h2 className="mt-7 font-heading text-2xl font-bold">В разработке</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              <h2 className="relative mt-9 font-heading text-3xl font-extrabold">В разработке</h2>
+              <p className="relative mt-4 text-[15px] leading-7 text-primary-foreground/75">
                 Раздел пока недоступен. О его открытии мы сообщим участникам Founder Season отдельно.
               </p>
-              <div className="mt-8 border-t border-border pt-6">
-                <p className="text-sm font-semibold">Следите за обновлениями</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">Анонсы и текущие активности публикуются в Telegram ML Арены.</p>
+              <div className="relative mt-auto pt-10">
+                <div className="border-t border-primary-foreground/20 pt-6">
+                  <p className="text-sm font-bold">Следите за обновлениями</p>
+                  <p className="mt-2 text-sm leading-6 text-primary-foreground/70">Анонсы и текущие активности публикуются в Telegram ML Арены.</p>
+                </div>
               </div>
             </div>
           </div>
         </section>
-        <div className="mt-8"><FounderSeasonTelegramCard /></div>
+        <div className="mt-7"><FounderSeasonTelegramCard /></div>
       </div>
     </div>
   );

@@ -369,7 +369,7 @@ export default function Landing() {
         className="pointer-events-none fixed left-0 right-0 top-[22px] z-50 flex justify-center px-4 md:top-[30px]"
       >
         <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/70 bg-white/75 px-4 shadow-[0_6px_18px_-14px_rgba(15,23,42,0.12)] backdrop-blur-[32px] md:px-6">
-          <Link to="/" className="flex items-center gap-2.5 font-[var(--font-fustat)] text-[21px] font-extrabold text-black">
+          <Link to="/" className="flex items-center gap-2.5 font-[var(--font-science)] text-[21px] font-extrabold text-black">
             <ArenaLogoMark className="h-8 w-8" />
             ML-Арена
           </Link>
@@ -426,7 +426,7 @@ export default function Landing() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-10 flex items-center justify-between">
-              <span className="flex items-center gap-2.5 font-[var(--font-fustat)] text-lg font-extrabold text-black">
+              <span className="flex items-center gap-2.5 font-[var(--font-science)] text-lg font-extrabold text-black">
                 <ArenaLogoMark className="h-8 w-8" />
                 ML-Арена
               </span>
@@ -500,10 +500,10 @@ export default function Landing() {
                   </span>
                 </div>
 
-                <h1 className="mt-6 select-none font-[var(--font-outfit)] text-[42px] font-black leading-[1.08] text-black sm:text-[50px] lg:text-[60px]">
+                <h1 className="mt-6 select-none font-[var(--font-science)] text-[42px] font-black leading-[1.08] text-black sm:text-[50px] lg:text-[60px]">
                   ML-Арена
                 </h1>
-                <p className="mt-3 font-[var(--font-outfit)] text-[29px] font-bold leading-[1.1] text-black sm:text-[34px] lg:text-[41px]">
+                <p className="mt-3 font-[var(--font-science)] text-[29px] font-bold leading-[1.1] text-black sm:text-[34px] lg:text-[41px]">
                   Докажи навык в машинном обучении результатом
                 </p>
                 <p className="mt-5 max-w-[500px] font-[var(--font-sans)] text-[17px] leading-relaxed text-black/60">
@@ -556,7 +556,7 @@ export default function Landing() {
                     <stat.icon size={17} />
                   </span>
                   <span>
-                    <span className="block font-[var(--font-outfit)] text-lg font-bold leading-none text-black">{stat.value}</span>
+                    <span className="block font-[var(--font-science)] text-lg font-bold leading-none text-black">{stat.value}</span>
                     <span className="mt-1 block font-[var(--font-sans)] text-[10px] text-black/45">{stat.label}</span>
                   </span>
                 </motion.div>
