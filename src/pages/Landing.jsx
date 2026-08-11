@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import LeagueBadge from "@/components/ml/LeagueBadge";
+import ThemeToggle from "@/components/ml/ThemeToggle";
 
 const FEATURES = [
   { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: Классификация, Регрессия, NLP, Компьютерное зрение, Временные ряды, Ранжирование, Кластеризация, RecSys. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
@@ -105,7 +106,7 @@ function HeroCompanion({ reduceMotion }) {
     ? undefined
     : { x, y };
 
-  const glassClass = "absolute z-20 rounded-[20px] border border-white/70 bg-gradient-to-br from-white/80 to-white/45 px-4 py-3 text-left shadow-[inset_0_2.5px_4px_rgba(255,255,255,0.8),0_12px_32px_-4px_rgba(0,132,255,0.14)] ring-1 ring-black/5 backdrop-blur-[24px] pointer-events-auto";
+  const glassClass = "absolute z-20 rounded-[20px] border border-white/70 bg-gradient-to-br from-white/80 to-white/45 px-4 py-3 text-left shadow-[inset_0_2.5px_4px_rgba(255,255,255,0.8),0_12px_32px_-4px_rgba(0,132,255,0.14)] ring-1 ring-black/5 backdrop-blur-[24px] pointer-events-auto dark:border-white/10 dark:from-[#111a2d]/95 dark:to-[#081020]/90 dark:shadow-[0_14px_40px_-10px_rgba(37,99,235,0.35)] dark:ring-white/5";
 
   return (
     <motion.div
@@ -123,7 +124,7 @@ function HeroCompanion({ reduceMotion }) {
         transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <video
-          className="pointer-events-none block h-auto w-full select-none rounded-[24px]"
+          className="hero-robot-video pointer-events-none block h-auto w-full select-none rounded-[24px]"
           src="/hero_robo_video.mp4"
           autoPlay
           muted
@@ -154,8 +155,8 @@ function HeroCompanion({ reduceMotion }) {
               <FileCheck2 size={17} />
             </span>
             <span>
-              <span className="block text-[13px] font-bold text-neutral-900">Соревнование</span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">результат 0.9412</span>
+              <span className="block text-[13px] font-bold text-neutral-900 dark:text-white">Соревнование</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">результат 0.9412</span>
             </span>
           </div>
         </motion.div>
@@ -173,8 +174,8 @@ function HeroCompanion({ reduceMotion }) {
               <Swords size={17} />
             </span>
             <span>
-              <span className="block text-[13px] font-bold text-neutral-900">Дуэль 1×1</span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">соперник найден</span>
+              <span className="block text-[13px] font-bold text-neutral-900 dark:text-white">Дуэль 1×1</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">соперник найден</span>
             </span>
           </div>
         </motion.div>
@@ -192,8 +193,8 @@ function HeroCompanion({ reduceMotion }) {
               <Brain size={17} />
             </span>
             <span>
-              <span className="block text-[13px] font-bold text-neutral-900">ML-паспорт</span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500">рейтинг 1420</span>
+              <span className="block text-[13px] font-bold text-neutral-900 dark:text-white">ML-паспорт</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">рейтинг 1420</span>
             </span>
           </div>
         </motion.div>
@@ -361,15 +362,15 @@ export default function Landing() {
   const transition = { duration: 0.55, ease: [0.22, 1, 0.36, 1] };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-background text-foreground">
+    <div className="landing-shell min-h-screen overflow-hidden bg-background text-foreground">
       <motion.header
         initial={reduceMotion ? false : { opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="pointer-events-none fixed left-0 right-0 top-[22px] z-50 flex justify-center px-4 md:top-[30px]"
       >
-        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/70 bg-white/75 px-4 shadow-[0_6px_18px_-14px_rgba(15,23,42,0.12)] backdrop-blur-[32px] md:px-6">
-          <Link to="/" className="flex items-center gap-2.5 font-[var(--font-science)] text-[21px] font-extrabold text-black">
+        <div className="pointer-events-auto flex h-12 w-full max-w-[1440px] items-center justify-between overflow-hidden rounded-[16px] border border-white/70 bg-white/75 px-4 shadow-[0_6px_18px_-14px_rgba(15,23,42,0.12)] backdrop-blur-[32px] dark:border-white/10 dark:bg-[#080d19]/85 dark:shadow-[0_12px_36px_-18px_rgba(37,99,235,0.65)] md:px-6">
+          <Link to="/" className="flex items-center gap-2.5 font-[var(--font-science)] text-[21px] font-extrabold text-black dark:text-white">
             <ArenaLogoMark className="h-8 w-8" />
             ML-Арена
           </Link>
@@ -384,29 +385,30 @@ export default function Landing() {
               <Link
                 key={to}
                 to={to}
-                className="relative py-2 font-[var(--font-sans)] text-[15px] font-semibold text-[#0B2B55] transition-colors duration-300 after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[#0084FF] after:transition-[width] after:duration-300 hover:text-[#0084FF] hover:after:w-full"
+                className="relative py-2 font-[var(--font-sans)] text-[15px] font-semibold text-[#0B2B55] transition-colors duration-300 after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[#0084FF] after:transition-[width] after:duration-300 hover:text-[#0084FF] hover:after:w-full dark:text-slate-200 dark:hover:text-blue-400"
               >
                 {label}
               </Link>
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex">
+                <Link to="/profile" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-5 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 sm:flex">
                   <UserRound size={15} /> Профиль
                 </Link>
-                <button type="button" onClick={logout} className="hidden h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] hover:bg-white/55 sm:flex" title="Выйти"><LogOut size={15} /></button>
+                <button type="button" onClick={logout} className="hidden h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] hover:bg-white/55 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 sm:flex" title="Выйти"><LogOut size={15} /></button>
               </>
             ) : (
               <>
-                <Link to="/login" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-4 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md sm:flex">Войти</Link>
+                <Link to="/login" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-4 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 sm:flex">Войти</Link>
                 <Link to={registrationTarget} className="group hidden h-9 items-center gap-2 rounded-[12px] bg-[#0084FF] px-4 font-[var(--font-sans)] text-[14px] font-semibold text-white transition-colors hover:bg-[#0074E0] lg:flex">Регистрация <ArrowRight size={14} /></Link>
               </>
             )}
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] dark:border-white/10 dark:bg-white/5 dark:text-white md:hidden"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Открыть меню"
             >
@@ -417,27 +419,30 @@ export default function Landing() {
       </motion.header>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] flex justify-end bg-black/15" onClick={() => setMobileMenuOpen(false)}>
+        <div className="fixed inset-0 z-[60] flex justify-end bg-black/15 dark:bg-black/55" onClick={() => setMobileMenuOpen(false)}>
           <motion.div
             initial={reduceMotion ? false : { x: 260 }}
             animate={{ x: 0 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full w-[260px] border-l border-black/10 bg-white/95 p-5 backdrop-blur-[40px]"
+            className="h-full w-[280px] border-l border-black/10 bg-white/95 p-5 backdrop-blur-[40px] dark:border-white/10 dark:bg-[#070c17]/95"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-10 flex items-center justify-between">
-              <span className="flex items-center gap-2.5 font-[var(--font-science)] text-lg font-extrabold text-black">
+              <span className="flex items-center gap-2.5 font-[var(--font-science)] text-lg font-extrabold text-black dark:text-white">
                 <ArenaLogoMark className="h-8 w-8" />
                 ML-Арена
               </span>
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-black/5 text-black"
-                onClick={() => setMobileMenuOpen(false)}
-                aria-label="Закрыть меню"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-black/5 text-black dark:bg-white/5 dark:text-white"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Закрыть меню"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             <nav className="flex flex-col gap-2">
               {[
@@ -451,7 +456,7 @@ export default function Landing() {
                   key={to}
                   to={to}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-4 py-3 font-[var(--font-sans)] text-sm font-semibold text-black/65 transition-colors hover:bg-black/5 hover:text-black"
+                  className="rounded-xl px-4 py-3 font-[var(--font-sans)] text-sm font-semibold text-black/65 transition-colors hover:bg-black/5 hover:text-black dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
                 >
                   {label}
                 </Link>
@@ -460,12 +465,12 @@ export default function Landing() {
             {isAuthenticated ? (
               <div className="mt-6 space-y-2">
                 <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white"><UserRound size={16} /> Профиль</Link>
-                <Link to="/profile/edit" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black"><Pencil size={15} /> Редактировать</Link>
-                <button type="button" onClick={() => { logout(); setMobileMenuOpen(false); }} className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] px-5 font-[var(--font-sans)] text-sm font-semibold text-black/60"><LogOut size={15} /> Выйти</button>
+                <Link to="/profile/edit" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black dark:border-white/10 dark:text-white"><Pencil size={15} /> Редактировать</Link>
+                <button type="button" onClick={() => { logout(); setMobileMenuOpen(false); }} className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] px-5 font-[var(--font-sans)] text-sm font-semibold text-black/60 dark:text-slate-400"><LogOut size={15} /> Выйти</button>
               </div>
             ) : (
               <div className="mt-6 space-y-2">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black">Войти</Link>
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black dark:border-white/10 dark:text-white">Войти</Link>
                 <Link to={registrationTarget} onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white">Регистрация <ArrowRight size={15} /></Link>
               </div>
             )}
@@ -474,7 +479,7 @@ export default function Landing() {
       )}
 
       <main>
-        <section className="relative isolate overflow-hidden bg-white text-black">
+        <section className="relative isolate overflow-hidden bg-white text-black dark:bg-[#050914] dark:text-white">
           <div className="relative mx-auto w-full max-w-[1440px] px-6 pb-12 pt-[118px] sm:px-10 md:pt-[128px] lg:px-12 xl:px-16">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
               <motion.div
@@ -483,30 +488,30 @@ export default function Landing() {
                 transition={{ duration: 0.9, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                 className="flex max-w-[680px] flex-col items-start justify-center text-left lg:col-span-6 lg:pr-4"
               >
-                <div className="flex w-fit items-center gap-3 rounded-full border border-black/5 bg-black/5 px-3 py-1.5 shadow-sm">
+                <div className="flex w-fit items-center gap-3 rounded-full border border-black/5 bg-black/5 px-3 py-1.5 shadow-sm dark:border-white/10 dark:bg-white/5">
                   <div className="flex -space-x-2">
                     {["B", "S", "G", "P"].map((letter, index) => (
                       <span
                         key={letter}
-                        className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white transition-transform hover:-translate-y-1"
+                        className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white transition-transform hover:-translate-y-1 dark:border-[#050914]"
                         style={{ backgroundColor: ["#B7794B", "#8E9AA8", "#D4A928", "#7167E8"][index] }}
                       >
                         {letter}
                       </span>
                     ))}
                   </div>
-                  <span className="font-[var(--font-sans)] text-[12px] text-black/75">
-                    ML-Арена Founder Season · <strong className="text-neutral-900">регистрация открыта</strong>
+                  <span className="font-[var(--font-sans)] text-[12px] text-black/75 dark:text-slate-300">
+                    ML-Арена Founder Season · <strong className="text-neutral-900 dark:text-white">регистрация открыта</strong>
                   </span>
                 </div>
 
-                <h1 className="mt-6 select-none font-[var(--font-science)] text-[42px] font-black leading-[1.08] text-black sm:text-[50px] lg:text-[60px]">
+                <h1 className="mt-6 select-none font-[var(--font-science)] text-[42px] font-black leading-[1.08] text-black dark:text-white sm:text-[50px] lg:text-[60px]">
                   ML-Арена
                 </h1>
-                <p className="mt-3 font-[var(--font-science)] text-[29px] font-bold leading-[1.1] text-black sm:text-[34px] lg:text-[41px]">
+                <p className="mt-3 font-[var(--font-science)] text-[29px] font-bold leading-[1.1] text-black dark:text-white sm:text-[34px] lg:text-[41px]">
                   Докажи навык в машинном обучении результатом
                 </p>
-                <p className="mt-5 max-w-[500px] font-[var(--font-sans)] text-[17px] leading-relaxed text-black/60">
+                <p className="mt-5 max-w-[500px] font-[var(--font-sans)] text-[17px] leading-relaxed text-black/60 dark:text-slate-400">
                   Соревнования, дуэли и подтвержденный ML-паспорт для тех, кто входит в AI через практику.
                 </p>
 
@@ -528,7 +533,7 @@ export default function Landing() {
                   </motion.div>
 
                   <Link to="/competitions" className="group flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-[#0084FF] transition-colors group-hover:bg-blue-100">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-[#0084FF] transition-colors group-hover:bg-blue-100 dark:border-blue-400/20 dark:bg-blue-500/10">
                       <Play size={14} fill="currentColor" />
                     </span>
                     <span className="font-[var(--font-sans)] text-[14px] font-bold text-[#0084FF] transition-colors group-hover:text-[#0074E0]">
@@ -550,14 +555,14 @@ export default function Landing() {
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.55, delay: 0.65 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px] transition-transform duration-150 ease-out hover:-translate-y-[3px]"
+                  className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px] transition-transform duration-150 ease-out hover:-translate-y-[3px] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_14px_36px_-24px_rgba(37,99,235,0.8)] dark:ring-white/5"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF]">
                     <stat.icon size={17} />
                   </span>
                   <span>
-                    <span className="block font-[var(--font-science)] text-lg font-bold leading-none text-black">{stat.value}</span>
-                    <span className="mt-1 block font-[var(--font-sans)] text-[10px] text-black/45">{stat.label}</span>
+                    <span className="block font-[var(--font-science)] text-lg font-bold leading-none text-black dark:text-white">{stat.value}</span>
+                    <span className="mt-1 block font-[var(--font-sans)] text-[10px] text-black/45 dark:text-slate-400">{stat.label}</span>
                   </span>
                 </motion.div>
               ))}
@@ -593,7 +598,7 @@ export default function Landing() {
                 <motion.div
                   key={`${step.title}-${index}`}
                   whileHover={reduceMotion ? undefined : { y: -5 }}
-                  className="group relative overflow-hidden rounded-[22px] border border-white/80 bg-background/75 p-5 shadow-[0_18px_45px_-32px_rgba(37,99,235,0.55)] ring-1 ring-black/5 backdrop-blur-xl"
+                  className="group relative overflow-hidden rounded-[22px] border border-white/80 bg-background/75 p-5 shadow-[0_18px_45px_-32px_rgba(37,99,235,0.55)] ring-1 ring-black/5 backdrop-blur-xl dark:border-white/10 dark:ring-white/5"
                 >
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#155BFF] to-[#20D6C6] opacity-0 transition-opacity group-hover:opacity-100" />
                   <div className="mb-8 flex items-center justify-between">

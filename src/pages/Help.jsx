@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
+import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -421,7 +422,8 @@ function PublicHeader({ isAuthenticated }) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5"><img src="/logo.svg" alt="" className="h-8 w-8 object-contain" /><span className="font-heading text-lg font-bold">ML-Арена</span></Link>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost"><Link to="/">На главную</Link></Button>
+          <ThemeToggle />
+          <Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/">На главную</Link></Button>
           <Button asChild><Link to={isAuthenticated ? "/profile" : "/login"}>{isAuthenticated ? "Профиль" : "Войти"}</Link></Button>
         </div>
       </div>

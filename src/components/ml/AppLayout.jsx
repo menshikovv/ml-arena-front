@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
 import Avatar from "@/components/ml/Avatar";
+import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -104,17 +105,12 @@ export default function AppLayout({ children }) {
             <span className="h-5 w-1 bg-primary" />
             <h2 className="font-heading text-lg font-extrabold">{pageTitle}</h2>
           </div>
-          {isAuthenticated && (
-            <Link to="/profile" className="group flex items-center gap-3 border-l border-border pl-5">
-              <div className="text-right"><p className="text-sm font-semibold group-hover:text-primary">{user?.nickname || "Участник"}</p><p className="mt-0.5 text-[11px] text-muted-foreground">ML-Арена Founder Season</p></div>
-              <Avatar name={user?.full_name || user?.nickname || user?.email} src={user?.avatar_url} size={34} />
-            </Link>
-          )}
+          <ThemeToggle />
         </header>
         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-4 md:hidden">
           <button type="button" onClick={() => setMobileOpen(true)} title="Открыть меню"><Menu size={20} /></button>
           <Link to="/" className="flex items-center gap-2"><ArenaLogoMark className="h-8 w-8" /><span className="font-heading text-lg font-extrabold">ML-Арена</span></Link>
-          <span className="ml-auto max-w-32 truncate text-xs font-semibold text-muted-foreground">{pageTitle}</span>
+          <ThemeToggle className="ml-auto" />
         </header>
         {mobileOpen && <div className="fixed inset-0 z-50 flex md:hidden"><div className="arena-sidebar w-[292px] max-w-[86vw] border-r border-sidebar-border bg-sidebar"><div className="absolute left-[min(292px,86vw)] top-3 z-10"><button type="button" onClick={() => setMobileOpen(false)} className="ml-3 flex h-9 w-9 items-center justify-center border border-border bg-card shadow" title="Закрыть меню"><X size={18} /></button></div><SidebarContent /></div><button type="button" aria-label="Закрыть меню" className="flex-1 bg-foreground/35 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} /></div>}
         <main className="arena-app-main scrollbar-thin min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children || <Outlet />}</main>

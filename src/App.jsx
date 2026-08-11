@@ -78,7 +78,7 @@ function AppRoutes() {
   const founderMode = import.meta.env.VITE_FOUNDER_MODE !== "false";
 
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return <div className="fixed inset-0 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" /></div>;
+    return <div className="fixed inset-0 flex items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
   }
   if (authError?.type === "user_not_registered") return <UserNotRegisteredError />;
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children, wide = false }) {
@@ -9,6 +10,9 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
       <Button asChild variant="ghost" size="icon" className="absolute left-4 top-4 md:left-6 md:top-6">
         <Link to="/" aria-label="Вернуться на главную" title="Вернуться на главную"><ArrowLeft size={20} /></Link>
       </Button>
+      <div className="absolute right-4 top-4 md:right-6 md:top-6">
+        <ThemeToggle />
+      </div>
 
       <div className={`${wide ? "max-w-2xl" : "max-w-md"} mx-auto w-full`}>
         <div className="mb-8 text-center">

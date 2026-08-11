@@ -31,8 +31,8 @@ export default function FounderPlaceholder({ section }) {
           </div>
 
           <div className="grid lg:grid-cols-[minmax(0,1.5fr)_minmax(310px,0.62fr)]">
-            <div className="px-6 py-12 sm:px-10 sm:py-14 lg:px-14 lg:py-20 xl:px-16">
-              <h1 className="max-w-4xl font-heading text-4xl font-extrabold leading-[1.04] sm:text-5xl lg:text-6xl">{content.title}</h1>
+            <div className="min-w-0 px-6 py-12 sm:px-10 sm:py-14 lg:px-14 lg:py-20 xl:px-16">
+              <h1 className="max-w-4xl break-words font-heading text-4xl font-extrabold leading-[1.04] sm:text-5xl 2xl:text-6xl">{content.title}</h1>
               <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">{content.description}</p>
               <div className="mt-9 flex flex-wrap gap-3">
                 {!isAuthenticated ? (
@@ -42,7 +42,7 @@ export default function FounderPlaceholder({ section }) {
                 )}
               </div>
               {isAuthenticated && (
-                <div className={`mt-10 flex max-w-2xl items-start gap-3 border-l-2 px-5 py-4 text-sm leading-6 ${confirmed ? "border-emerald-500 bg-emerald-500/[0.06] text-emerald-950" : "border-amber-500 bg-amber-500/[0.07] text-amber-950"}`}>
+                <div className={`mt-10 flex max-w-2xl items-start gap-3 border-l-2 px-5 py-4 text-sm leading-6 ${confirmed ? "border-emerald-500 bg-emerald-500/[0.06] text-emerald-950 dark:text-emerald-200" : "border-amber-500 bg-amber-500/[0.07] text-amber-950 dark:text-amber-200"}`}>
                   <MailCheck className="mt-0.5 shrink-0" size={17} />
                   <span>{confirmed ? "Предрегистрация подтверждена. Доступ появится после запуска раздела." : "Предрегистрация создана. Подтвердите email, чтобы завершить её."}</span>
                 </div>

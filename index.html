@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ML-Арена — соревнования, дуэли и подтвержденный ML-паспорт для специалистов по машинному обучению." />
     <meta name="theme-color" content="#ffffff" />
+    <script>
+      (() => {
+        let savedTheme = null;
+        try {
+          savedTheme = localStorage.getItem("ml-arena-theme");
+        } catch {}
+        const dark = savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.classList.toggle("dark", dark);
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#050914" : "#ffffff");
+      })();
+    </script>
     <meta property="og:type" content="website" />
     <meta property="og:title" content="ML-Арена — соревнования по ИИ и машинному обучению" />
     <meta property="og:description" content="Решайте реальные задачи, участвуйте в дуэлях и подтверждайте навыки результатами." />
