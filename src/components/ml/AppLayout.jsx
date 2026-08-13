@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { to: "/rating", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing },
   { to: "/ml-passport", label: "ML-паспорт", icon: UserRoundCheck },
   { to: "/blog", label: "Блог", icon: BookOpenText },
-  { to: "/help", label: "Контакты", icon: Mail },
+  { to: "/contacts", label: "Контакты", icon: Mail },
 ];
 
 const PAGE_TITLES = [
@@ -28,6 +28,7 @@ const PAGE_TITLES = [
   ["/pricing", "Тарифы"],
   ["/admin", "Панель администратора"],
   ["/help", "Помощь и контакты"],
+  ["/contacts", "Контакты"],
 ];
 
 function ArenaLogoMark({ className = "h-8 w-8" }) {

@@ -12,7 +12,7 @@
         try {
           savedTheme = localStorage.getItem("ml-arena-theme");
         } catch {}
-        const dark = savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const dark = savedTheme === "dark";
         document.documentElement.classList.toggle("dark", dark);
         document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#050914" : "#ffffff");
       })();

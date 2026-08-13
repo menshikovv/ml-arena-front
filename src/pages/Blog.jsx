@@ -124,7 +124,7 @@ export default function Blog() {
       <section className="border-b border-border bg-secondary/25">
         <Reveal className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-[1fr_0.78fr] lg:items-end">
           <div>
-            <h1 className="mt-5 max-w-3xl font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">Новости и материалы ML-Арены</h1>
+            <h1 className="mt-5 max-w-3xl font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">Новости ML-Арены</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Разборы ML-задач, подготовка к соревнованиям, новости платформы и практические материалы без лишней теории.</p>
           </div>
           <div className="relative lg:mb-1">

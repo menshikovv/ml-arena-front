@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "@/components/ml/AppLayout";
+import CookieConsent from "@/components/CookieConsent";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
@@ -51,6 +52,7 @@ const pageMeta = [
   ["/pricing", "Тарифы — ML-Арена", "Тарифы ML-Арены для тренировок, соревнований и развития ML-навыков."],
   ["/admin", "Панель администратора — ML-Арена", "Управление платформой ML-Арена."],
   ["/help", "Помощь и контакты — ML-Арена", "Ответы на частые вопросы и связь с командой ML-Арены."],
+  ["/contacts", "Контакты — ML-Арена", "Поддержка, сотрудничество и официальные каналы связи ML-Арены."],
   ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
   ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
   ["/verify-email", "Подтверждение почты — ML-Арена", "Подтвердите адрес электронной почты для входа в ML-Арену."],
@@ -100,8 +102,8 @@ function AppRoutes() {
       <Route path="/terms" element={<LegalNotice type="terms" />} />
       <Route path="/privacy" element={<LegalNotice type="privacy" />} />
       <Route path="/help" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
-      <Route path="/contacts" element={<Navigate to="/help#contacts" replace />} />
-      <Route path="/support" element={<Navigate to="/help#support" replace />} />
+      <Route path="/contacts" element={isAuthenticated ? <AppLayout><Help embedded contactsOnly /></AppLayout> : <Help contactsOnly />} />
+      <Route path="/support" element={<Navigate to="/help?category=technical#support" replace />} />
 
       <Route element={<AppLayout />}>
         <Route path="/blog" element={<Blog />} />
@@ -144,7 +146,7 @@ export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router><PageMetadata /><ScrollToTop /><AppRoutes /></Router>
+        <Router><PageMetadata /><ScrollToTop /><AppRoutes /><CookieConsent /></Router>
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>

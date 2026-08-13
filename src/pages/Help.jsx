@@ -117,10 +117,10 @@ const FAQ_ITEMS = [
 ];
 
 const CONTACTS = [
-  { title: "Поддержка", text: "Аккаунт, сайт, результаты и технические вопросы.", action: "Написать в поддержку", href: `mailto:${SUPPORT_EMAIL}`, icon: LifeBuoy, tone: "bg-primary/10 text-primary" },
+  { title: "Поддержка", text: "Аккаунт, сайт, результаты и технические вопросы.", action: "Написать в поддержку", to: "/help?category=technical#support", icon: LifeBuoy, tone: "bg-primary/10 text-primary" },
   { title: "Telegram", text: "Анонсы, материалы и активности Founder Season.", action: "Открыть Telegram", href: FOUNDER_TELEGRAM_URL, icon: Send, tone: "bg-[hsl(var(--chart-2)/0.14)] text-[hsl(var(--chart-2))]" },
-  { title: "Сотрудничество", text: "Корпоративные соревнования, университеты и совместные проекты.", action: "Предложить сотрудничество", href: `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Сотрудничество с ML-Ареной")}`, icon: BriefcaseBusiness, tone: "bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]" },
-  { title: "Безопасность", text: "Сообщите об уязвимости или проблеме безопасности приватно.", action: "Сообщить об уязвимости", href: `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Безопасность ML-Арены")}`, icon: ShieldCheck, tone: "bg-destructive/10 text-destructive" },
+  { title: "Сотрудничество", text: "Корпоративные соревнования, университеты и совместные проекты.", action: "Предложить сотрудничество", to: "/help?category=partnership#support", icon: BriefcaseBusiness, tone: "bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]" },
+  { title: "Безопасность", text: "Сообщите об уязвимости или проблеме безопасности приватно.", action: "Сообщить об уязвимости", to: "/help?category=security#support", icon: ShieldCheck, tone: "bg-destructive/10 text-destructive" },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -136,10 +136,23 @@ function normalizeSearch(value) {
   return value.toLowerCase().replaceAll("ё", "е").replace(/\s+/g, " ").trim();
 }
 
-export default function Help({ embedded = false }) {
+function scrollToSection(id) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  const scroller = element.closest(".arena-app-main");
+  if (scroller) {
+    const top = element.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    scroller.scrollTo({ top, behavior: "smooth" });
+    return;
+  }
+  element.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+export default function Help({ embedded = false, contactsOnly = false }) {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const initialCategory = new URLSearchParams(location.search).get("category") || "all";
+  const initialSupportCategory = CATEGORY_OPTIONS.some(([value]) => value === initialCategory) ? initialCategory : "technical";
   const [category, setCategory] = useState(TOPICS.some((topic) => topic.id === initialCategory) ? initialCategory : "all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -148,7 +161,7 @@ export default function Help({ embedded = false }) {
   const [attachmentError, setAttachmentError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mailPrepared, setMailPrepared] = useState(false);
-  const [form, setForm] = useState({ category: "technical", subject: "", message: "", reply_email: user?.email || "" });
+  const [form, setForm] = useState({ category: initialSupportCategory, subject: "", message: "", reply_email: user?.email || "" });
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search), 200);
@@ -158,11 +171,6 @@ export default function Help({ embedded = false }) {
   useEffect(() => {
     if (user?.email) setForm((current) => ({ ...current, reply_email: current.reply_email || user.email }));
   }, [user?.email]);
-
-  useEffect(() => {
-    if (!location.hash) return;
-    window.requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  }, [location.hash]);
 
   const filteredFaq = useMemo(() => {
     const query = normalizeSearch(debouncedSearch);
@@ -184,7 +192,7 @@ export default function Help({ embedded = false }) {
 
   const scrollToSupport = (preferredCategory) => {
     if (preferredCategory) setForm((current) => ({ ...current, category: preferredCategory }));
-    document.getElementById("support")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToSection("support");
   };
 
   const selectTopic = (topicId) => {
@@ -194,7 +202,7 @@ export default function Help({ embedded = false }) {
     }
     setCategory(topicId);
     setSearch("");
-    document.getElementById("faq")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToSection("faq");
   };
 
   const updateForm = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -227,6 +235,15 @@ export default function Help({ embedded = false }) {
       setMailPrepared(true);
     }, 250);
   };
+
+  if (contactsOnly) {
+    return (
+      <div className="min-h-full bg-background text-foreground">
+        {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
+        <main><ContactsSection standalone /></main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-background text-foreground">
@@ -383,34 +400,7 @@ export default function Help({ embedded = false }) {
           </div>
         </section>
 
-        <section id="contacts" className="scroll-mt-6 border-t border-border bg-secondary/25">
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
-            <Reveal>
-              <h2 className="font-heading text-3xl font-bold sm:text-4xl">Контакты</h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Выберите подходящий канал. Персональные вопросы не отправляйте в публичные комментарии.</p>
-            </Reveal>
-            <Stagger className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {CONTACTS.map((contact) => {
-                const Icon = contact.icon;
-                const external = contact.href.startsWith("http");
-                return (
-                  <StaggerItem key={contact.title}>
-                    <a href={contact.href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="group flex min-h-52 h-full flex-col border border-border bg-card p-5 shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg">
-                      <span className={`flex h-11 w-11 items-center justify-center rounded-lg ${contact.tone}`}><Icon size={20} /></span>
-                      <h3 className="mt-6 font-heading text-lg font-bold">{contact.title}</h3>
-                      <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{contact.text}</p>
-                      <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">{contact.action} <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" /></span>
-                    </a>
-                  </StaggerItem>
-                );
-              })}
-            </Stagger>
-            <div className="mt-10 flex flex-col justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
-              <p>Отправляя обращение, вы соглашаетесь с обработкой данных для ответа на ваш вопрос.</p>
-              <div className="flex gap-5"><Link to="/terms" className="hover:text-foreground">Условия использования</Link><Link to="/privacy" className="hover:text-foreground">Политика обработки данных</Link></div>
-            </div>
-          </div>
-        </section>
+        <ContactsSection />
       </main>
     </div>
   );
@@ -433,4 +423,44 @@ function PublicHeader({ isAuthenticated }) {
 
 function Field({ label, htmlFor, className = "", children }) {
   return <div className={`space-y-2 ${className}`}><Label htmlFor={htmlFor}>{label}</Label>{children}</div>;
+}
+
+function ContactsSection({ standalone = false }) {
+  const Heading = standalone ? "h1" : "h2";
+
+  return (
+    <section id="contacts" className={`border-border bg-secondary/25 ${standalone ? "flex min-h-[calc(100vh-70px)] items-center" : "scroll-mt-6 border-t"}`}>
+      <div className={`mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 ${standalone ? "md:py-16" : "md:py-20"}`}>
+        <Reveal>
+          <Heading className={`font-heading font-bold ${standalone ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>Контакты</Heading>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Выберите подходящий канал. Персональные вопросы не отправляйте в публичные комментарии.</p>
+        </Reveal>
+        <Stagger className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {CONTACTS.map((contact) => {
+            const Icon = contact.icon;
+            const content = (
+              <>
+                <span className={`flex h-11 w-11 items-center justify-center rounded-lg ${contact.tone}`}><Icon size={20} /></span>
+                <h2 className="mt-6 font-heading text-lg font-bold">{contact.title}</h2>
+                <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{contact.text}</p>
+                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">{contact.action} <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" /></span>
+              </>
+            );
+            const className = "group flex h-full min-h-52 flex-col border border-border bg-card p-5 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg";
+            return (
+              <StaggerItem key={contact.title}>
+                {contact.to
+                  ? <Link to={contact.to} className={className}>{content}</Link>
+                  : <a href={contact.href} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>}
+              </StaggerItem>
+            );
+          })}
+        </Stagger>
+        <div className="mt-10 flex flex-col justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
+          <p>Отправляя обращение, вы соглашаетесь с обработкой данных для ответа на ваш вопрос.</p>
+          <div className="flex flex-wrap gap-5"><Link to="/terms" className="hover:text-foreground">Условия использования</Link><Link to="/privacy" className="hover:text-foreground">Политика обработки данных</Link></div>
+        </div>
+      </div>
+    </section>
+  );
 }

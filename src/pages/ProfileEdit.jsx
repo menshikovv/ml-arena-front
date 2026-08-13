@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
 
-const INPUT_CLASS = "h-11 bg-secondary/25 px-3.5 shadow-none transition-[background-color,border-color,box-shadow] hover:border-foreground/20 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15";
+const INPUT_CLASS = "h-10 rounded-md bg-secondary/20 px-3.5 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15";
 
 export default function ProfileEdit() {
   const { user, updateProfile, updateAvatar, deleteAvatar } = useAuth();
@@ -121,51 +121,52 @@ export default function ProfileEdit() {
   };
 
   return (
-    <div className="min-h-full bg-secondary/20">
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
+    <div className="min-h-full bg-secondary/15">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-5 md:px-7 md:py-7">
         <form onSubmit={handleSubmit}>
-          <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
+          <div className="mb-5 flex min-h-9 items-center justify-between gap-4">
             <button type="button" onClick={goBack} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
               <ArrowLeft size={16} /> Вернуться в профиль
             </button>
-            <span className={`hidden items-center gap-1.5 text-xs font-medium sm:inline-flex ${dirty ? "text-amber-700" : "text-muted-foreground"}`}>
+            <span className={`hidden items-center gap-1.5 rounded-full border bg-card px-3 py-2 text-xs font-medium shadow-sm sm:inline-flex ${dirty ? "border-amber-500/25 text-amber-700 dark:text-amber-300" : "border-border text-muted-foreground"}`}>
               {dirty ? <CircleAlert size={14} /> : <Check size={14} />}
               {dirty ? "Есть несохранённые изменения" : "Изменений нет"}
             </span>
           </div>
 
-          <div className="grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <aside className="overflow-hidden rounded-lg border border-border bg-card shadow-sm lg:sticky lg:top-5">
-              <div className="p-5">
+          <div className="grid items-start gap-5 lg:grid-cols-[280px_minmax(0,1fr)] xl:gap-6">
+            <aside className="overflow-hidden rounded-md border border-border bg-card shadow-sm lg:sticky lg:top-5">
+              <div className="relative overflow-hidden border-b border-border bg-secondary/20 px-5 py-6">
+                <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--primary)/.08)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary)/.08)_1px,transparent_1px)] [background-size:24px_24px]" />
                 <div
-                  className={`relative mx-auto flex h-40 w-full items-center justify-center rounded-lg border border-dashed transition-[border-color,background-color] ${draggingAvatar ? "border-primary bg-primary/5" : "border-border bg-secondary/35"}`}
+                  className={`relative mx-auto flex h-32 w-full items-center justify-center rounded-md border transition-[border-color,background-color,box-shadow] ${draggingAvatar ? "border-primary bg-primary/10 shadow-inner" : "border-border/80 bg-card/75"}`}
                   onDragEnter={(event) => { event.preventDefault(); setDraggingAvatar(true); }}
                   onDragOver={(event) => event.preventDefault()}
                   onDragLeave={() => setDraggingAvatar(false)}
                   onDrop={handleAvatarDrop}
                 >
                   <button type="button" onClick={() => fileRef.current?.click()} className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4" title="Выбрать аватар">
-                    <Avatar name={form.full_name || form.nickname} src={avatarPreview} size={104} className="ring-4 ring-card shadow-lg" />
+                    <Avatar name={form.full_name || form.nickname} src={avatarPreview} size={92} className="ring-4 ring-card shadow-lg" />
                     <span className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                       <Camera size={22} />
                     </span>
                   </button>
                 </div>
 
-                <div className="mt-4 min-w-0 text-center">
+                <div className="relative mt-4 min-w-0 text-center">
                   <h2 className="truncate font-heading text-lg font-bold">{form.nickname || "Новый участник"}</h2>
                   <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
 
-                <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                <div className="relative mt-4 grid grid-cols-[1fr_auto] gap-2">
                   <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}><Camera size={15} /> Заменить</Button>
                   {avatarPreview && <Button type="button" variant="ghost" size="icon" onClick={clearAvatar} className="text-muted-foreground hover:text-destructive" title="Удалить аватар"><Trash2 size={16} /></Button>}
                 </div>
-                <p className="mt-2 text-center text-[11px] leading-5 text-muted-foreground">Можно перетащить сюда JPG, PNG или WebP до 5 МБ</p>
+                <p className="relative mt-2 text-center text-[11px] leading-5 text-muted-foreground">JPG, PNG или WebP до 5 МБ</p>
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
               </div>
 
-              <div className="border-t border-border bg-secondary/25 p-5">
+              <div className="p-5">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold text-muted-foreground">Заполненность</p>
                   <p className="font-heading text-lg font-bold tabular-nums">{completion}%</p>
@@ -173,12 +174,20 @@ export default function ProfileEdit() {
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
                   <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${completion}%` }} />
                 </div>
-                <p className="mt-3 text-xs leading-5 text-muted-foreground">Заполненный профиль лучше представляет ваш опыт в ML-Арене.</p>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">Добавьте опыт и ссылки, чтобы профиль лучше отражал ваши навыки.</p>
               </div>
             </aside>
 
-            <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-              <FormSection icon={UserRound} title="Основная информация" description="Как вас увидят другие участники платформы.">
+            <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
+              <div className="flex flex-col justify-between gap-3 border-b border-border bg-secondary/15 px-5 py-4 sm:flex-row sm:items-center md:px-6">
+                <div>
+                  <p className="font-heading text-lg font-extrabold">Данные профиля</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Информация сохраняется в профиле и ML-паспорте.</p>
+                </div>
+                <span className="w-fit rounded-md border border-primary/15 bg-primary/[0.045] px-3 py-2 text-xs font-semibold text-primary">Заполнено на {completion}%</span>
+              </div>
+
+              <FormSection icon={UserRound} title="Основная информация" description="Как вас увидят другие участники.">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Никнейм" required>
                     <Input value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="username" maxLength={30} className={INPUT_CLASS} required />
@@ -191,12 +200,12 @@ export default function ProfileEdit() {
                       <Label htmlFor="bio">О себе</Label>
                       <span className="text-[11px] tabular-nums text-muted-foreground">{form.bio.length}/1000</span>
                     </div>
-                    <Textarea id="bio" value={form.bio} onChange={(event) => update("bio", event.target.value)} maxLength={1000} rows={4} placeholder="Опыт, интересы и задачи, которые вы хотите решать" className="resize-none bg-secondary/25 px-3.5 py-3 shadow-none transition-[background-color,border-color,box-shadow] hover:border-foreground/20 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15" />
+                    <Textarea id="bio" value={form.bio} onChange={(event) => update("bio", event.target.value)} maxLength={1000} rows={3} placeholder="Опыт, интересы и задачи, которые вы хотите решать" className="resize-none rounded-md bg-secondary/20 px-3.5 py-3 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15" />
                   </div>
                 </div>
               </FormSection>
 
-              <FormSection icon={BriefcaseBusiness} title="Учёба и работа" description="Профессиональный контекст вашего профиля.">
+              <FormSection icon={BriefcaseBusiness} title="Учёба и работа" description="Ваш профессиональный контекст.">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Город" icon={MapPin}>
                     <Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} />
@@ -210,7 +219,7 @@ export default function ProfileEdit() {
                 </div>
               </FormSection>
 
-              <FormSection icon={Link2} title="Профессиональные ссылки" description="Профили с кодом, проектами и результатами.">
+              <FormSection icon={Link2} title="Ссылки" description="Код, проекты и результаты.">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="GitHub">
                     <Input type="url" value={form.github_url} onChange={(event) => update("github_url", event.target.value)} autoComplete="url" placeholder="https://github.com/username" className={INPUT_CLASS} />
@@ -221,7 +230,7 @@ export default function ProfileEdit() {
                 </div>
               </FormSection>
 
-              <FormSection icon={ShieldCheck} title="Видимость" description="Управляйте доступом к профилю.">
+              <FormSection icon={ShieldCheck} title="Видимость" description="Кто сможет увидеть профиль.">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Toggle icon={Globe2} checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль доступен по ссылке и отображается в поиске." />
                   <Toggle icon={BriefcaseBusiness} checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Виден компаниям" text="Компании смогут находить вас среди участников." />
@@ -235,8 +244,8 @@ export default function ProfileEdit() {
                 </div>
               )}
 
-              <div className="sticky bottom-0 z-20 flex flex-col justify-between gap-3 border-t border-border bg-card/95 px-5 py-3.5 backdrop-blur sm:flex-row sm:items-center md:px-6">
-                <p className="text-xs text-muted-foreground">{dirty ? "Проверьте изменения перед сохранением" : "Все данные сохранены"}</p>
+              <div className="sticky bottom-0 z-20 flex flex-col justify-between gap-3 border-t border-border bg-card/95 px-5 py-3 backdrop-blur sm:flex-row sm:items-center md:px-6">
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">{dirty ? <CircleAlert size={14} className="text-amber-600" /> : <Check size={14} className="text-emerald-600" />}{dirty ? "Изменения еще не сохранены" : "Все данные сохранены"}</p>
                 <div className="flex gap-2">
                   <Button type="button" variant="ghost" onClick={goBack} className="flex-1 sm:flex-none">Отмена</Button>
                   <Button type="submit" disabled={loading || !dirty} className="min-w-36 flex-1 sm:flex-none">
@@ -254,9 +263,9 @@ export default function ProfileEdit() {
 
 function FormSection({ icon: Icon, title, description, children }) {
   return (
-    <section className="grid gap-5 border-b border-border p-5 last:border-b-0 md:grid-cols-[190px_minmax(0,1fr)] md:p-6 lg:grid-cols-[210px_minmax(0,1fr)]">
+    <section className="grid gap-5 border-b border-border p-5 last:border-b-0 md:grid-cols-[170px_minmax(0,1fr)] md:px-6 md:py-5 lg:grid-cols-[185px_minmax(0,1fr)]">
       <div className="flex items-start gap-3 md:block">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon size={18} /></span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/15 bg-primary/[0.06] text-primary"><Icon size={17} /></span>
         <div className="md:mt-3">
           <h2 className="font-heading text-base font-bold">{title}</h2>
           <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">{description}</p>

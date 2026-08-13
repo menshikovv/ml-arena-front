@@ -169,7 +169,7 @@ function HeroCompanion({ reduceMotion }) {
           <Link to="/duels" aria-label="Перейти к дуэлям" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-              <Swords size={17} />
+              <Swords size={17} className="text-white" />
             </span>
             <span>
               <span className="block text-[13px] font-bold text-neutral-900 dark:text-white">Дуэль 1×1</span>
@@ -379,7 +379,7 @@ export default function Landing() {
               ["/rating", "Рейтинг"],
               ["/ml-passport", "ML-паспорт"],
               ["/blog", "Блог"],
-              ["/help#contacts", "Контакты"],
+              ["/contacts", "Контакты"],
             ].map(([to, label]) => (
               <Link
                 key={to}
@@ -450,7 +450,7 @@ export default function Landing() {
                 ["/rating", "Рейтинг"],
                 ["/ml-passport", "ML-паспорт"],
                 ["/blog", "Блог"],
-                ["/help#contacts", "Контакты"],
+                ["/contacts", "Контакты"],
               ].map(([to, label]) => (
                 <Link
                   key={to}
@@ -557,7 +557,7 @@ export default function Landing() {
                   transition={{ duration: 0.55, delay: 0.65 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
                   className="flex items-center gap-3 rounded-[18px] border border-white/70 bg-white/55 p-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.8),0_10px_30px_-18px_rgba(0,132,255,0.35)] ring-1 ring-black/5 backdrop-blur-[24px] transition-transform duration-150 ease-out hover:-translate-y-[3px] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_14px_36px_-24px_rgba(37,99,235,0.8)] dark:ring-white/5"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0084FF]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#0084FF]/10 bg-[#0084FF]/[0.08] text-[#0084FF] dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-300">
                     <stat.icon size={17} />
                   </span>
                   <span>
@@ -846,7 +846,7 @@ export default function Landing() {
           <nav className="flex items-center gap-5 text-sm text-muted-foreground">
             <Link to="/blog" className="transition-colors hover:text-foreground">Блог</Link>
             <Link to="/help" className="transition-colors hover:text-foreground">Помощь</Link>
-            <Link to="/help#contacts" className="font-medium transition-colors hover:text-primary">Контакты</Link>
+            <Link to="/contacts" className="font-medium transition-colors hover:text-primary">Контакты</Link>
           </nav>
         </div>
       </footer>
