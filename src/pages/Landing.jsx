@@ -39,7 +39,7 @@ import ThemeToggle from "@/components/ml/ThemeToggle";
 
 const FEATURES = [
   { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: Классификация, Регрессия, NLP, Компьютерное зрение, Временные ряды, Ранжирование, Кластеризация, RecSys. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
-  { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "text-accent-foreground bg-accent/20" },
+  { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300" },
   { icon: Medal, title: "Рейтинг и лиги", desc: "Единая система прогресса: соревнования, дуэли, сезоны и переходы из Бронзы к Платине.", color: "text-[hsl(var(--chart-5))] bg-[hsl(var(--chart-5)/0.16)]" },
   { icon: Brain, title: "ML-паспорт", desc: "Рейтинг, бейджи, сильные стороны и подтверждённые результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
   { icon: Building2, title: "Компании", desc: "Инструмент для поиска начинающих ML/DS и AI-специалистов, которые уже показали практический результат.", color: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.16)]" },
@@ -236,7 +236,7 @@ function ArenaPreview() {
             </div>
             <span className="hidden text-sm text-muted-foreground md:block">{row.task}</span>
             <span className="font-mono text-sm font-semibold">{row.score}</span>
-            <span className="hidden rounded-full bg-accent/15 px-2 py-1 text-xs font-semibold text-accent-foreground md:block">
+            <span className="hidden rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300 md:block">
               {row.change}
             </span>
           </motion.div>
