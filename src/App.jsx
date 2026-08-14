@@ -52,6 +52,8 @@ const pageMeta = [
   ["/pricing", "Тарифы — ML-Арена", "Тарифы ML-Арены для тренировок, соревнований и развития ML-навыков."],
   ["/admin", "Панель администратора — ML-Арена", "Управление платформой ML-Арена."],
   ["/help", "Помощь и контакты — ML-Арена", "Ответы на частые вопросы и связь с командой ML-Арены."],
+  ["/support", "Поддержка — ML-Арена", "Ответы на частые вопросы и форма обращения в поддержку ML-Арены."],
+  ["/cooperation", "Сотрудничество — ML-Арена", "Сотрудничество ML-Арены с компаниями, университетами и организациями."],
   ["/contacts", "Контакты — ML-Арена", "Поддержка, сотрудничество и официальные каналы связи ML-Арены."],
   ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
   ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
@@ -102,8 +104,9 @@ function AppRoutes() {
       <Route path="/terms" element={<LegalNotice type="terms" />} />
       <Route path="/privacy" element={<LegalNotice type="privacy" />} />
       <Route path="/help" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
+      <Route path="/support" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
+      <Route path="/cooperation" element={isAuthenticated ? <AppLayout><Help embedded cooperationOnly /></AppLayout> : <Help cooperationOnly />} />
       <Route path="/contacts" element={isAuthenticated ? <AppLayout><Help embedded contactsOnly /></AppLayout> : <Help contactsOnly />} />
-      <Route path="/support" element={<Navigate to="/help?category=technical#support" replace />} />
 
       <Route element={<AppLayout />}>
         <Route path="/blog" element={<Blog />} />

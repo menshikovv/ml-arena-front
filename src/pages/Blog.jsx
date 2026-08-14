@@ -119,6 +119,22 @@ export default function Blog() {
     setSearchParams({});
   };
 
+  const submitSearch = (event) => {
+    event.preventDefault();
+    updateSearch(search);
+    window.setTimeout(() => {
+      const results = document.getElementById("blog-results");
+      if (!results) return;
+      const scroller = results.closest(".arena-app-main");
+      if (scroller) {
+        const top = results.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 24;
+        scroller.scrollTo({ top, behavior: "smooth" });
+        return;
+      }
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
   return (
     <div className="min-h-full bg-background text-foreground">
       <section className="border-b border-border bg-secondary/25">
@@ -127,11 +143,12 @@ export default function Blog() {
             <h1 className="mt-5 max-w-3xl font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">Новости ML-Арены</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Разборы ML-задач, подготовка к соревнованиям, новости платформы и практические материалы без лишней теории.</p>
           </div>
-          <div className="relative lg:mb-1">
+          <form onSubmit={submitSearch} className="relative lg:mb-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
-            <Input value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Найти материал..." className="h-[52px] rounded-md bg-card pl-12 pr-12 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20" aria-label="Поиск по блогу" />
-            {search && <button type="button" onClick={() => updateSearch("")} className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Очистить поиск"><X size={16} /></button>}
-          </div>
+            <Input value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Найти материал..." className="h-[52px] rounded-md bg-card pl-12 pr-24 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20" aria-label="Поиск по блогу" />
+            {search && <button type="button" onClick={() => updateSearch("")} className="absolute right-12 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Очистить поиск" title="Очистить поиск"><X size={16} /></button>}
+            <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 h-9 w-9 -translate-y-1/2 rounded-md" aria-label="Показать результаты поиска" title="Показать результаты поиска"><Search size={17} /></Button>
+          </form>
         </Reveal>
       </section>
 
@@ -157,7 +174,7 @@ export default function Blog() {
           </Reveal>
         )}
 
-        <section className={showFeatured ? "mt-14" : ""}>
+        <section id="blog-results" className={`${showFeatured ? "mt-14 " : ""}scroll-mt-24`}>
           <Reveal className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="font-heading text-3xl font-extrabold">{normalizedQuery ? "Результаты поиска" : activeCategory === "all" ? "Последние материалы" : getBlogCategory(activeCategory)?.name}</h2>

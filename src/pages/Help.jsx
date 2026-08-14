@@ -11,7 +11,6 @@ import {
   Mail,
   MessageSquareText,
   Search,
-  Send,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -103,8 +102,8 @@ const FAQ_ITEMS = [
     category: "support",
     title: "Как предложить партнёрство?",
     keywords: ["партнёрство", "компания", "университет", "сотрудничество"],
-    body: "Расскажите о компании или университете, формате сотрудничества и оставьте контакт для ответа. Используйте форму ниже или почту поддержки.",
-    supportAction: true,
+    body: "Для компаний, университетов и организаций предусмотрена отдельная страница сотрудничества.",
+    action: { label: "Перейти к сотрудничеству", to: "/cooperation" },
   },
   {
     id: "vulnerability",
@@ -117,10 +116,8 @@ const FAQ_ITEMS = [
 ];
 
 const CONTACTS = [
-  { title: "Поддержка", text: "Аккаунт, сайт, результаты и технические вопросы.", action: "Написать в поддержку", to: "/help?category=technical#support", icon: LifeBuoy, tone: "bg-primary/10 text-primary" },
-  { title: "Telegram", text: "Анонсы, материалы и активности Founder Season.", action: "Открыть Telegram", href: FOUNDER_TELEGRAM_URL, icon: Send, tone: "bg-[hsl(var(--chart-2)/0.14)] text-[hsl(var(--chart-2))]" },
-  { title: "Сотрудничество", text: "Корпоративные соревнования, университеты и совместные проекты.", action: "Предложить сотрудничество", to: "/help?category=partnership#support", icon: BriefcaseBusiness, tone: "bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]" },
-  { title: "Безопасность", text: "Сообщите об уязвимости или проблеме безопасности приватно.", action: "Сообщить об уязвимости", to: "/help?category=security#support", icon: ShieldCheck, tone: "bg-destructive/10 text-destructive" },
+  { title: "Поддержка", text: "Вопросы об аккаунте, сайте, результатах и работе платформы.", action: "Открыть поддержку", to: "/support", icon: LifeBuoy, tone: "bg-primary/10 text-primary" },
+  { title: "Сотрудничество", text: "Корпоративные соревнования, университетские программы и совместные проекты.", action: "Перейти к сотрудничеству", to: "/cooperation", icon: BriefcaseBusiness, tone: "bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]" },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -128,7 +125,6 @@ const CATEGORY_OPTIONS = [
   ["technical", "Техническая проблема"],
   ["founder_season", "Founder Season"],
   ["privacy_legal", "Данные и документы"],
-  ["partnership", "Сотрудничество"],
   ["security", "Безопасность"],
 ];
 
@@ -148,7 +144,7 @@ function scrollToSection(id) {
   element.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export default function Help({ embedded = false, contactsOnly = false }) {
+export default function Help({ embedded = false, contactsOnly = false, cooperationOnly = false }) {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const initialCategory = new URLSearchParams(location.search).get("category") || "all";
@@ -241,6 +237,15 @@ export default function Help({ embedded = false, contactsOnly = false }) {
       <div className="min-h-full bg-background text-foreground">
         {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
         <main><ContactsSection standalone /></main>
+      </div>
+    );
+  }
+
+  if (cooperationOnly) {
+    return (
+      <div className="min-h-full bg-background text-foreground">
+        {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
+        <main><CooperationPlaceholder /></main>
       </div>
     );
   }
@@ -400,7 +405,6 @@ export default function Help({ embedded = false, contactsOnly = false }) {
           </div>
         </section>
 
-        <ContactsSection />
       </main>
     </div>
   );
@@ -435,7 +439,7 @@ function ContactsSection({ standalone = false }) {
           <Heading className={`font-heading font-bold ${standalone ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>Контакты</Heading>
           <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Выберите подходящий канал. Персональные вопросы не отправляйте в публичные комментарии.</p>
         </Reveal>
-        <Stagger className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stagger className="mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
           {CONTACTS.map((contact) => {
             const Icon = contact.icon;
             const content = (
@@ -446,7 +450,7 @@ function ContactsSection({ standalone = false }) {
                 <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">{contact.action} <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" /></span>
               </>
             );
-            const className = "group flex h-full min-h-52 flex-col border border-border bg-card p-5 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg";
+            const className = "group flex h-full min-h-60 flex-col border border-border bg-card p-6 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg";
             return (
               <StaggerItem key={contact.title}>
                 {contact.to
@@ -457,10 +461,25 @@ function ContactsSection({ standalone = false }) {
           })}
         </Stagger>
         <div className="mt-10 flex flex-col justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
-          <p>Отправляя обращение, вы соглашаетесь с обработкой данных для ответа на ваш вопрос.</p>
+          <p>Выберите направление, и мы покажем подходящий способ связи.</p>
           <div className="flex flex-wrap gap-5"><Link to="/terms" className="hover:text-foreground">Условия использования</Link><Link to="/privacy" className="hover:text-foreground">Политика обработки данных</Link></div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function CooperationPlaceholder() {
+  return (
+    <section className="flex min-h-[calc(100vh-70px)] items-center border-border bg-secondary/25">
+      <Reveal className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 md:py-16">
+        <div className="max-w-3xl">
+          <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]"><BriefcaseBusiness size={22} /></span>
+          <h1 className="mt-6 font-heading text-4xl font-bold sm:text-5xl">Сотрудничество</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Отдельная страница для компаний, университетов и организаций. Скоро здесь появится подробная информация о форматах сотрудничества с ML-Ареной.</p>
+          <Button asChild variant="outline" className="mt-7"><Link to="/contacts">Вернуться к контактам <ArrowRight size={15} /></Link></Button>
+        </div>
+      </Reveal>
     </section>
   );
 }
