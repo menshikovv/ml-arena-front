@@ -18,6 +18,7 @@ import BlogPost from "@/pages/BlogPost";
 import CompanyDashboard from "@/pages/CompanyDashboard";
 import CompetitionDetail from "@/pages/CompetitionDetail";
 import Competitions from "@/pages/Competitions";
+import Cooperation from "@/pages/Cooperation";
 import DuelLobby from "@/pages/DuelLobby";
 import Duels from "@/pages/Duels";
 import FounderPlaceholder from "@/pages/FounderPlaceholder";
@@ -53,7 +54,7 @@ const pageMeta = [
   ["/admin", "Панель администратора — ML-Арена", "Управление платформой ML-Арена."],
   ["/help", "Помощь и контакты — ML-Арена", "Ответы на частые вопросы и связь с командой ML-Арены."],
   ["/support", "Поддержка — ML-Арена", "Ответы на частые вопросы и форма обращения в поддержку ML-Арены."],
-  ["/cooperation", "Сотрудничество — ML-Арена", "Сотрудничество ML-Арены с компаниями, университетами и организациями."],
+  ["/contacts/cooperation", "Сотрудничество с компаниями — ML Арена", "Практические ML-соревнования, проверка специалистов и совместные проекты для компаний. Обсудите пилот с ML Ареной."],
   ["/contacts", "Контакты — ML-Арена", "Поддержка, сотрудничество и официальные каналы связи ML-Арены."],
   ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
   ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
@@ -105,7 +106,8 @@ function AppRoutes() {
       <Route path="/privacy" element={<LegalNotice type="privacy" />} />
       <Route path="/help" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
       <Route path="/support" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
-      <Route path="/cooperation" element={isAuthenticated ? <AppLayout><Help embedded cooperationOnly /></AppLayout> : <Help cooperationOnly />} />
+      <Route path="/contacts/cooperation" element={isAuthenticated ? <AppLayout><Cooperation embedded /></AppLayout> : <Cooperation />} />
+      <Route path="/cooperation" element={<Navigate to="/contacts/cooperation" replace />} />
       <Route path="/contacts" element={isAuthenticated ? <AppLayout><Help embedded contactsOnly /></AppLayout> : <Help contactsOnly />} />
 
       <Route element={<AppLayout />}>

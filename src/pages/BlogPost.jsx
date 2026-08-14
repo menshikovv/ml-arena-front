@@ -6,7 +6,6 @@ import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { BLOG_POSTS, formatBlogDate, getBlogCategory, getBlogPost } from "@/lib/blog-data";
-import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 function RelatedCard({ post }) {
   return (
@@ -70,10 +69,8 @@ export default function BlogPost() {
   const currentUrl = typeof window === "undefined" ? "" : window.location.href;
   const shareTelegram = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.title)}`;
   const shareVk = `https://vk.com/share.php?url=${encodeURIComponent(currentUrl)}&title=${encodeURIComponent(post.title)}`;
-  const careerPost = post.category === "career";
-  const cta = careerPost
-    ? { internal: true, to: isAuthenticated ? "/profile" : "/register", label: isAuthenticated ? "Открыть свой профиль" : "Создать профиль" }
-    : { internal: false, to: FOUNDER_TELEGRAM_URL, label: "Перейти в Founder Season" };
+  const cta = post.cta || { title: "Продолжить знакомство с ML-Ареной", text: "Создайте профиль и сохраните результаты своей практики.", label: "Создать профиль", to: "/register", authTo: "/profile" };
+  const ctaTarget = isAuthenticated && cta.authTo ? cta.authTo : cta.to;
 
   const copyLink = async () => {
     try {
@@ -141,14 +138,10 @@ export default function BlogPost() {
             <Reveal className="mt-14 border-y border-border py-8">
               <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
                 <div>
-                  <h2 className="font-heading text-2xl font-extrabold">Продолжить практику</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">Следующий шаг — применить идею в задаче и сохранить результат.</p>
+                  <h2 className="font-heading text-2xl font-extrabold">{cta.title}</h2>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{cta.text}</p>
                 </div>
-                {cta.internal ? (
-                  <Button asChild size="lg"><Link to={cta.to}>{cta.label} <ArrowRight size={16} /></Link></Button>
-                ) : (
-                  <Button asChild size="lg"><a href={cta.to} target="_blank" rel="noopener noreferrer"><Send size={16} /> {cta.label}</a></Button>
-                )}
+                <Button asChild size="lg"><Link to={ctaTarget}>{cta.label} <ArrowRight size={16} /></Link></Button>
               </div>
             </Reveal>
 

@@ -61,6 +61,9 @@ export const api = {
   billing: {
     plans: () => apiData("/api/v1/billing/plans", {}, { auth: false }),
   },
+  cooperation: {
+    createLead: (body) => apiData("/api/v1/cooperation/leads", { method: "POST", body: json(body) }, { auth: false }),
+  },
   organizations: {
     me: () => apiData("/api/v1/organizations/me"),
     get: (id) => apiData(`/api/v1/organizations/${id}`, {}, { auth: false }),

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BookOpenText, ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
 import Avatar from "@/components/ml/Avatar";
@@ -29,7 +29,7 @@ const PAGE_TITLES = [
   ["/admin", "Панель администратора"],
   ["/help", "Помощь и контакты"],
   ["/support", "Поддержка"],
-  ["/cooperation", "Сотрудничество"],
+  ["/contacts/cooperation", "Сотрудничество"],
   ["/contacts", "Контакты"],
 ];
 
@@ -45,6 +45,11 @@ export default function AppLayout({ children }) {
   const { isAuthenticated, user, logout } = useAuth();
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
+
+  useEffect(() => {
+    document.documentElement.classList.add("arena-app-active");
+    return () => document.documentElement.classList.remove("arena-app-active");
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -96,7 +101,7 @@ export default function AppLayout({ children }) {
   );
 
   return (
-    <div className="arena-app-shell flex h-screen overflow-hidden bg-background font-body">
+    <div className="arena-app-shell flex h-[100dvh] max-h-[100dvh] overflow-hidden bg-background font-body">
       <aside className={`arena-sidebar relative hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 md:flex ${collapsed ? "w-20" : "w-[272px]"}`}>
         <SidebarContent />
         <button type="button" onClick={() => setCollapsed((value) => !value)} className="arena-sidebar-toggle absolute -right-3 top-[88px] z-10 flex h-10 w-6 items-center justify-center border border-sidebar-border bg-card text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-primary" title={collapsed ? "Развернуть меню" : "Свернуть меню"}>
@@ -104,7 +109,7 @@ export default function AppLayout({ children }) {
         </button>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="hidden h-[70px] shrink-0 items-center justify-between border-b border-border bg-card/90 px-6 backdrop-blur-xl md:flex lg:px-8">
           <div className="flex items-center gap-3">
             <span className="h-5 w-1 bg-primary" />
@@ -118,7 +123,7 @@ export default function AppLayout({ children }) {
           <ThemeToggle className="ml-auto" />
         </header>
         {mobileOpen && <div className="fixed inset-0 z-50 flex md:hidden"><div className="arena-sidebar w-[292px] max-w-[86vw] border-r border-sidebar-border bg-sidebar"><div className="absolute left-[min(292px,86vw)] top-3 z-10"><button type="button" onClick={() => setMobileOpen(false)} className="ml-3 flex h-9 w-9 items-center justify-center border border-border bg-card shadow" title="Закрыть меню"><X size={18} /></button></div><SidebarContent /></div><button type="button" aria-label="Закрыть меню" className="flex-1 bg-foreground/35 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} /></div>}
-        <main className="arena-app-main scrollbar-thin min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children || <Outlet />}</main>
+        <main className="arena-app-main scrollbar-thin min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children || <Outlet />}</main>
       </div>
     </div>
   );

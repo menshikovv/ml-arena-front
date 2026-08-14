@@ -836,18 +836,41 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-border py-9">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-5">
-          <div className="flex items-center gap-2">
-            <ArenaLogoMark className="h-8 w-8" />
-            <span className="font-heading font-bold">ML-Арена</span>
+      <footer className="border-t border-border bg-card/45">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.15fr_1.85fr] lg:gap-16 lg:py-14">
+          <div className="max-w-sm">
+            <Link to="/" className="inline-flex items-center gap-3">
+              <ArenaLogoMark className="h-9 w-9" />
+              <span className="font-heading text-lg font-bold">ML-Арена</span>
+            </Link>
+            <p className="mt-5 text-sm leading-7 text-muted-foreground">Практические задачи, соревнования и ML-паспорт с подтверждёнными результатами.</p>
           </div>
-          <p className="text-sm text-muted-foreground">© 2026 ML-Арена. Практика, рейтинг и ML-паспорт.</p>
-          <nav className="flex items-center gap-5 text-sm text-muted-foreground">
-            <Link to="/blog" className="transition-colors hover:text-foreground">Блог</Link>
-            <Link to="/help" className="transition-colors hover:text-foreground">Помощь</Link>
-            <Link to="/contacts" className="font-medium transition-colors hover:text-primary">Контакты</Link>
+
+          <nav aria-label="Навигация в подвале" className="grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-4">
+            {[
+              { title: "Платформа", links: [["/competitions", "Соревнования"], ["/duels", "Дуэли"], ["/rating", "Рейтинг"], ["/pricing", "Тарифы"]] },
+              { title: "Материалы", links: [["/blog", "Блог"], ["/ml-passport", "ML-паспорт"], ["/support", "Частые вопросы"]] },
+              { title: "Компаниям", links: [["/contacts/cooperation", "Сотрудничество"], ["/company/dashboard", "Кабинет компании"]] },
+              { title: "Поддержка", links: [["/support", "Помощь"], ["/contacts", "Контакты"], ["/login", "Войти"], ["/register", "Регистрация"]] },
+            ].map((group) => (
+              <div key={group.title}>
+                <p className="font-heading text-sm font-bold text-foreground">{group.title}</p>
+                <div className="mt-4 flex flex-col items-start gap-3">
+                  {group.links.map(([to, label]) => <Link key={`${group.title}-${to}`} to={to} className="text-sm text-muted-foreground transition-colors hover:text-primary">{label}</Link>)}
+                </div>
+              </div>
+            ))}
           </nav>
+        </div>
+
+        <div className="border-t border-border">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 ML-Арена. Все права защищены.</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <Link to="/terms" className="transition-colors hover:text-foreground">Условия использования</Link>
+              <Link to="/privacy" className="transition-colors hover:text-foreground">Обработка данных</Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
