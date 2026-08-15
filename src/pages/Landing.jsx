@@ -379,7 +379,8 @@ export default function Landing() {
               ["/rating", "Рейтинг"],
               ["/ml-passport", "ML-паспорт"],
               ["/blog", "Блог"],
-              ["/contacts", "Контакты"],
+              ["/companies", "Компаниям"],
+              ["/support", "Поддержка"],
             ].map(([to, label]) => (
               <Link
                 key={to}
@@ -450,7 +451,8 @@ export default function Landing() {
                 ["/rating", "Рейтинг"],
                 ["/ml-passport", "ML-паспорт"],
                 ["/blog", "Блог"],
-                ["/contacts", "Контакты"],
+                ["/companies", "Компаниям"],
+                ["/support", "Поддержка"],
               ].map(([to, label]) => (
                 <Link
                   key={to}
@@ -850,8 +852,8 @@ export default function Landing() {
             {[
               { title: "Платформа", links: [["/competitions", "Соревнования"], ["/duels", "Дуэли"], ["/rating", "Рейтинг"]] },
               { title: "Материалы", links: [["/blog", "Блог"], ["/ml-passport", "ML-паспорт"], ["/support", "Частые вопросы"]] },
-              { title: "Компаниям", links: [["/contacts/cooperation", "Сотрудничество"]] },
-              { title: "Поддержка", links: [["/support", "Помощь"], ["/contacts", "Контакты"], ["/login", "Войти"], ["/register", "Регистрация"]] },
+              { title: "Компаниям", links: [["/companies", "Решения для компаний"], ["/companies#cooperation-form", "Обсудить сотрудничество"]] },
+              { title: "Поддержка", links: [["/support", "Помощь и FAQ"], ["/login", "Войти"], ["/register", "Регистрация"]] },
             ].map((group) => (
               <div key={group.title}>
                 <p className="font-heading text-sm font-bold text-foreground">{group.title}</p>

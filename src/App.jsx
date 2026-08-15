@@ -53,10 +53,8 @@ const pageMeta = [
   ["/company/dashboard", "Кабинет компании — ML-Арена", "Управление соревнованиями и поиск ML-специалистов с подтвержденными навыками."],
   ["/pricing", "Тарифы — ML-Арена", "Тарифы ML-Арены для тренировок, соревнований и развития ML-навыков."],
   ["/admin", "Панель администратора — ML-Арена", "Управление платформой ML-Арена."],
-  ["/help", "Помощь и контакты — ML-Арена", "Ответы на частые вопросы и связь с командой ML-Арены."],
   ["/support", "Поддержка — ML-Арена", "Ответы на частые вопросы и форма обращения в поддержку ML-Арены."],
-  ["/contacts/cooperation", "Сотрудничество с компаниями — ML Арена", "Практические ML-соревнования, проверка специалистов и совместные проекты для компаний. Обсудите пилот с ML Ареной."],
-  ["/contacts", "Контакты — ML-Арена", "Поддержка, сотрудничество и официальные каналы связи ML-Арены."],
+  ["/companies", "Компаниям — ML-Арена", "Практические ML-соревнования, проверка специалистов и совместные проекты для компаний."],
   ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
   ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
   ["/verify-email", "Подтверждение почты — ML-Арена", "Подтвердите адрес электронной почты для входа в ML-Арену."],
@@ -112,11 +110,12 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<LegalNotice type="terms" />} />
       <Route path="/privacy" element={<LegalNotice type="privacy" />} />
-      <Route path="/help" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
       <Route path="/support" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
-      <Route path="/contacts/cooperation" element={isAuthenticated ? <AppLayout><Cooperation embedded /></AppLayout> : <Cooperation />} />
-      <Route path="/cooperation" element={<Navigate to="/contacts/cooperation" replace />} />
-      <Route path="/contacts" element={isAuthenticated ? <AppLayout><Help embedded contactsOnly /></AppLayout> : <Help contactsOnly />} />
+      <Route path="/companies" element={isAuthenticated ? <AppLayout><Cooperation embedded /></AppLayout> : <Cooperation />} />
+      <Route path="/help" element={<Navigate to="/support" replace />} />
+      <Route path="/contacts" element={<Navigate to="/support" replace />} />
+      <Route path="/contacts/cooperation" element={<Navigate to="/companies" replace />} />
+      <Route path="/cooperation" element={<Navigate to="/companies" replace />} />
 
       <Route element={<AppLayout />}>
         <Route path="/blog" element={<Blog />} />

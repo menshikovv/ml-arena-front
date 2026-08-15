@@ -111,10 +111,16 @@ export default function Cooperation({ embedded = false }) {
   useEffect(() => {
     const canonical = document.createElement("link");
     canonical.rel = "canonical";
-    canonical.href = `${window.location.origin}/contacts/cooperation`;
+    canonical.href = `${window.location.origin}/companies`;
     canonical.dataset.cooperationCanonical = "true";
     document.head.appendChild(canonical);
     return () => canonical.remove();
+  }, []);
+
+  useEffect(() => {
+    if (window.location.hash !== "#cooperation-form") return;
+    const timer = window.setTimeout(scrollToForm, 80);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const update = (key, value) => {
@@ -307,5 +313,5 @@ function Consent({ checked, onChange, error, muted = false, children }) {
 }
 
 function PublicHeader({ isAuthenticated }) {
-  return <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6"><Link to="/" className="flex items-center gap-2.5"><img src="/logo.svg" alt="" className="h-8 w-8 object-contain" /><span className="font-heading text-lg font-bold">ML-Арена</span></Link><div className="flex items-center gap-2"><ThemeToggle /><Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/contacts">Контакты</Link></Button><Button asChild><Link to={isAuthenticated ? "/profile" : "/login"}>{isAuthenticated ? "Профиль" : "Войти"}</Link></Button></div></div></header>;
+  return <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6"><Link to="/" className="flex items-center gap-2.5"><img src="/logo.svg" alt="" className="h-8 w-8 object-contain" /><span className="font-heading text-lg font-bold">ML-Арена</span></Link><div className="flex items-center gap-2"><ThemeToggle /><Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/support">Поддержка</Link></Button><Button asChild><Link to={isAuthenticated ? "/profile" : "/login"}>{isAuthenticated ? "Профиль" : "Войти"}</Link></Button></div></div></header>;
 }

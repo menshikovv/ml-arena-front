@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenText, ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
 import Avatar from "@/components/ml/Avatar";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ const NAV_ITEMS = [
   { to: "/rating", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing },
   { to: "/ml-passport", label: "ML-паспорт", icon: UserRoundCheck },
   { to: "/blog", label: "Блог", icon: BookOpenText },
-  { to: "/contacts", label: "Контакты", icon: Mail },
+  { to: "/companies", label: "Компаниям", icon: BriefcaseBusiness },
+  { to: "/support", label: "Поддержка", icon: LifeBuoy },
 ];
 
 const PAGE_TITLES = [
@@ -27,10 +28,8 @@ const PAGE_TITLES = [
   ["/company/dashboard", "Кабинет компании"],
   ["/pricing", "Тарифы"],
   ["/admin", "Панель администратора"],
-  ["/help", "Помощь и контакты"],
   ["/support", "Поддержка"],
-  ["/contacts/cooperation", "Сотрудничество"],
-  ["/contacts", "Контакты"],
+  ["/companies", "Компаниям"],
 ];
 
 function ArenaLogoMark({ className = "h-8 w-8" }) {
@@ -43,7 +42,7 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
-  const navItems = user?.role === "admin" ? [...NAV_ITEMS, { to: "/admin", label: "Администрирование", icon: ShieldCheck }] : NAV_ITEMS;
+  const navItems = user?.role === "admin" ? [...NAV_ITEMS.slice(0, -1), { to: "/admin", label: "Администрирование", icon: ShieldCheck }, NAV_ITEMS.at(-1)] : NAV_ITEMS;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
 
