@@ -848,9 +848,9 @@ export default function Landing() {
 
           <nav aria-label="Навигация в подвале" className="grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-4">
             {[
-              { title: "Платформа", links: [["/competitions", "Соревнования"], ["/duels", "Дуэли"], ["/rating", "Рейтинг"], ["/pricing", "Тарифы"]] },
+              { title: "Платформа", links: [["/competitions", "Соревнования"], ["/duels", "Дуэли"], ["/rating", "Рейтинг"]] },
               { title: "Материалы", links: [["/blog", "Блог"], ["/ml-passport", "ML-паспорт"], ["/support", "Частые вопросы"]] },
-              { title: "Компаниям", links: [["/contacts/cooperation", "Сотрудничество"], ["/company/dashboard", "Кабинет компании"]] },
+              { title: "Компаниям", links: [["/contacts/cooperation", "Сотрудничество"]] },
               { title: "Поддержка", links: [["/support", "Помощь"], ["/contacts", "Контакты"], ["/login", "Войти"], ["/register", "Регистрация"]] },
             ].map((group) => (
               <div key={group.title}>

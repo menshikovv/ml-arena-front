@@ -86,12 +86,14 @@ export default function Blog() {
   }, [activeCategory, queryParam]);
 
   const normalizedQuery = normalize(queryParam);
-  const filteredPosts = useMemo(() => BLOG_POSTS.filter((post) => {
-    if (activeCategory !== "all" && post.category !== activeCategory) return false;
-    if (normalizedQuery.length < 2) return true;
-    const haystack = normalize([post.title, post.excerpt, ...post.tags].join(" "));
-    return haystack.includes(normalizedQuery);
-  }), [activeCategory, normalizedQuery]);
+  const filteredPosts = useMemo(() => BLOG_POSTS
+    .filter((post) => {
+      if (activeCategory !== "all" && post.category !== activeCategory) return false;
+      if (normalizedQuery.length < 2) return true;
+      const haystack = normalize([post.title, post.excerpt, ...post.tags].join(" "));
+      return haystack.includes(normalizedQuery);
+    })
+    .sort((first, second) => second.publishedAt.localeCompare(first.publishedAt)), [activeCategory, normalizedQuery]);
 
   const showFeatured = activeCategory === "all" && normalizedQuery.length < 2;
   const featured = BLOG_POSTS.find((post) => post.featured);

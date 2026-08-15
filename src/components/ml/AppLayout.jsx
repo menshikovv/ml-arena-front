@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenText, ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { BookOpenText, ChartNoAxesColumnIncreasing, ChevronLeft, LogIn, LogOut, Mail, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
 import Avatar from "@/components/ml/Avatar";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const navItems = user?.role === "admin" ? [...NAV_ITEMS, { to: "/admin", label: "Администрирование", icon: ShieldCheck }] : NAV_ITEMS;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
 
@@ -67,7 +68,7 @@ export default function AppLayout({ children }) {
       </div>
 
       <nav className="scrollbar-thin flex-1 space-y-2 overflow-y-auto px-3 py-6">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.to);
           return (
