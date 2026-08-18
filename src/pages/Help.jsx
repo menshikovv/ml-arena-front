@@ -387,7 +387,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
         <section className="border-b border-border bg-secondary/25">
           <Reveal className="mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/15"><LifeBuoy size={23} /></span>
-            <h1 className="mt-5 font-heading text-4xl font-bold sm:text-5xl">Помощь и поддержка</h1>
+            <h1 className="mt-5 font-heading text-4xl font-bold sm:text-5xl">Помощь и поддержкаААА</h1>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Ответы на частые вопросы и связь с командой ML-Арены.</p>
             <div className="relative mx-auto mt-8 max-w-2xl">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
