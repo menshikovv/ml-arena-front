@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -384,14 +384,31 @@ export default function Help({ embedded = false, contactsOnly = false }) {
       {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
 
       <main>
-        <section className="border-b border-border bg-secondary/25">
-          <Reveal className="mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/15"><LifeBuoy size={23} /></span>
-            <h1 className="mt-5 font-heading text-4xl font-bold sm:text-5xl">Помощь и поддержкаААА</h1>
+        <section className="relative overflow-hidden border-b border-border bg-secondary/25">
+          <motion.div
+            className="pointer-events-none absolute inset-0"
+            initial={false}
+            animate={{ x: [0, 18, 0], y: [0, -12, 0] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+          >
+            <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-[hsl(var(--chart-4))]/5 blur-3xl" />
+          </motion.div>
+          <Reveal className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20">
+            <motion.span
+              className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/15"
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <LifeBuoy size={23} />
+            </motion.span>
+            <h1 className="mt-5 font-heading text-4xl font-bold sm:text-5xl">Помощь и поддержка</h1>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Ответы на частые вопросы и связь с командой ML-Арены.</p>
             <div className="relative mx-auto mt-8 max-w-2xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти ответ..." className="h-12 rounded-lg bg-card pl-12 pr-12 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
+              <motion.div whileFocus={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти ответ..." className="h-12 rounded-lg bg-card pl-12 pr-12 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20" />
+              </motion.div>
               {search && <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Очистить поиск"><X size={16} /></button>}
             </div>
           </Reveal>
@@ -423,34 +440,52 @@ export default function Help({ embedded = false, contactsOnly = false }) {
             <Reveal className="min-w-0">
               <h2 className="font-heading text-2xl font-bold sm:text-3xl">Частые вопросы</h2>
               <div className="mt-6 flex gap-2 overflow-x-auto pb-1 md:flex-col">
-                {[["all", "Все вопросы"], ...TOPICS.map((topic) => [topic.id, topic.title])].map(([id, label]) => (
-                  <button key={id} type="button" onClick={() => setCategory(id)} className={`shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${category === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-card hover:text-foreground"}`}>{label}</button>
-                ))}
+                {[["all", "Все вопросы"], ...TOPICS.map((topic) => [topic.id, topic.title])].map(([id, label]) => {
+                  const active = category === id;
+                  return (
+                    <button key={id} type="button" onClick={() => setCategory(id)} className={`relative shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${active ? "text-primary-foreground" : "text-muted-foreground hover:bg-card hover:text-foreground"}`}>
+                      {active && <motion.span layoutId="faq-filter-pill" className="absolute inset-0 rounded-md bg-primary" transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
+                      <span className="relative z-10">{label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </Reveal>
 
             <Reveal delay={0.06} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
-              {filteredFaq.length ? filteredFaq.map((item) => {
-                const opened = openItem === item.id;
-                return (
-                  <div key={item.id} className="border-b border-border last:border-b-0">
-                    <button type="button" onClick={() => setOpenItem(opened ? null : item.id)} className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left hover:bg-secondary/35 sm:px-6">
-                      <span className="font-semibold">{item.title}</span>
-                      <ChevronDown className={`shrink-0 text-muted-foreground transition-transform duration-200 ${opened ? "rotate-180" : ""}`} size={18} />
-                    </button>
-                    <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${opened ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                      <div className="overflow-hidden">
-                        <div className="px-5 pb-5 text-sm leading-7 text-muted-foreground sm:px-6">
-                          <p className="whitespace-pre-line">{item.body}</p>
-                          {item.action?.to && <Button asChild variant="outline" size="sm" className="mt-4"><Link to={item.action.to}>{item.action.label} <ArrowRight size={14} /></Link></Button>}
-                          {item.action?.href && <Button asChild variant="outline" size="sm" className="mt-4"><a href={item.action.href} target="_blank" rel="noopener noreferrer">{item.action.label} <ArrowRight size={14} /></a></Button>}
-                          {item.supportAction && <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => scrollToSupport(item.id === "vulnerability" ? "security" : undefined)}>Написать в поддержку <ArrowRight size={14} /></Button>}
+              {filteredFaq.length ? (
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {filteredFaq.map((item) => {
+                    const opened = openItem === item.id;
+                    return (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        className="border-b border-border last:border-b-0"
+                      >
+                        <button type="button" onClick={() => setOpenItem(opened ? null : item.id)} className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left hover:bg-secondary/35 sm:px-6">
+                          <span className="font-semibold">{item.title}</span>
+                          <ChevronDown className={`shrink-0 text-muted-foreground transition-transform duration-200 ${opened ? "rotate-180" : ""}`} size={18} />
+                        </button>
+                        <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${opened ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                          <div className="overflow-hidden">
+                            <div className="px-5 pb-5 text-sm leading-7 text-muted-foreground sm:px-6">
+                              <p className="whitespace-pre-line">{item.body}</p>
+                              {item.action?.to && <Button asChild variant="outline" size="sm" className="mt-4"><Link to={item.action.to}>{item.action.label} <ArrowRight size={14} /></Link></Button>}
+                              {item.action?.href && <Button asChild variant="outline" size="sm" className="mt-4"><a href={item.action.href} target="_blank" rel="noopener noreferrer">{item.action.label} <ArrowRight size={14} /></a></Button>}
+                              {item.supportAction && <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => scrollToSupport(item.id === "vulnerability" ? "security" : undefined)}>Написать в поддержку <ArrowRight size={14} /></Button>}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }) : (
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              ) : (
                 <div className="px-6 py-12 text-center">
                   <CircleHelp className="mx-auto text-muted-foreground" size={28} />
                   <h3 className="mt-4 font-heading text-lg font-bold">Ничего не найдено</h3>

@@ -115,7 +115,6 @@ function AppRoutes() {
       <Route path="/support" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
       <Route path="/companies" element={isAuthenticated ? <AppLayout><Cooperation embedded /></AppLayout> : <Cooperation />} />
       <Route path="/help" element={<Navigate to="/support" replace />} />
-      <Route path="/contacts" element={isAuthenticated ? <AppLayout><Help embedded contactsOnly /></AppLayout> : <Help contactsOnly />} />
       <Route path="/contacts/cooperation" element={<Navigate to="/companies" replace />} />
       <Route path="/cooperation" element={<Navigate to="/companies" replace />} />
 
