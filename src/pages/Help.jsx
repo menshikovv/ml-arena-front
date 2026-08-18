@@ -2,20 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
+  Check,
   CheckCircle2,
   ChevronDown,
   CircleHelp,
+  Copy,
   FileImage,
   LifeBuoy,
   Loader2,
   Mail,
+  MessageSquare,
   Search,
+  Send,
   ShieldCheck,
   Sparkles,
   UserRound,
   X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -23,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/AuthContext";
+import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 const SUPPORT_EMAIL = "support@mlarena.ru";
 
@@ -252,6 +258,8 @@ const FAQ_ITEMS = [
 const CONTACTS = [
   { title: "Поддержка", text: "Вопросы об аккаунте, сайте, результатах и работе платформы.", action: "Открыть поддержку", to: "/support", icon: LifeBuoy, tone: "bg-primary/10 text-primary" },
   { title: "Компаниям", text: "Корпоративные соревнования, поиск специалистов и совместные ML-проекты.", action: "Открыть страницу для компаний", to: "/companies", icon: BriefcaseBusiness, tone: "bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]" },
+  { title: "Написать на почту", text: "Прямая связь с командой ML-Арены для любых вопросов.", action: "Скопировать email", href: "mailto:support@mlarena.ru", icon: Mail, tone: "bg-green/10 text-green", copyEmail: "support@mlarena.ru" },
+  { title: "Telegram-канал", text: "Анонсы, обновления и новости платформы.", action: "Открыть в Telegram", href: FOUNDER_TELEGRAM_URL, icon: Send, tone: "bg-sky/10 text-sky", external: true },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -552,35 +560,141 @@ function Field({ label, htmlFor, className = "", children }) {
 
 function ContactsSection({ standalone = false }) {
   const Heading = standalone ? "h1" : "h2";
+  const [copiedEmail, setCopiedEmail] = useState(null);
+
+  const handleCopyEmail = async (email) => {
+    await navigator.clipboard.writeText(email);
+    setCopiedEmail(email);
+    setTimeout(() => setCopiedEmail(null), 2000);
+  };
 
   return (
-    <section id="contacts" className={`border-border bg-secondary/25 ${standalone ? "flex min-h-[calc(100vh-70px)] items-center" : "scroll-mt-6 border-t"}`}>
-      <div className={`mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 ${standalone ? "md:py-16" : "md:py-20"}`}>
-        <Reveal>
+    <section id="contacts" className={`relative border-border bg-secondary/25 overflow-hidden ${standalone ? "flex min-h-[calc(100vh-70px)] items-center" : "scroll-mt-6 border-t"}`}>
+      <motion.div
+        className="pointer-events-none absolute inset-0"
+        initial={false}
+        animate={{
+          x: [0, 20, 0],
+          y: [0, -15, 0],
+          scale: [1, 1.02, 1],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      >
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-[hsl(var(--chart-4))]/5 blur-3xl" />
+      </motion.div>
+
+      <motion.div
+        className="pointer-events-none absolute inset-0"
+        initial={false}
+        animate={{
+          x: [0, -15, 0],
+          y: [0, 20, 0],
+          scale: [1, 1.015, 1],
+        }}
+        transition={{ duration: 25, repeat: Infinity, ease: "linear", delay: 5 }}
+      >
+        <div className="absolute top-1/3 right-1/3 w-64 h-64 rounded-full bg-green/5 blur-3xl" />
+        <div className="absolute bottom-1/3 left-1/3 w-80 h-80 rounded-full bg-sky/5 blur-3xl" />
+      </motion.div>
+
+      <div className={`relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 ${standalone ? "md:py-16" : "md:py-20"}`}>
+        <Reveal y={16}>
           <Heading className={`font-heading font-bold ${standalone ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>Контакты</Heading>
           <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Выберите подходящий канал. Персональные вопросы не отправляйте в публичные комментарии.</p>
         </Reveal>
-        <Stagger className="mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
+
+        <motion.div
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-green/10 px-3 py-1.5 text-xs font-medium text-green"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <motion.span
+            className="relative flex h-1.5 w-1.5 rounded-full bg-green"
+            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <span>Команда на связи и готова помочь</span>
+        </motion.div>
+
+        <Stagger className="mt-8 grid max-w-5xl gap-4 md:grid-cols-2" delay={0.06} staggerChildren={0.08}>
           {CONTACTS.map((contact) => {
             const Icon = contact.icon;
-            const content = (
-              <>
-                <span className={`flex h-11 w-11 items-center justify-center rounded-lg ${contact.tone}`}><Icon size={20} /></span>
-                <h2 className="mt-6 font-heading text-lg font-bold">{contact.title}</h2>
-                <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{contact.text}</p>
-                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">{contact.action} <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" /></span>
-              </>
-            );
-            const className = "group flex h-full min-h-60 flex-col border border-border bg-card p-6 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg";
+            const isEmail = contact.copyEmail;
+            const isExternal = contact.external;
+
             return (
               <StaggerItem key={contact.title}>
-                {contact.to
-                  ? <Link to={contact.to} className={className}>{content}</Link>
-                  : <a href={contact.href} target="_blank" rel="noopener noreferrer" className={className}>{content}</a>}
+                <motion.div
+                  className="group relative flex h-full min-h-60 flex-col border border-border bg-card p-6 text-left shadow-sm overflow-hidden"
+                  initial={{ opacity: 0, y: 12 }}
+                  whileHover={{ y: -4, boxShadow: "0 20px 40px -12px rgb(0 0 0 / 0.15)", transition: { duration: 0.2 } }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0"
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                  <motion.div
+                    className={`flex h-11 w-11 items-center justify-center rounded-lg ${contact.tone}`}
+                    whileHover={{ scale: 1.08, rotate: 3 }}
+                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <Icon size={20} />
+                  </motion.div>
+                  <h2 className="mt-6 font-heading text-lg font-bold">{contact.title}</h2>
+                  <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{contact.text}</p>
+
+                  {isEmail ? (
+                    <motion.button
+                      onClick={() => handleCopyEmail(contact.copyEmail)}
+                      className="mt-5 inline-flex items-center gap-2 rounded-md bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {copiedEmail === contact.copyEmail ? (
+                        <>
+                          <Check className="text-green" size={15} />
+                          <span>Скопировано!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={15} />
+                          <span>{contact.action}</span>
+                        </>
+                      )}
+                    </motion.button>
+                  ) : (
+                    <motion.a
+                      href={contact.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {contact.action}
+                      <motion.span
+                        initial={{ x: 0 }}
+                        whileHover={{ x: 4 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                      >
+                        <ArrowRight size={15} />
+                      </motion.span>
+                      {isExternal && <motion.span className="ml-1" initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.2, duration: 0.3 }}><MessageSquare size={12} /></motion.span>}
+                    </motion.a>
+                  )}
+
+                  {contact.to && (
+                    <Link to={contact.to} className="absolute inset-0" aria-label={contact.title} />
+                  )}
+                </motion.div>
               </StaggerItem>
             );
           })}
         </Stagger>
+
         <div className="mt-10 flex flex-col justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>Выберите направление, и мы покажем подходящий способ связи.</p>
           <div className="flex flex-wrap gap-5"><Link to="/terms" className="hover:text-foreground">Условия использования</Link><Link to="/privacy" className="hover:text-foreground">Политика обработки данных</Link></div>

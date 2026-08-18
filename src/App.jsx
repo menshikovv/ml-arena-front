@@ -91,9 +91,11 @@ function AdminEntry() {
 }
 
 function AppRoutes() {
-  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
+  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
   const founderMode = import.meta.env.VITE_FOUNDER_MODE !== "false";
   const closedSectionsEnabled = import.meta.env.VITE_ENABLE_CLOSED_SECTIONS === "true";
+  const isAdmin = user?.role === "admin";
+  const showFounderPlaceholders = founderMode && !isAdmin;
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return <div className="fixed inset-0 flex items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
@@ -113,14 +115,14 @@ function AppRoutes() {
       <Route path="/support" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
       <Route path="/companies" element={isAuthenticated ? <AppLayout><Cooperation embedded /></AppLayout> : <Cooperation />} />
       <Route path="/help" element={<Navigate to="/support" replace />} />
-      <Route path="/contacts" element={<Navigate to="/support" replace />} />
+      <Route path="/contacts" element={isAuthenticated ? <AppLayout><Help embedded contactsOnly /></AppLayout> : <Help contactsOnly />} />
       <Route path="/contacts/cooperation" element={<Navigate to="/companies" replace />} />
       <Route path="/cooperation" element={<Navigate to="/companies" replace />} />
 
       <Route element={<AppLayout />}>
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
-        {founderMode ? (
+        {showFounderPlaceholders ? (
           <>
             <Route path="/competitions/*" element={<FounderPlaceholder section="competitions" />} />
             <Route path="/duels/*" element={<FounderPlaceholder section="duels" />} />
@@ -139,9 +141,9 @@ function AppRoutes() {
         )}
         <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={founderMode ? <FounderProfile /> : <Profile />} />
+          <Route path="/profile" element={showFounderPlaceholders ? <FounderProfile /> : <Profile />} />
           <Route path="/profile/me" element={<Navigate to="/profile" replace />} />
-          {!founderMode && <Route path="/profile/:id" element={<Profile />} />}
+          {!showFounderPlaceholders && <Route path="/profile/:id" element={<Profile />} />}
           <Route path="/profile/edit" element={<ProfileEdit />} />
           <Route path="/company/dashboard" element={closedSectionsEnabled ? <CompanyDashboard /> : <Navigate to="/" replace />} />
           <Route path="/pricing" element={closedSectionsEnabled ? <Pricing /> : <Navigate to="/" replace />} />

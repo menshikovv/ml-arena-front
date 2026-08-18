@@ -102,9 +102,40 @@ function SectionTitle({ title, desc, align = "center" }) {
 }
 
 function HeroCompanion({ reduceMotion }) {
+  const videoRef = React.useRef(null);
   const float = (x, y) => reduceMotion
     ? undefined
     : { x, y };
+
+  const resumeVideo = React.useCallback(() => {
+    const video = videoRef.current;
+    if (!video || document.hidden) return;
+    const playback = video.play();
+    if (playback?.catch) playback.catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return undefined;
+    const handleVisibility = () => !document.hidden && resumeVideo();
+    const handlePause = () => window.setTimeout(resumeVideo, 80);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pageshow", resumeVideo);
+    video.addEventListener("pause", handlePause);
+    resumeVideo();
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pageshow", resumeVideo);
+      video.removeEventListener("pause", handlePause);
+    };
+  }, [resumeVideo]);
+
+  const restartVideo = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    resumeVideo();
+  };
 
   const glassClass = "absolute z-20 rounded-[20px] border border-white/70 bg-gradient-to-br from-white/80 to-white/45 px-4 py-3 text-left shadow-[inset_0_2.5px_4px_rgba(255,255,255,0.8),0_12px_32px_-4px_rgba(0,132,255,0.14)] ring-1 ring-black/5 backdrop-blur-[24px] pointer-events-auto dark:border-white/10 dark:from-[#111a2d]/95 dark:to-[#081020]/90 dark:shadow-[0_14px_40px_-10px_rgba(37,99,235,0.35)] dark:ring-white/5";
 
@@ -124,6 +155,7 @@ function HeroCompanion({ reduceMotion }) {
         transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <video
+          ref={videoRef}
           className="hero-robot-video pointer-events-none block h-auto w-full select-none"
           autoPlay
           loop
@@ -136,8 +168,11 @@ function HeroCompanion({ reduceMotion }) {
           controlsList="nodownload noremoteplayback noplaybackrate nofullscreen"
           aria-label="Интерактивный помощник ML Арены"
           style={{ filter: "brightness(1.02) contrast(1.04)" }}
+          onCanPlay={resumeVideo}
+          onEnded={restartVideo}
         >
           <source src="/hero_robo.webm" type="video/webm" />
+          <source src="/hero_robo_video.mp4" type="video/mp4" />
         </video>
 
         <motion.div

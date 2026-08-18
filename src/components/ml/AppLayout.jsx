@@ -42,7 +42,7 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
-  const navItems = user?.role === "admin" ? [...NAV_ITEMS.slice(0, -1), { to: "/admin", label: "Администрирование", icon: ShieldCheck }, NAV_ITEMS.at(-1)] : NAV_ITEMS;
+  const navItems = user?.role === "admin" ? [...NAV_ITEMS, { to: "/admin", label: "Администрирование", icon: ShieldCheck }] : NAV_ITEMS;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
 
