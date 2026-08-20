@@ -458,5 +458,58 @@ export default function Admin() {
   if (access.error) return <AdminAccessDenied error={access.error} />;
   const active = sections.some((section) => section.id === activeSection) ? activeSection : sections[0]?.id;
   const shared = { permissions, requestAction: setPendingAction };
-  return <div className="min-h-full bg-background"><header className="border-b border-border bg-card/70 px-4 py-7 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-[1500px] flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2 text-xs font-bold uppercase text-primary"><ShieldCheck size={15} /> Защищённая зона</div><h1 className="mt-2 font-heading text-3xl font-extrabold sm:text-4xl">Управление ML-Ареной</h1><p className="mt-2 text-sm text-muted-foreground">{access.data.email} · {access.data.roles?.join(", ") || "администратор"}</p></div><div className="flex items-center gap-3 border border-border bg-background px-4 py-3"><span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping bg-emerald-400 opacity-50" /><span className="relative inline-flex h-2.5 w-2.5 bg-emerald-500" /></span><div><p className="text-sm font-semibold">Сессия подтверждена</p><p className="text-xs text-muted-foreground">{permissions.size} разрешений</p></div></div></div></header><div className="mx-auto grid max-w-[1500px] lg:grid-cols-[230px_minmax(0,1fr)]"><aside className="border-b border-border bg-card/35 p-3 lg:min-h-[calc(100vh-180px)] lg:border-b-0 lg:border-r lg:p-4"><nav className="flex gap-2 overflow-x-auto lg:sticky lg:top-4 lg:flex-col" aria-label="Разделы админ-панели">{sections.map((section) => { const Icon = section.icon; const selected = active === section.id; return <button key={section.id} type="button" onClick={() => setActiveSection(section.id)} className={`group flex min-w-max items-center gap-3 border px-3 py-3 text-left text-sm font-semibold transition-colors lg:w-full ${selected ? "border-primary bg-primary text-primary-foreground" : "border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-primary"}`}><Icon size={18} /><span className="flex-1">{section.label}</span>{selected && <ArrowUpRight size={14} />}</button>; })}</nav><div className="mt-6 hidden border-t border-border pt-5 text-xs leading-5 text-muted-foreground lg:block"><LockKeyhole size={16} className="mb-2 text-primary" />Все изменения повторно проверяются сервером и фиксируются в аудите.</div></aside><main className="min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10">{active === "dashboard" && <DashboardSection />}{active === "users" && <UsersSection {...shared} />}{active === "organizations" && <OrganizationsSection {...shared} />}{active === "competitions" && <CompetitionsSection {...shared} />}{active === "submissions" && <SubmissionsSection {...shared} />}{active === "moderation" && <ModerationSection {...shared} />}{active === "content" && <ContentSection {...shared} />}{active === "resources" && <ResourcesSection permissions={permissions} />}{active === "audit" && <AuditSection />}</main></div><ConfirmDialog action={pendingAction} pending={action.isPending} onClose={() => setPendingAction(null)} onConfirm={(reason) => action.mutate({ config: pendingAction, reason })} /></div>;
+  return (
+    <div className="min-h-full bg-background">
+      <header className="border-b border-border bg-card/70 px-4 py-7 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase text-primary"><ShieldCheck size={15} /> Защищённая зона</div>
+            <h1 className="mt-2 font-heading text-3xl font-extrabold sm:text-4xl">Управление ML-Ареной</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{access.data.email} · {access.data.roles?.join(", ") || "администратор"}</p>
+          </div>
+          <div className="flex items-center gap-3 border border-border bg-background px-4 py-3">
+            <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping bg-emerald-400 opacity-50" /><span className="relative inline-flex h-2.5 w-2.5 bg-emerald-500" /></span>
+            <div><p className="text-sm font-semibold">Сессия подтверждена</p><p className="text-xs text-muted-foreground">{permissions.size} разрешений</p></div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-card/35 p-3 lg:min-h-[calc(100vh-180px)] lg:border-b-0 lg:border-r lg:p-4">
+          <div className="lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-2rem)] lg:min-h-0 lg:flex-col">
+            <nav className="flex gap-2 overflow-x-auto lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto" aria-label="Разделы админ-панели">
+              {sections.map((section) => {
+                const Icon = section.icon;
+                const selected = active === section.id;
+                return (
+                  <button key={section.id} type="button" onClick={() => setActiveSection(section.id)} className={`group flex min-w-max items-center gap-3 border px-3 py-3 text-left text-sm font-semibold transition-colors lg:w-full lg:min-w-0 lg:shrink-0 ${selected ? "border-primary bg-primary text-primary-foreground" : "border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-primary"}`}>
+                    <Icon size={18} className="shrink-0" />
+                    <span className="min-w-0 flex-1 whitespace-normal">{section.label}</span>
+                    {selected && <ArrowUpRight size={14} className="shrink-0" />}
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="mt-4 hidden shrink-0 border-t border-border bg-card/70 px-1 pt-4 text-xs leading-5 text-muted-foreground lg:block">
+              <LockKeyhole size={16} className="mb-2 text-primary" />
+              Все изменения повторно проверяются сервером и фиксируются в аудите.
+            </div>
+          </div>
+        </aside>
+
+        <main className="min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10">
+          {active === "dashboard" && <DashboardSection />}
+          {active === "users" && <UsersSection {...shared} />}
+          {active === "organizations" && <OrganizationsSection {...shared} />}
+          {active === "competitions" && <CompetitionsSection {...shared} />}
+          {active === "submissions" && <SubmissionsSection {...shared} />}
+          {active === "moderation" && <ModerationSection {...shared} />}
+          {active === "content" && <ContentSection {...shared} />}
+          {active === "resources" && <ResourcesSection permissions={permissions} />}
+          {active === "audit" && <AuditSection />}
+        </main>
+      </div>
+      <ConfirmDialog action={pendingAction} pending={action.isPending} onClose={() => setPendingAction(null)} onConfirm={(reason) => action.mutate({ config: pendingAction, reason })} />
+    </div>
+  );
 }

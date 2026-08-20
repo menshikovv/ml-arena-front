@@ -394,7 +394,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
             <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
             <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-[hsl(var(--chart-4))]/5 blur-3xl" />
           </motion.div>
-          <Reveal className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20">
+          <Reveal viewportReveal className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20">
             <motion.span
               className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/15"
               animate={{ y: [0, -5, 0] }}
@@ -415,18 +415,18 @@ export default function Help({ embedded = false, contactsOnly = false }) {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-16">
-          <Reveal>
+          <Reveal viewportReveal>
             <h2 className="font-heading text-2xl font-bold sm:text-3xl">Популярные темы</h2>
             <p className="mt-2 text-sm text-muted-foreground">Выберите направление, чтобы сразу перейти к нужным ответам.</p>
           </Reveal>
-          <Stagger className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Stagger viewportReveal className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {TOPICS.map((topic) => {
               const Icon = topic.icon;
               return (
                 <StaggerItem key={topic.id}>
-                  <button type="button" onClick={() => selectTopic(topic.id)} className="group flex h-full min-h-40 w-full flex-col border border-border bg-card p-5 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon size={19} /></span>
-                    <span className="mt-6 font-heading text-lg font-bold group-hover:text-primary">{topic.title}</span>
+                  <button type="button" onClick={() => selectTopic(topic.id)} className="group flex h-full min-h-40 w-full flex-col border border-border bg-card p-5 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-[transform,background-color] duration-300 group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground"><Icon size={19} /></span>
+                    <span className="mt-6 font-heading text-lg font-bold transition-colors duration-300 group-hover:text-primary">{topic.title}</span>
                     <span className="mt-2 text-sm leading-6 text-muted-foreground">{topic.text}</span>
                   </button>
                 </StaggerItem>
@@ -437,7 +437,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
 
         <section id="faq" className="scroll-mt-6 border-y border-border bg-secondary/20">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 md:grid-cols-[220px_minmax(0,1fr)] md:py-16">
-            <Reveal className="min-w-0">
+            <Reveal viewportReveal className="min-w-0">
               <h2 className="font-heading text-2xl font-bold sm:text-3xl">Частые вопросы</h2>
               <div className="mt-6 flex gap-2 overflow-x-auto pb-1 md:flex-col">
                 {[["all", "Все вопросы"], ...TOPICS.map((topic) => [topic.id, topic.title])].map(([id, label]) => {
@@ -452,7 +452,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
               </div>
             </Reveal>
 
-            <Reveal delay={0.06} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+            <Reveal viewportReveal delay={0.06} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
               {filteredFaq.length ? (
                 <AnimatePresence mode="popLayout" initial={false}>
                   {filteredFaq.map((item) => {
@@ -467,9 +467,9 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                         className="border-b border-border last:border-b-0"
                       >
-                        <button type="button" onClick={() => setOpenItem(opened ? null : item.id)} className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left hover:bg-secondary/35 sm:px-6">
+                        <button type="button" onClick={() => setOpenItem(opened ? null : item.id)} className="group flex w-full items-center justify-between gap-5 px-5 py-4 text-left transition-colors duration-300 hover:bg-secondary/35 sm:px-6">
                           <span className="font-semibold">{item.title}</span>
-                          <ChevronDown className={`shrink-0 text-muted-foreground transition-transform duration-200 ${opened ? "rotate-180" : ""}`} size={18} />
+                          <ChevronDown className={`shrink-0 text-muted-foreground transition-[transform,color] duration-300 group-hover:text-primary ${opened ? "rotate-180" : ""}`} size={18} />
                         </button>
                         <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${opened ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                           <div className="overflow-hidden">
@@ -499,7 +499,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
 
         <section id="support" className="scroll-mt-6 mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
           <div className="grid gap-9 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
-            <Reveal>
+            <Reveal viewportReveal>
               <h2 className="font-heading text-3xl font-bold sm:text-4xl">Не нашли ответ? Напишите нам</h2>
               <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">Опишите вопрос как можно точнее. Если проблема техническая, приложите скриншот без секретных данных.</p>
               <div className="mt-7 border-l-2 border-primary bg-secondary/35 px-5 py-4 text-sm leading-6 text-muted-foreground">
@@ -507,7 +507,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
               </div>
             </Reveal>
 
-            <Reveal delay={0.06}>
+            <Reveal viewportReveal delay={0.06}>
               {mailPrepared ? (
                 <div className="rounded-lg border border-border bg-card p-7 shadow-sm sm:p-8">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><CheckCircle2 size={21} /></span>
@@ -634,7 +634,7 @@ function ContactsSection({ standalone = false }) {
       </motion.div>
 
       <div className={`relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 ${standalone ? "md:py-16" : "md:py-20"}`}>
-        <Reveal y={16}>
+        <Reveal viewportReveal y={16}>
           <Heading className={`font-heading font-bold ${standalone ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>Контакты</Heading>
           <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Выберите подходящий канал. Персональные вопросы не отправляйте в публичные комментарии.</p>
         </Reveal>
@@ -653,7 +653,7 @@ function ContactsSection({ standalone = false }) {
           <span>Команда на связи и готова помочь</span>
         </motion.div>
 
-        <Stagger className="mt-8 grid max-w-5xl gap-4 md:grid-cols-2" delay={0.06} staggerChildren={0.08}>
+        <Stagger viewportReveal className="mt-8 grid max-w-5xl gap-4 md:grid-cols-2" delay={0.06} staggerChildren={0.08}>
           {CONTACTS.map((contact) => {
             const Icon = contact.icon;
             const isEmail = contact.copyEmail;
