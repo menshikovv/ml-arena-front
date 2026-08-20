@@ -11,6 +11,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  CircleUserRound,
   Clock3,
   Database,
   Download,
@@ -38,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  COMMUNITY_COMPETITIONS,
   METRIC_LABELS,
   TASK_TYPE_LABELS,
   formatScore,
@@ -136,6 +138,7 @@ function CompetitionTabs({ competitionId, activeTab }) {
 
 function OverviewTab({ competition, meta }) {
   const higher = isHigherBetter(competition.metric);
+  const isCommunity = competition.origin === "community";
   return (
     <div>
       <section className="border-b border-border pb-7">
@@ -173,9 +176,13 @@ function OverviewTab({ competition, meta }) {
       <section className="border-b border-border py-7">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-heading text-xl font-bold">{competition.prize_fund ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}</h2>
+            <h2 className="font-heading text-xl font-bold">
+              {isCommunity ? "Практика и история активности" : competition.prize_fund ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}
+            </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-              {competition.prize_fund
+              {isCommunity
+                ? "Результат сохраняется в отдельной истории сообщества. Он не меняет сезонный рейтинг, лигу и подтверждённую часть ML-паспорта."
+                : competition.prize_fund
                 ? "Лучшие участники получают денежные призы, а сильные решения могут стать поводом для знакомства с компаниями-партнёрами."
                 : "Результат влияет на рейтинг, лигу и видимость ML-паспорта для компаний-партнёров."}
             </p>
@@ -674,6 +681,9 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
   }, null);
   const rank = best ? leaderboard.findIndex((item) => item.id === best.id) + 1 : null;
   const attemptsLeft = Math.max(0, (competition.max_submits_free || 5) - mySubmissions.length);
+  const isCommunity = competition.origin === "community";
+  const restricted = competition.is_private || competition.access_type === "invite_only" || competition.access_type === "application";
+  const joinLabel = competition.access_type === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться";
 
   return (
     <aside className="border-y border-border bg-card p-5 lg:sticky lg:top-5">
@@ -696,8 +706,8 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
 
       {!joined && status === "active" ? (
         <Button className="mt-5 w-full" onClick={onJoin}>
-          {competition.is_private ? <Lock size={15} /> : <Trophy size={15} />}
-          {competition.is_private ? "Доступ по приглашению" : "Присоединиться"}
+          {restricted ? <Lock size={15} /> : <Trophy size={15} />}
+          {joinLabel}
         </Button>
       ) : status === "active" ? (
         <Button className="mt-5 w-full" onClick={onSubmit}><Upload size={15} /> Загрузить CSV</Button>
@@ -706,7 +716,7 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
       ) : (
         <Button asChild className="mt-5 w-full"><Link to={`/competitions/${competition.id}/leaderboard`}><Trophy size={15} /> Смотреть результаты</Link></Button>
       )}
-      <p className="mt-3 text-center text-[11px] leading-4 text-muted-foreground">Лимиты рейтингового соревнования одинаковы для всех.</p>
+      <p className="mt-3 text-center text-[11px] leading-4 text-muted-foreground">{isCommunity ? "Результат сохранится как активность сообщества и не повлияет на сезонный рейтинг." : "Лимиты рейтингового соревнования одинаковы для всех."}</p>
     </aside>
   );
 }
@@ -722,7 +732,7 @@ export default function CompetitionDetail() {
 
   const { data: competition, isLoading, isError } = useQuery({
     queryKey: ["competition", id],
-    queryFn: () => base44.entities.Competition.get(id),
+    queryFn: () => COMMUNITY_COMPETITIONS.find((item) => item.id === id) || base44.entities.Competition.get(id),
     enabled: Boolean(id),
     retry: false,
   });
@@ -736,7 +746,7 @@ export default function CompetitionDetail() {
         throw error;
       }
     },
-    enabled: Boolean(id),
+    enabled: Boolean(id) && !id.startsWith("community-"),
     retry: false,
   });
   const { data: submissions = [] } = useQuery({
@@ -771,6 +781,19 @@ export default function CompetitionDetail() {
     if (joining || joined || !competition) return;
     setJoining(true);
     try {
+      if (competition.origin === "community") {
+        if (competition.access_type === "invite_only") {
+          toast("Для участия нужно системное приглашение");
+          return;
+        }
+        if (competition.access_type === "application") {
+          toast.success("Заявка подготовлена. Отправка появится после подключения API.");
+          return;
+        }
+        setJoined(true);
+        toast.success("Вы участвуете в соревновании сообщества");
+        return;
+      }
       const rules = await api.competitions.rules(id);
       await api.competitions.join(id, rules.version || competition.rules_version || "v1");
       setJoined(true);
@@ -820,8 +843,10 @@ export default function CompetitionDetail() {
   }
 
   const status = getStatus(competition);
-  const meta = META[competition.id] || { difficulty: "Средняя", domain: "Другое", dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
-  const locked = ["upcoming", "finished", "finalizing"].includes(status) || (competition.is_private && !joined);
+  const isCommunity = competition.origin === "community";
+  const meta = META[competition.id] || { difficulty: competition.difficulty || "Средняя", domain: competition.domain || "Другое", dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
+  const restricted = competition.is_private || competition.access_type === "invite_only" || competition.access_type === "application";
+  const locked = ["upcoming", "finished", "finalizing"].includes(status) || (restricted && !joined);
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
 
   return (
@@ -838,18 +863,29 @@ export default function CompetitionDetail() {
         </div>
       )}
 
+      {isCommunity && (
+        <div className="mt-5 flex gap-3 border border-violet-500/25 bg-violet-500/5 p-4">
+          <CircleUserRound className="mt-0.5 shrink-0 text-violet-600 dark:text-violet-400" size={18} />
+          <div><p className="text-sm font-semibold">Соревнование сообщества</p><p className="mt-1 text-xs leading-5 text-muted-foreground">ML-Арена проверяет формат CSV и считает результат, но не проверяет код решения. Результат не влияет на сезонный рейтинг и хранится отдельно в ML-паспорте.</p></div>
+        </div>
+      )}
+
       <header className="mt-5 border-y border-border bg-card">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_390px]">
           <div className="flex min-h-[260px] flex-col justify-between p-6 md:p-8">
             <div>
               <div className="flex flex-wrap items-center gap-2">
+                <span className={cn("inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] font-semibold", isCommunity ? "border-violet-500/25 bg-violet-500/5 text-violet-600 dark:text-violet-400" : "border-primary/20 bg-primary/5 text-primary")}>
+                  {isCommunity ? <CircleUserRound size={10} /> : <ShieldCheck size={10} />}
+                  {isCommunity ? "Сообщество" : competition.origin === "official_partner" ? "Партнёрское" : "Официальное"}
+                </span>
                 <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold", status === "active" ? "text-accent" : "text-primary")}>
                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
                   {statusLabel}
                 </span>
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{TASK_TYPE_LABELS[competition.task_type]}</span>
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{meta.difficulty}</span>
-                {competition.is_private && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> По приглашению</span>}
+                {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {competition.access_type === "application" ? "По заявке" : "По приглашению"}</span>}
               </div>
               <h1 className="mt-5 max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.description}</p>
@@ -863,7 +899,7 @@ export default function CompetitionDetail() {
           <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
             {[
               [Target, "Метрика", METRIC_LABELS[competition.metric]],
-              [Trophy, "Призовой фонд", competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без приза"],
+              [Trophy, isCommunity ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без приза"],
               [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
               [ShieldCheck, "Итоговый результат", "После финальной проверки"],
             ].map(([Icon, label, value], index) => (
@@ -918,8 +954,8 @@ export default function CompetitionDetail() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 p-3 backdrop-blur lg:hidden">
         {!joined && status === "active" ? (
           <Button className="w-full" onClick={join}>
-            {competition.is_private ? <Lock size={15} /> : <Trophy size={15} />}
-            {competition.is_private ? "Доступ по приглашению" : "Присоединиться"}
+            {restricted ? <Lock size={15} /> : <Trophy size={15} />}
+            {competition.access_type === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться"}
           </Button>
         ) : status === "active" ? (
           <Button className="w-full" onClick={() => navigate(`/competitions/${id}/submit`)}><Upload size={15} /> Загрузить CSV</Button>

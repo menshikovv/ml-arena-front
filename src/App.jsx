@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { BrowserRouter as Router, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "@/components/ml/AppLayout";
 import CookieConsent from "@/components/CookieConsent";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -8,6 +8,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
 import UserNotRegisteredError from "@/components/UserNotRegisteredError";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import { api } from "@/api/mlArenaApi";
 import { getBlogPost } from "@/lib/blog-data";
 import PageNotFound from "@/lib/PageNotFound";
 import { queryClientInstance } from "@/lib/query-client";
@@ -15,6 +16,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import CompanyDashboard from "@/pages/CompanyDashboard";
+import CommunityCompetitionCreate from "@/pages/CommunityCompetitionCreate";
 import CompetitionDetail from "@/pages/CompetitionDetail";
 import Competitions from "@/pages/Competitions";
 import Cooperation from "@/pages/Cooperation";
@@ -24,7 +26,7 @@ import FounderPlaceholder from "@/pages/FounderPlaceholder";
 import FounderProfile from "@/pages/FounderProfile";
 import Help from "@/pages/Help";
 import Landing from "@/pages/Landing";
-import Leaderboard from "@/pages/Leaderboard";
+import Leaderboard, { RatingMethodology } from "@/pages/Leaderboard";
 import LegalNotice from "@/pages/LegalNotice";
 import Login from "@/pages/Login";
 import ProfileEdit from "@/pages/ProfileEdit";
@@ -90,12 +92,35 @@ function AdminEntry() {
   return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>}><Admin /></Suspense>;
 }
 
+function SuperAdminPreview({ children, enabled = false }) {
+  const { user } = useAuth();
+  const access = useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: api.admin.me,
+    enabled: !enabled && user?.role === "admin",
+    retry: false,
+    staleTime: 60000,
+  });
+
+  if (enabled) return children;
+  if (user?.role !== "admin") return <Navigate to="/" replace />;
+  if (access.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
+  if (!access.data?.roles?.includes("super_admin")) return <Navigate to="/" replace />;
+  return children;
+}
+
+function ProtectedPreviewRoute({ enabled = false }) {
+  return enabled ? <Outlet /> : <ProtectedRoute />;
+}
+
 function AppRoutes() {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
   const founderMode = import.meta.env.VITE_FOUNDER_MODE !== "false";
   const closedSectionsEnabled = import.meta.env.VITE_ENABLE_CLOSED_SECTIONS === "true";
   const isAdmin = user?.role === "admin";
-  const showFounderPlaceholders = founderMode && !isAdmin;
+  const previewAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: isAdmin, retry: false, staleTime: 60000 });
+  const isSuperAdmin = previewAccess.data?.roles?.includes("super_admin");
+  const showFounderPlaceholders = founderMode && !isSuperAdmin;
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return <div className="fixed inset-0 flex items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
@@ -129,23 +154,31 @@ function AppRoutes() {
             <Route path="/ml-passport" element={<FounderPlaceholder section="passport" />} />
           </>
         ) : (
-          <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedPreviewRoute enabled={closedSectionsEnabled} />}>
             <Route path="/competitions" element={<Competitions />} />
+            <Route path="/competitions/community/create" element={<CommunityCompetitionCreate />} />
             <Route path="/competitions/:id/:section?" element={<CompetitionDetail />} />
             <Route path="/duels" element={<Duels />} />
+            <Route path="/duels/matchmaking" element={<Duels />} />
+            <Route path="/duels/history" element={<Duels />} />
+            <Route path="/duels/rating" element={<Duels />} />
+            <Route path="/duels/challenges/:attemptId" element={<Duels />} />
             <Route path="/duels/:id/:stage?" element={<DuelLobby />} />
             <Route path="/rating" element={<Leaderboard />} />
+            <Route path="/rating/methodology" element={<RatingMethodology />} />
             <Route path="/ml-passport" element={<Navigate to="/profile" replace />} />
           </Route>
         )}
         <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
-        <Route element={<ProtectedRoute />}>
+        <Route path="/pricing" element={<SuperAdminPreview enabled={closedSectionsEnabled}><Pricing /></SuperAdminPreview>} />
+        <Route element={<ProtectedPreviewRoute enabled={closedSectionsEnabled} />}>
           <Route path="/profile" element={showFounderPlaceholders ? <FounderProfile /> : <Profile />} />
           <Route path="/profile/me" element={<Navigate to="/profile" replace />} />
           {!showFounderPlaceholders && <Route path="/profile/:id" element={<Profile />} />}
+        </Route>
+        <Route element={<ProtectedRoute />}>
           <Route path="/profile/edit" element={<ProfileEdit />} />
           <Route path="/company/dashboard" element={closedSectionsEnabled ? <CompanyDashboard /> : <Navigate to="/" replace />} />
-          <Route path="/pricing" element={closedSectionsEnabled ? <Pricing /> : <Navigate to="/" replace />} />
           <Route path="/admin" element={<AdminEntry />} />
         </Route>
       </Route>

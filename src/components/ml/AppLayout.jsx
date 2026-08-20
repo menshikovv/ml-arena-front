@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, Crown, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,7 @@ const PAGE_TITLES = [
   ["/ml-passport", "ML-паспорт"],
   ["/blog", "Блог"],
   ["/profile/edit", "Редактирование профиля"],
-  ["/profile", "Профиль"],
+  ["/profile", "ML-паспорт"],
   ["/company/dashboard", "Кабинет компании"],
   ["/pricing", "Тарифы"],
   ["/admin", "Панель администратора"],
@@ -42,7 +44,11 @@ export default function AppLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
-  const navItems = user?.role === "admin" ? [...NAV_ITEMS, { to: "/admin", label: "Администрирование", icon: ShieldCheck }] : NAV_ITEMS;
+  const adminAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: user?.role === "admin", retry: false, staleTime: 60000 });
+  const isSuperAdmin = adminAccess.data?.roles?.includes("super_admin");
+  const navItems = user?.role === "admin"
+    ? [...NAV_ITEMS, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Администрирование", icon: ShieldCheck }]
+    : NAV_ITEMS;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
 

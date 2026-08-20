@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
-  ChevronDown,
   CircleDot,
   Download,
   FileCheck2,
@@ -17,7 +16,6 @@ import {
   Gauge,
   Loader2,
   Lock,
-  MessageSquare,
   RefreshCw,
   Send,
   Share2,
@@ -34,7 +32,6 @@ import { base44 } from "@/api/base44Client";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { METRIC_LABELS, TASK_TYPE_LABELS, formatScore } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 
@@ -119,9 +116,9 @@ function RulesDialog({ open, onClose }) {
   const rules = [
     "Основное время — 60 минут для обоих участников.",
     "Разрешён CSV с колонками id и prediction, размером до 5 МБ.",
-    "Победитель определяется по лучшему score на скрытом тесте.",
-    "При равном score побеждает более ранний валидный submit.",
-    "После основного времени есть 3 минуты только на дозагрузку файла.",
+    "Победитель определяется по лучшему результату на скрытом тесте.",
+    "При равном результате побеждает более ранняя валидная отправка.",
+    "После основного времени можно только завершить загрузку, начатую заранее.",
   ];
 
   return (
@@ -197,7 +194,7 @@ function LobbyView({ duel, onStart, starting }) {
         <div className="grid border-y border-border sm:grid-cols-4">
           {[
             ["60 минут", "основное время"],
-            ["CSV", "формат submit"],
+            ["CSV", "формат решения"],
             [METRIC_LABELS[duel.metric] || duel.metric, "метрика"],
             ["По времени", "tie-break"],
           ].map(([value, label], index) => (
@@ -292,22 +289,22 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
           best: true,
         },
         ...items.map((item) => ({ ...item, best: false })),
-      ].slice(0, 5));
+      ].slice(0, 10));
       setState("scored");
       setFile(null);
       toast.success(`Решение проверено: ${safeScore(userScore, duel.metric)}`);
       await onFinished(updatedDuel.status === "completed");
     } catch (uploadError) {
       setState("failed");
-      setError(uploadError.message || "Scoring временно недоступен. Попробуй отправить файл ещё раз.");
+      setError(uploadError.message || "Проверка временно недоступна. Попробуй отправить файл ещё раз.");
     }
   };
 
   const statusContent = {
     uploading: ["Загружаем файл", `${progress}%`],
     validating: ["Проверяем формат CSV", "id и prediction"],
-    scoring: ["Считаем score", "скрытый тест"],
-    scored: ["Лучший submit", safeScore(score, duel.metric)],
+    scoring: ["Считаем результат", "скрытый тест"],
+    scored: ["Лучший результат", safeScore(score, duel.metric)],
     invalid: ["CSV не принят", error],
     failed: ["Техническая ошибка", error],
   };
@@ -385,7 +382,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
       <div className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Последние попытки</h3>
-          <span className="text-xs text-muted-foreground">{submissions.length}/5</span>
+          <span className="text-xs text-muted-foreground">{submissions.length}/10</span>
         </div>
         {submissions.length ? (
           <div className="divide-y divide-border border-y border-border">
@@ -402,7 +399,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
           </div>
         ) : (
           <p className="border-y border-dashed border-border py-5 text-center text-xs text-muted-foreground">
-            Здесь появятся принятые и отклонённые submit-ы.
+            Здесь появятся принятые и отклонённые отправки.
           </p>
         )}
       </div>
@@ -423,88 +420,18 @@ function OpponentPanel({ duel }) {
           <p className="truncate text-sm font-semibold">{duel.player2_name}</p>
           <div className="mt-1 flex items-center gap-2">
             <LeagueBadge rating={duel.player2_rating} size="sm" />
-            <span className="text-xs text-muted-foreground">{duel.player2_rating} Elo</span>
+            <span className="text-xs text-muted-foreground">{duel.player2_rating} очков</span>
           </div>
         </div>
       </div>
       <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div>
           <p className="text-xs text-muted-foreground">Статус соперника</p>
-          <p className="mt-1 text-sm font-semibold">{opponentSubmitted ? "Submit принят" : "Работает над задачей"}</p>
+          <p className="mt-1 text-sm font-semibold">{opponentSubmitted ? "Есть валидная отправка" : "Работает над задачей"}</p>
         </div>
         {opponentSubmitted ? <FileCheck2 className="text-accent" size={20} /> : <CircleDot className="text-primary" size={20} />}
       </div>
-      <p className="mt-3 text-xs leading-5 text-muted-foreground">Score соперника откроется после завершения матча.</p>
-    </div>
-  );
-}
-
-function DuelChat() {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([
-    { id: "system", author: "Система", text: "Чат открыт. Не отправляйте решения и ссылки.", time: new Date() },
-  ]);
-
-  const send = () => {
-    const value = input.trim();
-    if (!value) return;
-    if (/https?:\/\/|www\./i.test(value)) {
-      toast.error("Ссылки в чате дуэли отключены");
-      return;
-    }
-    setMessages((items) => [...items, { id: `${Date.now()}`, author: "Ты", text: value.slice(0, 280), time: new Date() }]);
-    setInput("");
-  };
-
-  return (
-    <div className="mt-6 border-y border-border">
-      <button
-        type="button"
-        className="flex h-14 w-full items-center gap-3 text-left"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-      >
-        <MessageSquare size={18} className="text-primary" />
-        <span className="flex-1 text-sm font-semibold">Чат дуэли</span>
-        <span className="text-xs text-muted-foreground">{messages.length - 1} сообщений</span>
-        <ChevronDown size={17} className={cn("transition-transform", open && "rotate-180")} />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-border">
-              <div className="max-h-56 space-y-3 overflow-y-auto p-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={cn("flex", message.author === "Ты" && "justify-end")}>
-                    <div className={cn("max-w-[85%] border px-3 py-2 text-sm", message.author === "Ты" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary/50")}>
-                      <p>{message.text}</p>
-                      <p className={cn("mt-1 text-[10px]", message.author === "Ты" ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                        {message.author} · {message.time.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2 border-t border-border p-3">
-                <Input
-                  value={input}
-                  maxLength={280}
-                  placeholder="Сообщение сопернику"
-                  onChange={(event) => setInput(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && send()}
-                />
-                <Button size="icon" onClick={send} aria-label="Отправить сообщение"><Send /></Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">Точный результат соперника откроется после завершения матча.</p>
     </div>
   );
 }
@@ -547,7 +474,7 @@ function LiveView({ duel, overtime, onFinished }) {
             <TimerDisplay seconds={remaining} compact />
           </div>
           <div className="flex items-center justify-between gap-3 md:justify-end">
-            <span className="inline-flex items-center gap-2 text-xs font-medium text-accent"><Wifi size={14} /> Online</span>
+            <span className="inline-flex items-center gap-2 text-xs font-medium text-accent"><Wifi size={14} /> На связи</span>
             <Button variant="outline" size="sm" onClick={() => setRulesOpen(true)}><ShieldCheck size={14} /> Правила</Button>
           </div>
         </div>
@@ -579,7 +506,7 @@ function LiveView({ duel, overtime, onFinished }) {
             <h2 className="mt-4 font-heading text-2xl font-bold">{duel.task_title}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{duel.task_description}</p>
             <div className="mt-5 border-y border-border py-4">
-              <p className="text-xs font-semibold">Формат submit</p>
+              <p className="text-xs font-semibold">Формат решения</p>
               <div className="mt-2 overflow-x-auto bg-secondary/40 px-3 py-2 font-mono text-xs text-muted-foreground">
                 id,prediction<br />10001,0.7342<br />10002,0.1258
               </div>
@@ -603,7 +530,10 @@ function LiveView({ duel, overtime, onFinished }) {
             locked={remaining !== null && remaining === 0}
             onFinished={onFinished}
           />
-          <DuelChat />
+          <div className="mt-6 flex items-start gap-3 rounded-md border border-border bg-secondary/35 p-4 text-xs leading-5 text-muted-foreground">
+            <ShieldCheck size={17} className="mt-0.5 shrink-0 text-primary" />
+            Во время рейтинговой дуэли свободный чат отключён. Оба участника решают задачу независимо и видят результат соперника только после завершения.
+          </div>
         </main>
 
         <aside className="min-w-0 space-y-4">
@@ -611,7 +541,7 @@ function LiveView({ duel, overtime, onFinished }) {
           <div className="border-y border-border bg-card p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Твой лучший score</p>
+                <p className="text-xs text-muted-foreground">Твой лучший результат</p>
                 <p className="mt-2 font-heading text-3xl font-bold">{safeScore(duel.player1_score, duel.metric)}</p>
               </div>
               <Gauge className="text-primary" size={26} />
@@ -619,7 +549,7 @@ function LiveView({ duel, overtime, onFinished }) {
             <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs">
               <span className="text-muted-foreground">Статус проверки</span>
               <span className={cn("font-semibold", duel.player1_file_url ? "text-accent" : "text-muted-foreground")}>
-                {duel.player1_file_url ? "Submit принят" : "Нет попыток"}
+                {duel.player1_file_url ? "Отправка принята" : "Нет попыток"}
               </span>
             </div>
           </div>
@@ -666,13 +596,13 @@ function ResultView({ duel }) {
       <section className="mt-5 border-y border-border bg-card py-8 text-center md:py-11">
         <Trophy className={cn("mx-auto", userWon ? "text-accent" : "text-primary")} size={36} />
         <h1 className="mt-5 font-heading text-3xl font-bold md:text-5xl">
-          {isDraw ? "Равный score" : userWon ? "Ты выиграл дуэль" : "Дуэль окончена поражением"}
+          {isDraw ? "Результаты равны" : userWon ? "Ты выиграл дуэль" : "Дуэль окончена поражением"}
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
           {isDraw
-            ? "Score одинаковый. Победитель определён по более раннему времени загрузки."
+            ? "Результаты одинаковы. Победитель определён по более раннему времени загрузки."
             : userWon
-              ? "Твой лучший score оказался выше результата соперника."
+              ? "Твой лучший результат оказался выше результата соперника."
               : "Посмотри итоговое сравнение и попробуй ещё раз."}
         </p>
       </section>
@@ -709,7 +639,7 @@ function ResultView({ duel }) {
               <div className="mt-2"><LeagueBadge rating={player.rating} size="sm" /></div>
               <p className="mt-5 font-heading text-3xl font-bold">{safeScore(player.score, duel.metric)}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {player.time ? `Submit ${new Date(player.time).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}` : "Нет submit"}
+                {player.time ? `Отправлено в ${new Date(player.time).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}` : "Нет отправок"}
               </p>
             </div>
           </React.Fragment>
@@ -723,19 +653,19 @@ function ResultView({ duel }) {
             <span className={cn("font-heading text-5xl font-bold", userWon ? "text-accent" : "text-destructive")}>
               {userWon ? "+" : "−"}{ratingDelta}
             </span>
-            <span className="mb-1 text-sm text-muted-foreground">Elo</span>
+            <span className="mb-1 text-sm text-muted-foreground">очков</span>
           </div>
           <div className="mt-5 h-1.5 max-w-sm overflow-hidden rounded-full bg-secondary">
             <div className="h-full w-[76%] rounded-full bg-primary" />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{userWon ? "До следующей лиги осталось 36 Elo" : "Позиция в текущей лиге сохранена"}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{userWon ? "До следующей лиги осталось 36 очков" : "Позиция в текущей лиге сохранена"}</p>
         </div>
         <div className="border-l-0 border-border lg:border-l lg:pl-8">
           <h2 className="font-heading text-xl font-bold">
-            {isDraw ? "Решило время загрузки" : "Победитель определён по лучшему score"}
+            {isDraw ? "Решило время загрузки" : "Победитель определён по лучшему результату"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Метрика матча: {METRIC_LABELS[duel.metric] || duel.metric}. Оба решения прошли проверку формата и scoring на одной скрытой выборке.
+            Метрика матча: {METRIC_LABELS[duel.metric] || duel.metric}. Оба решения прошли проверку формата и оценку на одной скрытой выборке.
           </p>
         </div>
       </section>
@@ -770,7 +700,7 @@ function ResultView({ duel }) {
             <Button className="w-full" onClick={() => navigate("/duels/matchmaking")}><RefreshCw size={15} /> Сыграть ещё</Button>
             <Button variant="outline" className="w-full" onClick={exportCard}><Download size={15} /> Скачать карточку</Button>
             <Button asChild variant="outline" className="w-full"><Link to="/profile/me">Открыть ML-паспорт <ArrowRight size={15} /></Link></Button>
-            <Button asChild variant="ghost" className="w-full"><Link to="/duels/rating"><Share2 size={15} /> В рейтинг дуэлей</Link></Button>
+            <Button asChild variant="ghost" className="w-full"><Link to="/rating?tab=duels"><Share2 size={15} /> В рейтинг дуэлей</Link></Button>
           </div>
         </div>
       </section>

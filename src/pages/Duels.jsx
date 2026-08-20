@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  BrainCircuit,
   Check,
   ChevronRight,
   CircleHelp,
@@ -12,6 +13,7 @@ import {
   History,
   Loader2,
   Medal,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -105,10 +107,45 @@ const DUEL_RATING = [
 
 const RULES = [
   { icon: Clock3, title: "60 минут", text: "Одинаковое основное время для обоих участников." },
-  { icon: Zap, title: "+3 минуты", text: "Только на дозагрузку уже подготовленного CSV." },
-  { icon: Trophy, title: "Лучший результат", text: "Побеждает лучший результат на скрытом тесте." },
-  { icon: ShieldCheck, title: "Честный матч", text: "При равенстве решает более ранняя загрузка." },
+  { icon: Upload, title: "10 отправок", text: "Невалидный файл не расходует попытку, но проверяется с ограничением частоты." },
+  { icon: Trophy, title: "Лучший результат", text: "Побеждает лучший результат на одной скрытой выборке." },
+  { icon: ShieldCheck, title: "Равные правила", text: "Результат соперника скрыт до завершения матча." },
 ];
+
+const CHALLENGE_LEVELS = {
+  easy: {
+    label: "Лёгкий",
+    range: "60–75%",
+    reward: "до +4",
+    description: "Для разминки и первого подтверждения навыка.",
+    benchmark: 0.7814,
+  },
+  medium: {
+    label: "Средний",
+    range: "35–55%",
+    reward: "до +7",
+    description: "Потребуется уверенная ML-работа, одного базового решения обычно недостаточно.",
+    benchmark: 0.8564,
+  },
+  advanced: {
+    label: "Продвинутый",
+    range: "15–35%",
+    reward: "до +10",
+    description: "Сильный короткий результат против сложного эталонного решения.",
+    benchmark: 0.9028,
+  },
+};
+
+function TimerDisplay({ seconds, compact = false }) {
+  const safeSeconds = Math.max(0, seconds || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = safeSeconds % 60;
+  return (
+    <span className={cn("font-mono font-bold tabular-nums", compact ? "text-xl" : "text-3xl")}>
+      {String(minutes).padStart(2, "0")}:{String(rest).padStart(2, "0")}
+    </span>
+  );
+}
 
 function getWinRate(opponent) {
   return Math.round((opponent.wins / (opponent.wins + opponent.losses)) * 100);
@@ -123,7 +160,7 @@ function DuelNav({ view }) {
   const items = [
     { id: "overview", label: "Обзор", icon: Swords, to: "/duels" },
     { id: "history", label: "История", icon: History, to: "/duels/history" },
-    { id: "rating", label: "Рейтинг", icon: BarChart3, to: "/duels/rating" },
+    { id: "rating", label: "Рейтинг", icon: BarChart3, to: "/rating?tab=duels" },
   ];
 
   return (
@@ -153,9 +190,9 @@ function DuelNav({ view }) {
 
 function RatingSummary() {
   return (
-    <div className="grid min-w-0 grid-cols-2 border-l border-border/80 md:min-w-[320px]">
+    <div className="grid min-w-0 grid-cols-2 border-t border-border/80 xl:min-w-[320px] xl:border-l xl:border-t-0">
       <div className="flex min-h-32 flex-col justify-between border-b border-r border-border/80 p-5">
-        <span className="text-xs font-medium uppercase text-muted-foreground">Duel Elo</span>
+        <span className="text-xs font-medium text-muted-foreground">Рейтинг сезона</span>
         <span className="font-heading text-4xl font-bold tabular-nums">{CURRENT_USER.rating}</span>
       </div>
       <div className="flex min-h-32 flex-col justify-between border-b border-border/80 p-5">
@@ -164,13 +201,116 @@ function RatingSummary() {
       </div>
       <div className="border-r border-border/80 p-5">
         <LeagueBadge rating={CURRENT_USER.rating} size="sm" />
-        <p className="mt-2 text-xs text-muted-foreground">54 Elo до золота</p>
+        <p className="mt-2 text-xs text-muted-foreground">54 очка до золота</p>
       </div>
       <div className="p-5">
         <p className="text-sm font-semibold text-accent">Серия {CURRENT_USER.streak}</p>
         <p className="mt-1 text-xs text-muted-foreground">{CURRENT_USER.wins} побед · {CURRENT_USER.losses} поражений</p>
       </div>
     </div>
+  );
+}
+
+function ChallengeChooser({ open, onClose, taskType, onTaskTypeChange, onStart }) {
+  const [level, setLevel] = useState("medium");
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKeyDown = (event) => event.key === "Escape" && onClose();
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/35 p-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="arena-challenge-title"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border border-border bg-card shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-5 border-b border-border p-5 md:p-7">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-md bg-primary text-primary-foreground"><BrainCircuit size={21} /></span>
+                  <div>
+                    <h2 id="arena-challenge-title" className="font-heading text-2xl font-bold">Вызов ML-Арены</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Задача из банка на 60 минут с выбранным уровнем бейзлайна.</p>
+                  </div>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Закрыть"><X size={18} /></Button>
+            </div>
+
+            <div className="p-5 md:p-7">
+              <h3 className="text-sm font-semibold">Направление</h3>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Направление вызова">
+                {Object.entries(TASKS).map(([key, task]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={taskType === key}
+                    onClick={() => onTaskTypeChange(key)}
+                    className={cn(
+                      "min-h-11 rounded-md border px-3 text-left text-xs font-semibold transition-colors",
+                      taskType === key ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50",
+                    )}
+                  >
+                    {task.label}
+                  </button>
+                ))}
+              </div>
+
+              <h3 className="mt-7 text-sm font-semibold">Уровень бейзлайна</h3>
+              <div className="mt-3 grid gap-3 md:grid-cols-3" role="radiogroup" aria-label="Уровень вызова">
+                {Object.entries(CHALLENGE_LEVELS).map(([key, item]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={level === key}
+                    onClick={() => setLevel(key)}
+                    className={cn(
+                      "min-h-44 rounded-lg border p-5 text-left transition-all hover:-translate-y-0.5",
+                      level === key ? "border-primary bg-primary/7 shadow-sm" : "border-border bg-background hover:border-primary/40",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-heading text-lg font-bold">{item.label}</span>
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">{item.reward} очков</span>
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                    <p className="mt-4 text-xs text-muted-foreground">Ориентир прохождения: {item.range}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-4 text-xs leading-5 text-muted-foreground">
+                <ShieldCheck size={17} className="mt-0.5 shrink-0 text-primary" />
+                Это не матч с ботом. Вызов не входит в число человеческих дуэлей и процент побед. За первую победу над новой задачей можно получить небольшой неотрицательный бонус; повторное решение остаётся тренировкой.
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-border p-5 sm:flex-row sm:justify-end md:px-7">
+              <Button variant="outline" onClick={onClose}>Назад</Button>
+              <Button onClick={() => onStart(level)}><Clock3 size={16} /> Начать 60 минут</Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -350,21 +490,21 @@ function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, tas
     <>
       <Reveal>
         <section className="overflow-hidden border-y border-border bg-card">
-          <div className="grid lg:grid-cols-[1fr_auto]">
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_auto]">
             <div className="flex min-h-[320px] flex-col justify-between p-6 md:p-10">
               <div>
                 <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
-                  Дуэли 1×1 по машинному обучению
+                  Дуэли по машинному обучению
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                  Получи задачу, реши её за 60 минут, загрузи CSV и проверь навык в прямом матче с соперником. Каждый завершённый матч пополняет ML-паспорт подтверждённым результатом.
+                  Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат. Рейтинговые дуэли влияют на рейтинг текущего сезона и сохраняются в ML-паспорте.
                 </p>
               </div>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-11 px-6">
                   <Link to="/duels/matchmaking">
                     <Zap size={17} />
-                    Быстрая дуэль
+                    Найти соперника
                   </Link>
                 </Button>
                 <Button
@@ -392,7 +532,7 @@ function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, tas
           <div>
             <h2 className="font-heading text-xl font-bold md:text-2xl">Выбери направление</h2>
           </div>
-          <span className="hidden text-xs text-muted-foreground md:block">Рейтинг соперника: ±200 Elo</span>
+          <span className="hidden text-xs text-muted-foreground md:block">Рейтинг соперника: ±200 очков</span>
         </div>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4" role="radiogroup" aria-label="Направление дуэли">
           {Object.entries(TASKS).map(([key, task]) => (
@@ -465,9 +605,9 @@ function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, tas
         <Reveal delay={0.12}>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="font-heading text-xl font-bold">Ближайшие по Elo</h2>
+              <h2 className="font-heading text-xl font-bold">Ближайшие по рейтингу</h2>
             </div>
-            <span className="text-xs text-muted-foreground">Win rate</span>
+            <span className="text-xs text-muted-foreground">Победы</span>
           </div>
           <div className="space-y-2">
             {opponents.slice(0, 3).map((opponent) => (
@@ -512,10 +652,10 @@ function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, tas
           <div>
             <h2 className="font-heading text-2xl font-bold">Сильнейшие дуэлянты</h2>
             <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-              Elo меняется после каждого рейтингового матча. Premium не влияет на подбор, время или число попыток.
+              Рейтинг меняется после каждого человеческого рейтингового матча. Premium не влияет на подбор, время или число попыток.
             </p>
             <Button asChild variant="outline" className="mt-5">
-              <Link to="/duels/rating">Открыть рейтинг <ArrowRight size={15} /></Link>
+              <Link to="/rating?tab=duels">Открыть рейтинг <ArrowRight size={15} /></Link>
             </Button>
           </div>
           <div className="divide-y divide-border">
@@ -537,7 +677,7 @@ function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, tas
   );
 }
 
-function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }) {
+function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge }) {
   const [status, setStatus] = useState("idle");
   const [seconds, setSeconds] = useState(0);
   const [opponent, setOpponent] = useState(null);
@@ -555,15 +695,25 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }
     setOpponent(null);
     timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000);
     matchRef.current = window.setTimeout(() => {
-      window.clearInterval(timerRef.current);
       const candidates = opponents.filter(
         (item) => item.online && Math.abs(CURRENT_USER.rating - item.rating) <= 200 && item.focus.includes(taskType),
       );
-      const fallback = opponents.filter((item) => item.online && Math.abs(CURRENT_USER.rating - item.rating) <= 200);
-      setOpponent(candidates[0] || fallback[0]);
-      setStatus(candidates[0] || fallback[0] ? "found" : "empty");
-    }, 1800);
+      if (candidates.length) {
+        window.clearInterval(timerRef.current);
+        setOpponent(candidates[0]);
+        setStatus("found");
+      }
+    }, 4200);
   };
+
+  useEffect(() => {
+    if (status === "searching" && seconds >= 120) {
+      setStatus("empty");
+      window.clearInterval(timerRef.current);
+    }
+  }, [seconds, status]);
+
+  const ratingWindow = seconds < 30 ? 100 : seconds < 60 ? 150 : 200;
 
   const cancel = () => {
     window.clearInterval(timerRef.current);
@@ -596,7 +746,9 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
             {status === "searching"
-              ? `Диапазон ${CURRENT_USER.rating - 200}–${CURRENT_USER.rating + 200} Elo · ${seconds} сек.`
+              ? `Диапазон ${CURRENT_USER.rating - ratingWindow}–${CURRENT_USER.rating + ratingWindow} очков · ${seconds} сек.`
+              : status === "empty"
+                ? "Можно оставить поиск активным или сразу получить новую задачу против эталонного результата ML-Арены."
               : "Выбери направление. Условия, таймер и лимиты одинаковы для обоих участников."}
           </p>
 
@@ -632,7 +784,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }
                     <p className="truncate font-semibold">{opponent.name}</p>
                     <div className="mt-1 flex items-center gap-2">
                       <LeagueBadge rating={opponent.rating} size="sm" />
-                      <span className="text-xs text-muted-foreground">{opponent.rating} Elo · {getWinRate(opponent)}% побед</span>
+                      <span className="text-xs text-muted-foreground">{opponent.rating} очков · {getWinRate(opponent)}% побед</span>
                     </div>
                   </div>
                 </div>
@@ -651,6 +803,11 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }
                 </Button>
                 <Button variant="outline" onClick={start}>Искать другого</Button>
               </>
+            ) : status === "empty" ? (
+              <>
+                <Button onClick={openChallenge}><BrainCircuit size={16} /> Выбрать вызов</Button>
+                <Button variant="outline" onClick={start}>Продолжить поиск</Button>
+              </>
             ) : (
               <Button onClick={start}><Zap size={16} /> Найти соперника</Button>
             )}
@@ -658,15 +815,165 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType }
         </div>
         <div className="grid grid-cols-3 border-b border-border">
           {[
-            ["±200", "диапазон Elo"],
+            ["±100 → ±200", "диапазон рейтинга"],
             ["60 мин", "основное время"],
-            ["CSV", "формат решения"],
+            ["10", "валидных отправок"],
           ].map(([value, label], index) => (
             <div key={value} className={cn("p-4 text-center", index > 0 && "border-l border-border")}>
               <p className="font-heading text-lg font-bold">{value}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+function ArenaChallengeView() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const directionKey = params.get("direction") || "classification";
+  const levelKey = params.get("level") || "medium";
+  const task = TASKS[directionKey] || TASKS.classification;
+  const level = CHALLENGE_LEVELS[levelKey] || CHALLENGE_LEVELS.medium;
+  const [seconds, setSeconds] = useState(3600);
+  const [attempts, setAttempts] = useState(0);
+  const [bestScore, setBestScore] = useState(null);
+  const [status, setStatus] = useState("active");
+  const [uploadState, setUploadState] = useState("idle");
+  const won = bestScore !== null && bestScore > level.benchmark;
+
+  useEffect(() => {
+    if (status !== "active") return undefined;
+    const interval = window.setInterval(() => setSeconds((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(interval);
+  }, [status]);
+
+  useEffect(() => {
+    if (seconds === 0 && status === "active") setStatus("result");
+  }, [seconds, status]);
+
+  const submitResult = () => {
+    if (attempts >= 5 || uploadState === "validating") return;
+    setUploadState("validating");
+    window.setTimeout(() => {
+      const nextAttempt = attempts + 1;
+      const score = Number((level.benchmark + (nextAttempt >= 2 ? 0.0167 : -0.0124)).toFixed(4));
+      setAttempts(nextAttempt);
+      setBestScore((current) => current === null ? score : Math.max(current, score));
+      setUploadState("scored");
+      toast.success(nextAttempt >= 2 ? "Эталон превзойдён" : "Результат проверен");
+    }, 900);
+  };
+
+  if (status === "result") {
+    const bonus = won ? Number(level.reward.replace(/\D/g, "")) || 0 : 0;
+    return (
+      <Reveal>
+        <div className="mx-auto max-w-5xl py-4 md:py-8">
+          <Link to="/duels" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> К дуэлям</Link>
+          <section className="mt-5 overflow-hidden rounded-lg border border-border bg-card">
+            <div className={cn("px-6 py-10 text-center md:px-10 md:py-14", won ? "bg-accent/7" : "bg-secondary/35")}>
+              <span className={cn("mx-auto flex h-14 w-14 items-center justify-center rounded-full", won ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground")}>
+                {won ? <Trophy size={25} /> : <Target size={25} />}
+              </span>
+              <h1 className="mt-5 font-heading text-3xl font-bold md:text-5xl">{won ? "Эталон превзойдён" : "Вызов завершён"}</h1>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+                {won ? `Подтверждение по направлению «${task.label}» обновлено в ML-паспорте.` : "Результат сохранён в личной истории. Рейтинг не уменьшается."}
+              </p>
+            </div>
+            <div className="grid border-t border-border sm:grid-cols-4">
+              {[
+                [bestScore?.toFixed(4) || "—", "ваш результат"],
+                [level.benchmark.toFixed(4), "эталон"],
+                [level.label, "уровень"],
+                [won ? `+${bonus}` : "+0", "бонус к рейтингу"],
+              ].map(([value, label], index) => (
+                <div key={label} className={cn("p-5 text-center", index > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
+                  <p className="font-heading text-2xl font-bold tabular-nums">{value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-3 border-t border-border p-5 sm:flex-row sm:justify-center md:p-7">
+              <Button onClick={() => navigate(`/duels/challenges/new?direction=${directionKey}&level=${levelKey}`)}><RefreshCw size={16} /> Следующий вызов</Button>
+              <Button asChild variant="outline"><Link to="/profile">Посмотреть ML-паспорт</Link></Button>
+              <Button asChild variant="ghost"><Link to="/duels">Вернуться к дуэлям</Link></Button>
+            </div>
+          </section>
+        </div>
+      </Reveal>
+    );
+  }
+
+  return (
+    <Reveal>
+      <div className="mx-auto max-w-7xl py-2 md:py-5">
+        <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <Link to="/duels" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> К дуэлям</Link>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-xs text-muted-foreground sm:block">Вызов ML-Арены · {level.label}</span>
+            <div className={cn("rounded-md border px-4 py-2", seconds < 600 ? "border-destructive/50 text-destructive" : "border-border")}><TimerDisplay seconds={seconds} compact /></div>
+          </div>
+        </div>
+
+        <div className="grid gap-6 pt-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <main className="min-w-0 space-y-5">
+            <section className="rounded-lg border border-border bg-card p-5 md:p-7">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">{task.label}</span>
+                <span className="rounded-full bg-secondary px-3 py-1 font-semibold">{level.label}</span>
+              </div>
+              <h1 className="mt-5 font-heading text-2xl font-bold md:text-4xl">{task.title}</h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{task.description}</p>
+              <div className="mt-6 grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
+                <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Метрика</p><p className="mt-2 text-sm font-semibold">{task.metric.toUpperCase()}</p></div>
+                <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Нужно превзойти</p><p className="mt-2 text-sm font-semibold tabular-nums">{level.benchmark.toFixed(4)}</p></div>
+                <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Направление</p><p className="mt-2 text-sm font-semibold">{task.label}</p></div>
+              </div>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => toast.success("Данные подготовлены к скачиванию")}><Upload size={14} /> Скачать данные</Button>
+                <Button variant="outline" size="sm" onClick={() => toast.success("Пример решения скачан")}><ArrowRight size={14} /> Пример файла</Button>
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-border bg-card p-5 md:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div><h2 className="font-heading text-xl font-bold">Отправка результата</h2><p className="mt-2 text-sm text-muted-foreground">Загрузите CSV с колонками `id` и `prediction`.</p></div>
+                <span className="text-xs font-semibold text-muted-foreground">{attempts} из 5</span>
+              </div>
+              <button
+                type="button"
+                onClick={submitResult}
+                disabled={attempts >= 5 || uploadState === "validating"}
+                className="mt-5 flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/25 px-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {uploadState === "validating" ? <Loader2 className="animate-spin text-primary" size={24} /> : <Upload className="text-primary" size={24} />}
+                <span className="mt-3 text-sm font-semibold">{uploadState === "validating" ? "Проверяем формат и результат…" : "Выбрать CSV-файл"}</span>
+                <span className="mt-1 text-xs text-muted-foreground">Невалидный файл не расходует попытку</span>
+              </button>
+            </section>
+          </main>
+
+          <aside className="min-w-0 space-y-4">
+            <section className="rounded-lg border border-border bg-card p-5">
+              <div className="flex items-center gap-3"><BrainCircuit className="text-primary" size={21} /><h2 className="font-heading text-lg font-bold">Эталон ML-Арены</h2></div>
+              <p className="mt-4 text-xs leading-5 text-muted-foreground">Зафиксированная версия решения. Она не меняется во время попытки и не имитирует живого соперника.</p>
+              <div className="mt-5 border-t border-border pt-5">
+                <p className="text-xs text-muted-foreground">Лучший результат</p>
+                <p className="mt-2 font-heading text-3xl font-bold tabular-nums">{bestScore?.toFixed(4) || "—"}</p>
+                {bestScore !== null && <p className={cn("mt-2 text-xs font-semibold", won ? "text-accent" : "text-muted-foreground")}>{won ? "Эталон превзойдён" : `${(level.benchmark - bestScore).toFixed(4)} до эталона`}</p>}
+              </div>
+            </section>
+            <section className="rounded-lg border border-border bg-secondary/35 p-5">
+              <ShieldCheck className="text-primary" size={20} />
+              <h3 className="mt-3 text-sm font-semibold">Как считается результат</h3>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Победа может дать небольшой бонус только один раз для этой задачи. Поражение не снижает рейтинг и не входит в процент побед над людьми.</p>
+            </section>
+            <Button variant="outline" className="w-full" onClick={() => setStatus("result")}>Завершить вызов</Button>
+          </aside>
         </div>
       </div>
     </Reveal>
@@ -803,10 +1110,13 @@ export default function Duels() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [taskType, setTaskType] = useState("classification");
+  const [challengeOpen, setChallengeOpen] = useState(false);
   const view = location.pathname.endsWith("/history")
     ? "history"
     : location.pathname.endsWith("/rating")
       ? "rating"
+      : location.pathname.includes("/challenges/")
+        ? "challenge"
       : location.pathname.endsWith("/matchmaking")
         ? "matchmaking"
         : "overview";
@@ -864,9 +1174,14 @@ export default function Duels() {
     createDuelMutation.mutate({ opponent, selectedTask });
   };
 
+  const startChallenge = (level) => {
+    setChallengeOpen(false);
+    navigate(`/duels/challenges/new?direction=${taskType}&level=${level}`);
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
-      {view !== "matchmaking" && <DuelNav view={view} />}
+      {!['matchmaking', 'challenge'].includes(view) && <DuelNav view={view} />}
       {view === "overview" && (
         <OverviewView
           duels={duels}
@@ -885,10 +1200,19 @@ export default function Duels() {
           pending={createDuelMutation.isPending}
           taskType={taskType}
           setTaskType={setTaskType}
+          openChallenge={() => setChallengeOpen(true)}
         />
       )}
       {view === "history" && <HistoryView duels={duels} isLoading={isLoading} />}
       {view === "rating" && <RatingView />}
+      {view === "challenge" && <ArenaChallengeView />}
+      <ChallengeChooser
+        open={challengeOpen}
+        onClose={() => setChallengeOpen(false)}
+        taskType={taskType}
+        onTaskTypeChange={setTaskType}
+        onStart={startChallenge}
+      />
     </div>
   );
 }
