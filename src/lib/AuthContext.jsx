@@ -10,7 +10,8 @@ function mapUser(account = {}, profile = {}) {
     ...account,
     ...profile,
     id: account.id || profile.user_id,
-    nickname: profile.user_name || account.username || account.email?.split("@")[0],
+    nickname: profile.user_name || profile.username || profile.nickname || account.nickname || account.username || account.email?.split("@")[0],
+    full_name: profile.full_name ?? profile.name ?? account.full_name ?? account.name ?? "",
     education_status: profile.university || "",
     organization: profile.company || account.organization_name || "",
     account_status: account.status === "pending_email" ? "pending_verification" : account.status,
@@ -21,7 +22,8 @@ function mapUser(account = {}, profile = {}) {
 }
 
 async function loadUser(account) {
-  const authUser = account || await api.auth.me();
+  const freshAccount = await api.auth.me();
+  const authUser = { ...(account || {}), ...freshAccount };
   const profile = authUser.role === "user" ? await api.profiles.me() : {};
   return mapUser(authUser, profile);
 }
@@ -139,7 +141,9 @@ export const AuthProvider = ({ children }) => {
     Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
     const profile = await api.profiles.updateMe(body);
     const current = mapUser(user, profile);
-    setUser(current);
+    setUser((previous) => {
+      return mapUser(previous || user, profile);
+    });
     return current;
   }, [user]);
 
@@ -147,14 +151,18 @@ export const AuthProvider = ({ children }) => {
     const upload = await uploadFile(file, "profile_avatar");
     const profile = await api.profiles.setAvatar(upload.id);
     const current = mapUser(user, profile);
-    setUser(current);
+    setUser((previous) => {
+      return mapUser(previous || user, profile);
+    });
     return current;
   }, [user]);
 
   const deleteAvatar = useCallback(async () => {
     const profile = await api.profiles.deleteAvatar();
     const current = mapUser(user, profile);
-    setUser(current);
+    setUser((previous) => {
+      return mapUser(previous || user, profile);
+    });
     return current;
   }, [user]);
 

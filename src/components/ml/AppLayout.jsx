@@ -92,7 +92,7 @@ export default function AppLayout({ children }) {
           <div className={`${collapsed ? "flex justify-center py-2" : "p-2"}`}>
             <Link to="/profile" onClick={() => setMobileOpen(false)} className="group flex items-center gap-3">
               <span className="shrink-0 ring-2 ring-card ring-offset-1 ring-offset-primary/20"><Avatar name={user?.full_name || user?.nickname || user?.email} src={user?.avatar_url} size={36} /></span>
-              {!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold group-hover:text-primary">{user?.nickname || "Участник"}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{user?.email}</p></div>}
+              {!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold group-hover:text-primary">{user?.full_name || user?.nickname || "Участник"}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{user?.full_name && user?.nickname ? `@${user.nickname.replace(/^@/, "")}` : user?.email}</p></div>}
             </Link>
             {!collapsed && <div className="mt-4 grid grid-cols-[1fr_38px] gap-2"><Button asChild size="sm" variant="outline" className="rounded-none"><Link to="/profile/edit" onClick={() => setMobileOpen(false)}><Pencil size={14} /> Настроить</Link></Button><Button type="button" size="icon" variant="ghost" className="h-[38px] w-[38px] rounded-none" onClick={handleLogout} title="Выйти"><LogOut size={16} /></Button></div>}
           </div>
