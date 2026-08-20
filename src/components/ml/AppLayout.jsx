@@ -47,7 +47,7 @@ export default function AppLayout({ children }) {
   const adminAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: user?.role === "admin", retry: false, staleTime: 60000 });
   const isSuperAdmin = adminAccess.data?.roles?.includes("super_admin");
   const navItems = user?.role === "admin"
-    ? [...NAV_ITEMS, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Администрирование", icon: ShieldCheck }]
+    ? [...NAV_ITEMS, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Админка", icon: ShieldCheck }]
     : NAV_ITEMS;
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
