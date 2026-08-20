@@ -1,17 +1,18 @@
-import { memo, useDeferredValue, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CheckCircle2, CircleAlert,
   ClipboardCheck, Database, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
-  LockKeyhole, Newspaper, Pause, Play, RefreshCw, Search, Send, ShieldAlert, ShieldCheck,
-  SlidersHorizontal, Trophy, UserCheck, Users, X,
+  ImageIcon, LockKeyhole, Newspaper, Pause, Pencil, Play, RefreshCw, Save, Search, Send,
+  ShieldAlert, ShieldCheck, SlidersHorizontal, Trophy, Upload, UserCheck, Users, X,
 } from "lucide-react";
-import { api } from "@/api/mlArenaApi";
+import { api, uploadFile } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABELS = {
   active: "Активен", pending: "Ожидает", pending_email: "Не подтверждён", banned: "Заблокирован",
@@ -160,26 +161,258 @@ function ModerationSection({ permissions, requestAction }) {
   return <><SectionHeading title="Очередь модерации" description="Жалобы пользователей и решения с неизменяемым следом в журнале." count={listTotal(query.data)} /><div className="mb-4 flex justify-end"><FilterSelect value={status} onChange={setStatus} label="Все статусы" options={[["new", "Новые"], ["escalated", "Переданные выше"], ["resolved", "Решённые"], ["rejected", "Отклонённые"]]} /></div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((report) => <article key={report.id} className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center"><div><div className="flex flex-wrap items-center gap-2"><Status value={report.status} /><span className="text-xs font-semibold uppercase text-muted-foreground">{report.object_type}</span><span className="text-xs text-muted-foreground">важность {report.severity ?? "—"}</span></div><h3 className="mt-3 font-semibold">{report.reason}</h3>{report.text && <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{report.text}</p>}<p className="mt-3 font-mono text-xs text-muted-foreground">{report.object_id} · {formatDate(report.created_at)}</p></div>{can(permissions, "moderation.resolve") && ["new", "escalated"].includes(report.status) && <ActionMenu><ActionButton onClick={() => decide(report, "dismiss", "Отклонить жалобу")}><X size={13} /> Отклонить</ActionButton><ActionButton onClick={() => decide(report, "escalate", "Передать выше")}><ArrowUpRight size={13} /> Передать</ActionButton><ActionButton tone="danger" onClick={() => decide(report, "hide_content", "Скрыть содержимое", true)}><ShieldAlert size={13} /> Скрыть</ActionButton></ActionMenu>}</article>)}</div></TableShell></>;
 }
 
+function blogValidationIssues(form, requireCover = false, coverHasAlt = true) {
+  const issues = [];
+  if (form.title.trim().length < 5) issues.push("Заголовок — минимум 5 символов");
+  if (form.slug.trim().length < 3) issues.push("Slug — минимум 3 латинских символа");
+  if (form.excerpt.trim().length < 50) issues.push("Краткое описание — минимум 50 символов");
+  if (form.excerpt.length > 300) issues.push("Краткое описание — максимум 300 символов");
+  if (!form.body_markdown.trim()) issues.push("Добавьте текст статьи");
+  if (!form.author_name.trim()) issues.push("Укажите автора");
+  if (!form.primary_category_id) issues.push("Выберите основную категорию");
+  if (requireCover && !form.cover_media_id) issues.push("Выберите или загрузите обложку");
+  if (requireCover && form.cover_media_id && !coverHasAlt) issues.push("У обложки должен быть alt-текст");
+  if (form.cta_type !== "none" && !form.cta_label.trim()) issues.push("Укажите текст кнопки CTA");
+  if (form.cta_type !== "none" && !form.cta_url.trim()) issues.push("Укажите ссылку CTA");
+  return issues;
+}
+
+function ValidationNotice({ issues }) {
+  if (!issues.length) return null;
+  return (
+    <div className="border border-destructive/25 bg-destructive/5 p-4">
+      <div className="flex gap-3">
+        <CircleAlert className="mt-0.5 shrink-0 text-destructive" size={18} />
+        <div>
+          <p className="text-sm font-semibold">Проверьте обязательные поля</p>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+            {issues.map((issue) => <li key={issue}>• {issue}</li>)}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BlogCreateDialog({ open, onClose, categories, onSubmit, pending }) {
   const [form, setForm] = useState({ title: "", slug: "", excerpt: "", body_markdown: "", author_name: "Редакция ML-Арены", primary_category_id: "", internal_goal: "other", cta_type: "none", tag_ids: [] });
+  const [attempted, setAttempted] = useState(false);
+  const categoryRows = listRows(categories);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const valid = form.title.trim().length >= 5 && form.slug.trim().length >= 3 && form.excerpt.trim().length >= 50 && form.body_markdown.trim() && form.author_name.trim() && form.primary_category_id;
-  return <Dialog.Root open={open} onOpenChange={(next) => !next && !pending && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/55 backdrop-blur-sm" /><Dialog.Content className="fixed inset-y-4 right-4 z-[101] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto border border-border bg-card p-6 shadow-2xl focus:outline-none"><div className="flex items-start justify-between gap-4"><div><Dialog.Title className="font-heading text-2xl font-extrabold">Новый материал</Dialog.Title><Dialog.Description className="mt-2 text-sm text-muted-foreground">Статья сохранится как черновик. Публикация выполняется отдельным действием.</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div><div className="mt-7 grid gap-5"><label><span className="mb-2 block text-sm font-semibold">Заголовок</span><Input value={form.title} onChange={(event) => update("title", event.target.value)} className="rounded-none" /></label><div className="grid gap-5 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Slug</span><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="nazvanie-stati" className="rounded-none font-mono" /></label><label><span className="mb-2 block text-sm font-semibold">Основная категория</span><select value={form.primary_category_id} onChange={(event) => update("primary_category_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите категорию</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label></div><label><span className="mb-2 block text-sm font-semibold">Краткое описание</span><Textarea value={form.excerpt} onChange={(event) => update("excerpt", event.target.value)} className="min-h-24 rounded-none" /><span className="mt-1 block text-right text-xs text-muted-foreground">{form.excerpt.length}/300</span></label><label><span className="mb-2 block text-sm font-semibold">Текст Markdown</span><Textarea value={form.body_markdown} onChange={(event) => update("body_markdown", event.target.value)} className="min-h-80 rounded-none font-mono text-sm" /></label><label><span className="mb-2 block text-sm font-semibold">Автор</span><Input value={form.author_name} onChange={(event) => update("author_name", event.target.value)} className="rounded-none" /></label></div><div className="mt-7 flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={pending}>Отмена</Button><Button onClick={() => onSubmit(form)} disabled={!valid || pending}>{pending && <Loader2 size={16} className="animate-spin" />} Создать черновик</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
+  const issues = blogValidationIssues(form);
+  const submit = () => {
+    if (issues.length) {
+      setAttempted(true);
+      return;
+    }
+    onSubmit(form);
+  };
+
+  useEffect(() => {
+    if (!open) setAttempted(false);
+  }, [open]);
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(next) => !next && !pending && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/55 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-y-4 right-4 z-[101] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto border border-border bg-card p-6 shadow-2xl focus:outline-none">
+          <div className="flex items-start justify-between gap-4">
+            <div><Dialog.Title className="font-heading text-2xl font-extrabold">Новый материал</Dialog.Title><Dialog.Description className="mt-2 text-sm text-muted-foreground">Сначала создайте основу статьи. Обложку, теги и CTA можно добавить в редакторе черновика.</Dialog.Description></div>
+            <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border" aria-label="Закрыть"><X size={17} /></button>
+          </div>
+          <div className="mt-7 grid gap-5">
+            {attempted && <ValidationNotice issues={issues} />}
+            <label><span className="mb-2 block text-sm font-semibold">Заголовок</span><Input value={form.title} onChange={(event) => update("title", event.target.value)} className="rounded-none" /><span className="mt-1 block text-xs text-muted-foreground">От 5 до 140 символов</span></label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label><span className="mb-2 block text-sm font-semibold">Slug</span><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="nazvanie-stati" className="rounded-none font-mono" /><span className="mt-1 block text-xs text-muted-foreground">Латиница, цифры и дефисы</span></label>
+              <label><span className="mb-2 block text-sm font-semibold">Основная категория</span><select value={form.primary_category_id} onChange={(event) => update("primary_category_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите категорию</option>{categoryRows.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+            </div>
+            <label><span className="mb-2 block text-sm font-semibold">Краткое описание</span><Textarea value={form.excerpt} maxLength={300} onChange={(event) => update("excerpt", event.target.value)} className="min-h-24 rounded-none" /><span className={cn("mt-1 block text-right text-xs", form.excerpt.length > 0 && form.excerpt.trim().length < 50 ? "text-destructive" : "text-muted-foreground")}>{form.excerpt.length}/300 · минимум 50</span></label>
+            <label><span className="mb-2 block text-sm font-semibold">Текст Markdown</span><Textarea value={form.body_markdown} onChange={(event) => update("body_markdown", event.target.value)} className="min-h-80 rounded-none font-mono text-sm" /></label>
+            <label><span className="mb-2 block text-sm font-semibold">Автор</span><Input value={form.author_name} onChange={(event) => update("author_name", event.target.value)} className="rounded-none" /></label>
+          </div>
+          <div className="mt-7 flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={pending}>Отмена</Button><Button onClick={submit} disabled={pending}>{pending && <Loader2 size={16} className="animate-spin" />} Создать черновик</Button></div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function BlogEditDialog({ postId, onClose, categories, tags, onSaved }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const postQuery = useQuery({ queryKey: ["admin", "blog-post", postId], queryFn: () => api.admin.blogPost(postId), enabled: Boolean(postId) });
+  const mediaQuery = useQuery({ queryKey: ["admin", "blog-media"], queryFn: () => api.admin.blogMedia({ limit: 50, offset: 0 }), enabled: Boolean(postId) });
+  const [form, setForm] = useState({ title: "", slug: "", excerpt: "", body_markdown: "", author_name: "", primary_category_id: "", internal_goal: "other", cta_type: "none", cta_label: "", cta_url: "", tag_ids: [], cover_media_id: "" });
+  const [attempted, setAttempted] = useState(false);
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverAlt, setCoverAlt] = useState("");
+  const categoryRows = listRows(categories);
+  const tagRows = listRows(tags);
+  const mediaRows = listRows(mediaQuery.data);
+  const selectedMedia = mediaRows.find((media) => String(media.id) === String(form.cover_media_id)) || postQuery.data?.cover;
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const issues = blogValidationIssues(form, true, Boolean(selectedMedia?.alt?.trim()));
+
+  useEffect(() => {
+    const post = postQuery.data;
+    if (!post) return;
+    setForm({
+      title: post.title || "",
+      slug: post.slug || "",
+      excerpt: post.excerpt || "",
+      body_markdown: post.body_markdown || "",
+      author_name: post.author_name || "Редакция ML-Арены",
+      primary_category_id: post.primary_category_id || post.primary_category?.id || "",
+      internal_goal: post.internal_goal || "other",
+      cta_type: post.cta_type || "none",
+      cta_label: post.cta_label || "",
+      cta_url: post.cta_url || "",
+      tag_ids: post.tag_ids || post.tags?.map((tag) => tag.id) || [],
+      cover_media_id: post.cover_media_id || post.cover?.id || "",
+    });
+    setAttempted(false);
+  }, [postQuery.data]);
+
+  const save = useMutation({
+    mutationFn: (body) => api.admin.updateBlogPost(postId, body),
+    onSuccess: (post) => {
+      queryClient.setQueryData(["admin", "blog-post", postId], post);
+      queryClient.invalidateQueries({ queryKey: ["admin", "blog"] });
+      toast({ title: "Черновик сохранён" });
+      onSaved?.();
+    },
+    onError: (error) => toast({ title: "Не удалось сохранить", description: error.message, variant: "destructive" }),
+  });
+
+  const mediaUpload = useMutation({
+    mutationFn: async () => {
+      const upload = await uploadFile(coverFile, "blog_media");
+      return api.admin.attachBlogMedia({ upload_id: upload.id, alt: coverAlt.trim() });
+    },
+    onSuccess: (media) => {
+      update("cover_media_id", media.id);
+      setCoverFile(null);
+      setCoverAlt("");
+      queryClient.invalidateQueries({ queryKey: ["admin", "blog-media"] });
+      toast({ title: "Обложка загружена" });
+    },
+    onError: (error) => toast({ title: "Не удалось загрузить обложку", description: error.message, variant: "destructive" }),
+  });
+
+  const submit = () => {
+    if (issues.length) {
+      setAttempted(true);
+      return;
+    }
+    const body = {
+      expected_version: postQuery.data.version,
+      ...form,
+      cta_label: form.cta_type === "none" ? null : form.cta_label.trim(),
+      cta_url: form.cta_type === "none" ? null : form.cta_url.trim(),
+    };
+    save.mutate(body);
+  };
+
+  return (
+    <Dialog.Root open={Boolean(postId)} onOpenChange={(open) => !open && !save.isPending && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/55 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-y-3 right-3 z-[101] w-[calc(100%-1.5rem)] max-w-3xl overflow-y-auto border border-border bg-card shadow-2xl focus:outline-none">
+          <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card/95 p-5 backdrop-blur md:p-6">
+            <div><Dialog.Title className="font-heading text-2xl font-extrabold">Редактирование материала</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">Версия {postQuery.data?.version ?? "—"}. Сохранение создаёт новую версию черновика.</Dialog.Description></div>
+            <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center border border-border" aria-label="Закрыть"><X size={17} /></button>
+          </div>
+
+          {postQuery.isLoading ? <LoadingRows /> : postQuery.error ? <div className="p-6"><ErrorState error={postQuery.error} /></div> : (
+            <div className="space-y-7 p-5 md:p-6">
+              {attempted && <ValidationNotice issues={issues} />}
+              <section className="grid gap-5">
+                <h3 className="font-heading text-lg font-bold">Содержание</h3>
+                <label><span className="mb-2 block text-sm font-semibold">Заголовок</span><Input value={form.title} onChange={(event) => update("title", event.target.value)} className="rounded-none" /></label>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label><span className="mb-2 block text-sm font-semibold">Slug</span><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} className="rounded-none font-mono" /></label>
+                  <label><span className="mb-2 block text-sm font-semibold">Основная категория</span><select value={form.primary_category_id} onChange={(event) => update("primary_category_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите категорию</option>{categoryRows.filter((item) => item.is_active !== false).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                </div>
+                <label><span className="mb-2 block text-sm font-semibold">Краткое описание</span><Textarea value={form.excerpt} maxLength={300} onChange={(event) => update("excerpt", event.target.value)} className="min-h-24 rounded-none" /><span className="mt-1 block text-right text-xs text-muted-foreground">{form.excerpt.length}/300 · минимум 50</span></label>
+                <label><span className="mb-2 block text-sm font-semibold">Текст Markdown</span><Textarea value={form.body_markdown} onChange={(event) => update("body_markdown", event.target.value)} className="min-h-[360px] rounded-none font-mono text-sm" /></label>
+              </section>
+
+              <section className="border-t border-border pt-7">
+                <div className="flex items-center gap-3"><ImageIcon className="text-primary" size={20} /><h3 className="font-heading text-lg font-bold">Обложка</h3></div>
+                {selectedMedia?.url && <img src={selectedMedia.url} alt={selectedMedia.alt || ""} className="mt-4 aspect-[16/7] w-full border border-border object-cover" />}
+                <label className="mt-4 block"><span className="mb-2 block text-sm font-semibold">Выбрать из медиатеки</span><select value={form.cover_media_id} onChange={(event) => update("cover_media_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Обложка не выбрана</option>{mediaRows.map((media) => <option key={media.id} value={media.id}>{media.alt || `Медиа ${media.id}`}</option>)}</select></label>
+                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <label><span className="mb-2 block text-sm font-semibold">Новый файл</span><Input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setCoverFile(event.target.files?.[0] || null)} className="rounded-none" /></label>
+                  <label><span className="mb-2 block text-sm font-semibold">Alt-текст</span><Input value={coverAlt} onChange={(event) => setCoverAlt(event.target.value)} placeholder="Что изображено на обложке" className="rounded-none" /></label>
+                  <Button type="button" variant="outline" onClick={() => mediaUpload.mutate()} disabled={!coverFile || !coverAlt.trim() || mediaUpload.isPending}>{mediaUpload.isPending ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />} Загрузить</Button>
+                </div>
+              </section>
+
+              <section className="grid gap-5 border-t border-border pt-7">
+                <h3 className="font-heading text-lg font-bold">Публикация и действие</h3>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label><span className="mb-2 block text-sm font-semibold">Цель материала</span><select value={form.internal_goal} onChange={(event) => update("internal_goal", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="seo">Поиск</option><option value="registration">Регистрация</option><option value="activation">Активация</option><option value="retention">Удержание</option><option value="b2b_brand">Компании</option><option value="other">Другое</option></select></label>
+                  <label><span className="mb-2 block text-sm font-semibold">Кнопка в статье</span><select value={form.cta_type} onChange={(event) => update("cta_type", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="none">Без кнопки</option><option value="register">Регистрация</option><option value="telegram">Telegram</option><option value="competition">Соревнование</option><option value="profile">Профиль</option><option value="ml_passport">ML-паспорт</option><option value="custom_internal">Своя страница</option></select></label>
+                </div>
+                {form.cta_type !== "none" && <div className="grid gap-5 sm:grid-cols-2"><label><span className="mb-2 block text-sm font-semibold">Текст кнопки</span><Input value={form.cta_label} onChange={(event) => update("cta_label", event.target.value)} className="rounded-none" /></label><label><span className="mb-2 block text-sm font-semibold">Ссылка</span><Input value={form.cta_url} onChange={(event) => update("cta_url", event.target.value)} placeholder="/register" className="rounded-none" /></label></div>}
+                <label><span className="mb-2 block text-sm font-semibold">Автор</span><Input value={form.author_name} onChange={(event) => update("author_name", event.target.value)} className="rounded-none" /></label>
+                {tagRows.length > 0 && <div><p className="mb-3 text-sm font-semibold">Теги</p><div className="flex flex-wrap gap-2">{tagRows.map((tag) => { const checked = form.tag_ids.includes(tag.id); return <label key={tag.id} className={cn("flex cursor-pointer items-center gap-2 border px-3 py-2 text-xs font-semibold", checked ? "border-primary bg-primary/5 text-primary" : "border-border")}><input type="checkbox" checked={checked} onChange={() => update("tag_ids", checked ? form.tag_ids.filter((id) => id !== tag.id) : [...form.tag_ids, tag.id].slice(0, 8))} className="accent-primary" />{tag.name}</label>; })}</div></div>}
+              </section>
+            </div>
+          )}
+
+          <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-border bg-card/95 p-5 backdrop-blur sm:flex-row sm:justify-end md:px-6"><Button variant="outline" onClick={onClose} disabled={save.isPending}>Закрыть</Button><Button onClick={submit} disabled={postQuery.isLoading || save.isPending}>{save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Сохранить изменения</Button></div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 }
 
 function ContentSection({ permissions, requestAction }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const deferredSearch = useDeferredValue(search);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const posts = useQuery({ queryKey: ["admin", "blog", deferredSearch, status], queryFn: () => api.admin.blogPosts({ q: deferredSearch, status, limit: 50, offset: 0, sort: "-updated_at" }), placeholderData: keepPreviousData });
   const categories = useQuery({ queryKey: ["admin", "blog-categories"], queryFn: api.admin.blogCategories, enabled: can(permissions, "content.write"), staleTime: 60000 });
-  const create = useMutation({ mutationFn: api.admin.createBlogPost, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin", "blog"] }); setCreating(false); toast({ title: "Черновик создан" }); }, onError: (error) => toast({ title: "Не удалось создать материал", description: error.message, variant: "destructive" }) });
+  const tags = useQuery({ queryKey: ["admin", "blog-tags"], queryFn: api.admin.blogTags, enabled: can(permissions, "content.write"), staleTime: 60000 });
+  const create = useMutation({ mutationFn: api.admin.createBlogPost, onSuccess: (post) => { queryClient.invalidateQueries({ queryKey: ["admin", "blog"] }); setCreating(false); setEditingId(post.id); toast({ title: "Черновик создан", description: "Добавьте обложку и подготовьте материал к проверке." }); }, onError: (error) => toast({ title: "Не удалось создать материал", description: error.message, variant: "destructive" }) });
   const rows = listRows(posts.data);
   const transition = (post, action, title, permission, options = {}) => requestAction({ title, description: `${post.title}. Сервер проверит допустимость перехода статуса и обязательные поля.`, confirm: title, danger: options.danger, reason: false, run: () => api.admin.blogPostAction(post.id, action, options.body), invalidate: ["admin", "blog"], disabled: !can(permissions, permission) });
-  return <><SectionHeading title="Редакция блога" description="Черновики, проверка и публикация материалов с разделением редакторских прав." count={listTotal(posts.data)} action={can(permissions, "content.write") ? <Button onClick={() => setCreating(true)}><FileText size={16} /> Новый материал</Button> : null} /><div className="mb-4 flex flex-col gap-2 lg:flex-row"><SearchField value={search} onChange={setSearch} placeholder="Найти материал" /><FilterSelect value={status} onChange={setStatus} label="Все статусы" options={[["draft", "Черновики"], ["review", "На проверке"], ["scheduled", "Запланированные"], ["published", "Опубликованные"], ["archived", "Архивные"]]} /></div><TableShell loading={posts.isLoading} error={posts.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((post) => <article key={post.id} className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center"><div><div className="flex flex-wrap gap-2"><Status value={post.status} />{post.featured && <span className="border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary">Главная</span>}</div><h3 className="mt-3 font-heading text-lg font-bold">{post.title}</h3><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{post.excerpt}</p><p className="mt-3 text-xs text-muted-foreground">Версия {post.version ?? "—"} · обновлено {formatDate(post.updated_at)}</p></div><ActionMenu>{post.status === "draft" && can(permissions, "content.review") && <ActionButton tone="primary" onClick={() => transition(post, "review", "Отправить на проверку", "content.review")}><ClipboardCheck size={13} /> На проверку</ActionButton>}{post.status === "review" && can(permissions, "content.publish") && <ActionButton tone="primary" onClick={() => transition(post, "publish", "Опубликовать", "content.publish")}><Play size={13} /> Опубликовать</ActionButton>}{post.status === "review" && can(permissions, "content.review") && <ActionButton onClick={() => transition(post, "return-to-draft", "Вернуть в черновики", "content.review")}><RefreshCw size={13} /> Вернуть</ActionButton>}{["published", "scheduled"].includes(post.status) && can(permissions, "content.publish") && <ActionButton tone="danger" onClick={() => transition(post, "archive", "Архивировать материал", "content.publish", { danger: true })}><Archive size={13} /></ActionButton>}</ActionMenu></article>)}</div></TableShell><BlogCreateDialog open={creating} onClose={() => setCreating(false)} categories={categories.data || []} pending={create.isPending} onSubmit={(form) => create.mutate(form)} /></>;
+  return (
+    <>
+      <SectionHeading title="Редакция блога" description="Черновики, проверка и публикация материалов с разделением редакторских прав." count={listTotal(posts.data)} action={can(permissions, "content.write") ? <Button onClick={() => setCreating(true)}><FileText size={16} /> Новый материал</Button> : null} />
+      <div className="mb-4 flex flex-col gap-2 lg:flex-row"><SearchField value={search} onChange={setSearch} placeholder="Найти материал" /><FilterSelect value={status} onChange={setStatus} label="Все статусы" options={[["draft", "Черновики"], ["review", "На проверке"], ["scheduled", "Запланированные"], ["published", "Опубликованные"], ["archived", "Архивные"]]} /></div>
+      <TableShell loading={posts.isLoading} error={posts.error} empty={!rows.length}>
+        <div className="divide-y divide-border">
+          {rows.map((post) => (
+            <article key={post.id} className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <div className="flex flex-wrap gap-2"><Status value={post.status} />{post.featured && <span className="border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary">Главная</span>}</div>
+                <h3 className="mt-3 font-heading text-lg font-bold">{post.title}</h3>
+                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{post.excerpt}</p>
+                <p className="mt-3 text-xs text-muted-foreground">Версия {post.version ?? "—"} · обновлено {formatDate(post.updated_at)}</p>
+              </div>
+              <ActionMenu>
+                {["draft", "review"].includes(post.status) && can(permissions, "content.write") && <ActionButton onClick={() => setEditingId(post.id)}><Pencil size={13} /> Редактировать</ActionButton>}
+                {post.status === "draft" && can(permissions, "content.review") && <ActionButton tone="primary" onClick={() => transition(post, "review", "Отправить на проверку", "content.review")}><ClipboardCheck size={13} /> На проверку</ActionButton>}
+                {post.status === "review" && can(permissions, "content.publish") && <ActionButton tone="primary" onClick={() => transition(post, "publish", "Опубликовать", "content.publish")}><Play size={13} /> Опубликовать</ActionButton>}
+                {post.status === "review" && can(permissions, "content.review") && <ActionButton onClick={() => transition(post, "return-to-draft", "Вернуть в черновики", "content.review")}><RefreshCw size={13} /> Вернуть</ActionButton>}
+                {["published", "scheduled"].includes(post.status) && can(permissions, "content.publish") && <ActionButton tone="danger" onClick={() => transition(post, "archive", "Архивировать материал", "content.publish", { danger: true })}><Archive size={13} /></ActionButton>}
+              </ActionMenu>
+            </article>
+          ))}
+        </div>
+      </TableShell>
+      <BlogCreateDialog open={creating} onClose={() => setCreating(false)} categories={categories.data || []} pending={create.isPending} onSubmit={(form) => create.mutate(form)} />
+      <BlogEditDialog postId={editingId} onClose={() => setEditingId(null)} categories={categories.data || []} tags={tags.data || []} />
+    </>
+  );
 }
 
 const RESOURCE_TYPES = {
