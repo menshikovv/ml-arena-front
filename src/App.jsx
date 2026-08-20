@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { BrowserRouter as Router, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "@/components/ml/AppLayout";
 import CookieConsent from "@/components/CookieConsent";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -92,35 +92,28 @@ function AdminEntry() {
   return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>}><Admin /></Suspense>;
 }
 
-function SuperAdminPreview({ children, enabled = false }) {
+function SuperAdminPreview({ children }) {
   const { user } = useAuth();
   const access = useQuery({
     queryKey: ["admin", "me"],
     queryFn: api.admin.me,
-    enabled: !enabled && user?.role === "admin",
+    enabled: user?.role === "admin",
     retry: false,
     staleTime: 60000,
   });
 
-  if (enabled) return children;
   if (user?.role !== "admin") return <Navigate to="/" replace />;
   if (access.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
   if (!access.data?.roles?.includes("super_admin")) return <Navigate to="/" replace />;
   return children;
 }
 
-function ProtectedPreviewRoute({ enabled = false }) {
-  return enabled ? <Outlet /> : <ProtectedRoute />;
-}
-
 function AppRoutes() {
   const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
-  const founderMode = import.meta.env.VITE_FOUNDER_MODE !== "false";
-  const closedSectionsEnabled = import.meta.env.VITE_ENABLE_CLOSED_SECTIONS === "true";
   const isAdmin = user?.role === "admin";
   const previewAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: isAdmin, retry: false, staleTime: 60000 });
   const isSuperAdmin = previewAccess.data?.roles?.includes("super_admin");
-  const showFounderPlaceholders = founderMode && !isSuperAdmin;
+  const showFounderPlaceholders = !isSuperAdmin;
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return <div className="fixed inset-0 flex items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
@@ -154,7 +147,7 @@ function AppRoutes() {
             <Route path="/ml-passport" element={<FounderPlaceholder section="passport" />} />
           </>
         ) : (
-          <Route element={<ProtectedPreviewRoute enabled={closedSectionsEnabled} />}>
+          <Route element={<ProtectedRoute />}>
             <Route path="/competitions" element={<Competitions />} />
             <Route path="/competitions/community/create" element={<CommunityCompetitionCreate />} />
             <Route path="/competitions/:id/:section?" element={<CompetitionDetail />} />
@@ -170,15 +163,15 @@ function AppRoutes() {
           </Route>
         )}
         <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
-        <Route path="/pricing" element={<SuperAdminPreview enabled={closedSectionsEnabled}><Pricing /></SuperAdminPreview>} />
-        <Route element={<ProtectedPreviewRoute enabled={closedSectionsEnabled} />}>
+        <Route path="/pricing" element={<SuperAdminPreview><Pricing /></SuperAdminPreview>} />
+        <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={showFounderPlaceholders ? <FounderProfile /> : <Profile />} />
           <Route path="/profile/me" element={<Navigate to="/profile" replace />} />
           {!showFounderPlaceholders && <Route path="/profile/:id" element={<Profile />} />}
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route path="/profile/edit" element={<ProfileEdit />} />
-          <Route path="/company/dashboard" element={closedSectionsEnabled ? <CompanyDashboard /> : <Navigate to="/" replace />} />
+          <Route path="/company/dashboard" element={<SuperAdminPreview><CompanyDashboard /></SuperAdminPreview>} />
           <Route path="/admin" element={<AdminEntry />} />
         </Route>
       </Route>
