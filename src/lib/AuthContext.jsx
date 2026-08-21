@@ -14,10 +14,15 @@ function mapUser(account = {}, profile = {}) {
     full_name: profile.full_name ?? profile.name ?? account.full_name ?? account.name ?? "",
     education_status: profile.university || "",
     organization: profile.company || account.organization_name || "",
+    birth_date: profile.birth_date || "",
+    ml_experience_years: profile.ml_experience_years ?? "",
+    ml_experience: profile.ml_experience || "",
     account_status: account.status === "pending_email" ? "pending_verification" : account.status,
     preregistration_status: account.email_verified ? "confirmed" : "pending_email",
     registered_at: profile.created_at,
-    ml_interests: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
+    ml_interests: Array.isArray(profile.ml_interests)
+      ? profile.ml_interests
+      : Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
   };
 }
 
@@ -136,8 +141,12 @@ export const AuthProvider = ({ children }) => {
       full_name: changes.full_name || null,
       bio: changes.bio || null,
       city: changes.city || null,
+      birth_date: changes.birth_date || null,
       university: changes.education_status || null,
       company: changes.organization || null,
+      ml_experience_years: changes.ml_experience_years === "" ? null : Number(changes.ml_experience_years),
+      ml_experience: changes.ml_experience || null,
+      ml_interests: changes.ml_interests,
       github_url: changes.github_url || null,
       kaggle_url: changes.kaggle_url || null,
       visible_to_employers: changes.visible_to_employers,
