@@ -109,7 +109,7 @@ function SuperAdminPreview({ children }) {
 }
 
 function AppRoutes() {
-  const { isAuthenticated, isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
   const isAdmin = user?.role === "admin";
   const previewAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: isAdmin, retry: false, staleTime: 60000 });
   const isSuperAdmin = previewAccess.data?.roles?.includes("super_admin");
@@ -130,8 +130,6 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<LegalNotice type="terms" />} />
       <Route path="/privacy" element={<LegalNotice type="privacy" />} />
-      <Route path="/support" element={isAuthenticated ? <AppLayout><Help embedded /></AppLayout> : <Help />} />
-      <Route path="/companies" element={isAuthenticated ? <AppLayout><Cooperation embedded /></AppLayout> : <Cooperation />} />
       <Route path="/help" element={<Navigate to="/support" replace />} />
       <Route path="/contacts/cooperation" element={<Navigate to="/companies" replace />} />
       <Route path="/cooperation" element={<Navigate to="/companies" replace />} />
@@ -139,6 +137,8 @@ function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/companies" element={<Cooperation embedded />} />
+        <Route path="/support" element={<Help embedded />} />
         {showFounderPlaceholders ? (
           <>
             <Route path="/competitions/*" element={<FounderPlaceholder section="competitions" />} />
