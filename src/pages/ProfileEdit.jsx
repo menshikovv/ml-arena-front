@@ -26,6 +26,13 @@ import { useAuth } from "@/lib/AuthContext";
 
 const INPUT_CLASS = "h-10 rounded-md bg-secondary/20 px-3.5 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15";
 
+const SECTIONS = [
+  { id: "profile-main", label: "Профиль", icon: UserRound },
+  { id: "profile-career", label: "Учёба и работа", icon: BriefcaseBusiness },
+  { id: "profile-links", label: "Ссылки", icon: Link2 },
+  { id: "profile-visibility", label: "Видимость", icon: ShieldCheck },
+];
+
 export default function ProfileEdit() {
   const { user, updateProfile, updateAvatar, deleteAvatar } = useAuth();
   const navigate = useNavigate();
@@ -47,6 +54,7 @@ export default function ProfileEdit() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [draggingAvatar, setDraggingAvatar] = useState(false);
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(initial) || Boolean(avatarFile) || removeAvatar;
@@ -68,9 +76,23 @@ export default function ProfileEdit() {
     return () => window.removeEventListener("beforeunload", preventClose);
   }, [dirty]);
 
+  useEffect(() => {
+    const sections = SECTIONS.map(({ id }) => document.getElementById(id)).filter(Boolean);
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visible) setActiveSection(visible.target.id);
+    }, { rootMargin: "-18% 0px -62%", threshold: [0.05, 0.35, 0.7] });
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const goBack = () => {
     if (!dirty || window.confirm("Уйти без сохранения изменений?")) navigate("/profile");
+  };
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const selectAvatar = (file) => {
     if (!file) return;
@@ -122,138 +144,148 @@ export default function ProfileEdit() {
 
   return (
     <div className="min-h-full bg-secondary/15">
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-5 md:px-7 md:py-7">
-        <form onSubmit={handleSubmit}>
-          <div className="mb-5 flex min-h-9 items-center justify-between gap-4">
-            <button type="button" onClick={goBack} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-              <ArrowLeft size={16} /> Вернуться в профиль
-            </button>
-            <span className={`hidden items-center gap-1.5 rounded-full border bg-card px-3 py-2 text-xs font-medium shadow-sm sm:inline-flex ${dirty ? "border-amber-500/25 text-amber-700 dark:text-amber-300" : "border-border text-muted-foreground"}`}>
-              {dirty ? <CircleAlert size={14} /> : <Check size={14} />}
-              {dirty ? "Есть несохранённые изменения" : "Изменений нет"}
-            </span>
-          </div>
+      <div className="mx-auto w-full max-w-[1440px] px-3 py-4 sm:px-5 md:px-7 md:py-7">
+        <button type="button" onClick={goBack} className="mb-4 inline-flex h-9 items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
+          <ArrowLeft size={16} /> Вернуться в профиль
+        </button>
 
-          <div className="grid items-start gap-5 lg:grid-cols-[280px_minmax(0,1fr)] xl:gap-6">
-            <aside className="overflow-hidden rounded-md border border-border bg-card shadow-sm lg:sticky lg:top-5">
-              <div className="relative overflow-hidden border-b border-border bg-secondary/20 px-5 py-6">
-                <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--primary)/.08)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary)/.08)_1px,transparent_1px)] [background-size:24px_24px]" />
-                <div
-                  className={`relative mx-auto flex h-32 w-full items-center justify-center rounded-md border transition-[border-color,background-color,box-shadow] ${draggingAvatar ? "border-primary bg-primary/10 shadow-inner" : "border-border/80 bg-card/75"}`}
-                  onDragEnter={(event) => { event.preventDefault(); setDraggingAvatar(true); }}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDragLeave={() => setDraggingAvatar(false)}
-                  onDrop={handleAvatarDrop}
-                >
-                  <button type="button" onClick={() => fileRef.current?.click()} className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4" title="Выбрать аватар">
-                    <Avatar name={form.full_name || form.nickname} src={avatarPreview} size={92} className="ring-4 ring-card shadow-lg" />
-                    <span className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                      <Camera size={22} />
-                    </span>
-                  </button>
-                </div>
-
-                <div className="relative mt-4 min-w-0 text-center">
-                  <h2 className="truncate font-heading text-lg font-bold">{form.nickname || "Новый участник"}</h2>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-
-                <div className="relative mt-4 grid grid-cols-[1fr_auto] gap-2">
-                  <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}><Camera size={15} /> Заменить</Button>
-                  {avatarPreview && <Button type="button" variant="ghost" size="icon" onClick={clearAvatar} className="text-muted-foreground hover:text-destructive" title="Удалить аватар"><Trash2 size={16} /></Button>}
-                </div>
-                <p className="relative mt-2 text-center text-[11px] leading-5 text-muted-foreground">JPG, PNG или WebP до 5 МБ</p>
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
+        <form onSubmit={handleSubmit} className="overflow-hidden border border-border bg-card shadow-[0_18px_60px_hsl(var(--foreground)/0.06)]">
+          <div className="grid lg:grid-cols-[230px_minmax(0,1fr)]">
+            <aside className="border-b border-border bg-secondary/20 lg:border-b-0 lg:border-r">
+              <div className="border-b border-border px-5 py-5 lg:px-6 lg:py-7">
+                <p className="font-heading text-xl font-extrabold">Настройки</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
               </div>
 
-              <div className="p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-muted-foreground">Заполненность</p>
-                  <p className="font-heading text-lg font-bold tabular-nums">{completion}%</p>
+              <nav className="flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-4 lg:block lg:space-y-1 lg:overflow-visible lg:p-3" aria-label="Разделы профиля">
+                {SECTIONS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => scrollToSection(id)}
+                    className={`flex h-11 shrink-0 items-center gap-3 px-3 text-sm font-semibold transition-colors lg:w-full ${activeSection === id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-card hover:text-foreground"}`}
+                  >
+                    <Icon size={17} /> {label}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="hidden border-t border-border p-5 lg:block">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground">Профиль заполнен</span>
+                  <span className="tabular-nums">{completion}%</span>
                 </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
-                  <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${completion}%` }} />
+                <div className="mt-3 h-1.5 overflow-hidden bg-border">
+                  <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${completion}%` }} />
                 </div>
-                <p className="mt-3 text-xs leading-5 text-muted-foreground">Добавьте опыт и ссылки, чтобы профиль лучше отражал ваши навыки.</p>
               </div>
             </aside>
 
-            <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
-              <div className="flex flex-col justify-between gap-3 border-b border-border bg-secondary/15 px-5 py-4 sm:flex-row sm:items-center md:px-6">
-                <div>
-                  <p className="font-heading text-lg font-extrabold">Данные профиля</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Информация сохраняется в профиле и ML-паспорте.</p>
+            <main className="min-w-0">
+              <header className="sticky top-0 z-30 flex min-h-[76px] items-center justify-between gap-4 border-b border-border bg-card/95 px-5 py-4 backdrop-blur md:px-8">
+                <div className="min-w-0">
+                  <h1 className="truncate font-heading text-xl font-extrabold sm:text-2xl">Ваш профиль</h1>
+                  <p className={`mt-1 flex items-center gap-1.5 text-xs ${dirty ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>
+                    {dirty ? <CircleAlert size={13} /> : <Check size={13} className="text-emerald-600" />}
+                    {dirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
+                  </p>
                 </div>
-                <span className="w-fit rounded-md border border-primary/15 bg-primary/[0.045] px-3 py-2 text-xs font-semibold text-primary">Заполнено на {completion}%</span>
-              </div>
-
-              <FormSection icon={UserRound} title="Основная информация" description="Как вас увидят другие участники.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Никнейм" required>
-                    <Input value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="username" maxLength={30} className={INPUT_CLASS} required />
-                  </Field>
-                  <Field label="Имя и фамилия">
-                    <Input value={form.full_name} onChange={(event) => update("full_name", event.target.value)} autoComplete="name" maxLength={120} className={INPUT_CLASS} />
-                  </Field>
-                  <div className="space-y-2 sm:col-span-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <Label htmlFor="bio">О себе</Label>
-                      <span className="text-[11px] tabular-nums text-muted-foreground">{form.bio.length}/1000</span>
-                    </div>
-                    <Textarea id="bio" value={form.bio} onChange={(event) => update("bio", event.target.value)} maxLength={1000} rows={3} placeholder="Опыт, интересы и задачи, которые вы хотите решать" className="resize-none rounded-md bg-secondary/20 px-3.5 py-3 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15" />
-                  </div>
-                </div>
-              </FormSection>
-
-              <FormSection icon={BriefcaseBusiness} title="Учёба и работа" description="Ваш профессиональный контекст.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Город" icon={MapPin}>
-                    <Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} />
-                  </Field>
-                  <Field label="Университет" icon={GraduationCap}>
-                    <Input value={form.education_status} onChange={(event) => update("education_status", event.target.value)} maxLength={200} placeholder="Название университета" className={INPUT_CLASS} />
-                  </Field>
-                  <Field label="Компания" icon={BriefcaseBusiness} className="sm:col-span-2">
-                    <Input value={form.organization} onChange={(event) => update("organization", event.target.value)} autoComplete="organization" maxLength={200} placeholder="Текущее место работы" className={INPUT_CLASS} />
-                  </Field>
-                </div>
-              </FormSection>
-
-              <FormSection icon={Link2} title="Ссылки" description="Код, проекты и результаты.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="GitHub">
-                    <Input type="url" value={form.github_url} onChange={(event) => update("github_url", event.target.value)} autoComplete="url" placeholder="https://github.com/username" className={INPUT_CLASS} />
-                  </Field>
-                  <Field label="Kaggle">
-                    <Input type="url" value={form.kaggle_url} onChange={(event) => update("kaggle_url", event.target.value)} autoComplete="url" placeholder="https://kaggle.com/username" className={INPUT_CLASS} />
-                  </Field>
-                </div>
-              </FormSection>
-
-              <FormSection icon={ShieldCheck} title="Видимость" description="Кто сможет увидеть профиль.">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Toggle icon={Globe2} checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль доступен по ссылке и отображается в поиске." />
-                  <Toggle icon={BriefcaseBusiness} checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Виден компаниям" text="Компании смогут находить вас среди участников." />
-                </div>
-              </FormSection>
-
-              {error && (
-                <div className="mx-5 mb-4 flex items-start gap-3 rounded-md border border-destructive/20 bg-destructive/5 p-3.5 text-sm text-destructive md:mx-6">
-                  <CircleAlert className="mt-0.5 shrink-0" size={17} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div className="sticky bottom-0 z-20 flex flex-col justify-between gap-3 border-t border-border bg-card/95 px-5 py-3 backdrop-blur sm:flex-row sm:items-center md:px-6">
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">{dirty ? <CircleAlert size={14} className="text-amber-600" /> : <Check size={14} className="text-emerald-600" />}{dirty ? "Изменения еще не сохранены" : "Все данные сохранены"}</p>
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={goBack} className="flex-1 sm:flex-none">Отмена</Button>
-                  <Button type="submit" disabled={loading || !dirty} className="min-w-36 flex-1 sm:flex-none">
+                <div className="hidden shrink-0 gap-2 sm:flex">
+                  <Button type="button" variant="outline" onClick={goBack}>Отмена</Button>
+                  <Button type="submit" disabled={loading || !dirty} className="min-w-32">
                     {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Сохранить
                   </Button>
                 </div>
+              </header>
+
+              <div className="mx-auto max-w-[980px] px-5 md:px-8">
+                <FormSection id="profile-main" icon={UserRound} title="Профиль">
+                  <div
+                    className={`flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-center ${draggingAvatar ? "bg-primary/[0.035]" : ""}`}
+                    onDragEnter={(event) => { event.preventDefault(); setDraggingAvatar(true); }}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDragLeave={() => setDraggingAvatar(false)}
+                    onDrop={handleAvatarDrop}
+                  >
+                    <button type="button" onClick={() => fileRef.current?.click()} className="group relative w-fit rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4" title="Изменить фото">
+                      <Avatar name={form.full_name || form.nickname} src={avatarPreview} size={100} className="ring-4 ring-secondary/60 shadow-lg" />
+                      <span className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/60 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"><Camera size={23} /></span>
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-heading text-xl font-bold">{form.full_name || form.nickname || "Новый участник"}</p>
+                      <p className="mt-1 truncate text-sm text-muted-foreground">@{form.nickname || "nickname"}</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Camera size={15} /> Изменить фото</Button>
+                        {avatarPreview && <Button type="button" variant="ghost" size="sm" onClick={clearAvatar} className="text-destructive hover:text-destructive"><Trash2 size={15} /> Удалить</Button>}
+                      </div>
+                      <p className="mt-2 text-[11px] text-muted-foreground">JPG, PNG или WebP · до 5 МБ</p>
+                    </div>
+                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
+                  </div>
+
+                  <div className="mt-7 grid gap-5 sm:grid-cols-2">
+                    <Field label="Никнейм" required>
+                      <Input value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="username" maxLength={30} className={INPUT_CLASS} required />
+                    </Field>
+                    <Field label="Имя и фамилия">
+                      <Input value={form.full_name} onChange={(event) => update("full_name", event.target.value)} autoComplete="name" maxLength={120} className={INPUT_CLASS} />
+                    </Field>
+                    <div className="space-y-2 sm:col-span-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="bio">О себе</Label>
+                        <span className="text-[11px] tabular-nums text-muted-foreground">{form.bio.length}/1000</span>
+                      </div>
+                      <Textarea id="bio" value={form.bio} onChange={(event) => update("bio", event.target.value)} maxLength={1000} rows={4} placeholder="Расскажите о своём опыте и интересах" className="resize-none rounded-md bg-secondary/20 px-3.5 py-3 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15" />
+                    </div>
+                  </div>
+                </FormSection>
+
+                <FormSection id="profile-career" icon={BriefcaseBusiness} title="Учёба и работа">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="Город" icon={MapPin}>
+                      <Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} />
+                    </Field>
+                    <Field label="Университет" icon={GraduationCap}>
+                      <Input value={form.education_status} onChange={(event) => update("education_status", event.target.value)} maxLength={200} placeholder="Название университета" className={INPUT_CLASS} />
+                    </Field>
+                    <Field label="Компания" icon={BriefcaseBusiness} className="sm:col-span-2">
+                      <Input value={form.organization} onChange={(event) => update("organization", event.target.value)} autoComplete="organization" maxLength={200} placeholder="Текущее место работы" className={INPUT_CLASS} />
+                    </Field>
+                  </div>
+                </FormSection>
+
+                <FormSection id="profile-links" icon={Link2} title="Ссылки">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="GitHub">
+                      <Input type="url" value={form.github_url} onChange={(event) => update("github_url", event.target.value)} autoComplete="url" placeholder="https://github.com/username" className={INPUT_CLASS} />
+                    </Field>
+                    <Field label="Kaggle">
+                      <Input type="url" value={form.kaggle_url} onChange={(event) => update("kaggle_url", event.target.value)} autoComplete="url" placeholder="https://kaggle.com/username" className={INPUT_CLASS} />
+                    </Field>
+                  </div>
+                </FormSection>
+
+                <FormSection id="profile-visibility" icon={ShieldCheck} title="Видимость">
+                  <div className="divide-y divide-border border-y border-border">
+                    <Toggle icon={Globe2} checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль доступен по ссылке и отображается в поиске." />
+                    <Toggle icon={BriefcaseBusiness} checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Показывать компаниям" text="Компании смогут находить ваш профиль среди участников." />
+                  </div>
+                </FormSection>
+
+                {error && (
+                  <div className="mb-6 flex items-start gap-3 border border-destructive/20 bg-destructive/5 p-3.5 text-sm text-destructive">
+                    <CircleAlert className="mt-0.5 shrink-0" size={17} /><span>{error}</span>
+                  </div>
+                )}
               </div>
-            </div>
+
+              <div className="sticky bottom-0 z-30 flex gap-2 border-t border-border bg-card/95 p-4 backdrop-blur sm:hidden">
+                <Button type="button" variant="outline" onClick={goBack} className="flex-1">Отмена</Button>
+                <Button type="submit" disabled={loading || !dirty} className="flex-1">
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Сохранить
+                </Button>
+              </div>
+            </main>
           </div>
         </form>
       </div>
@@ -261,15 +293,12 @@ export default function ProfileEdit() {
   );
 }
 
-function FormSection({ icon: Icon, title, description, children }) {
+function FormSection({ id, icon: Icon, title, children }) {
   return (
-    <section className="grid gap-5 border-b border-border p-5 last:border-b-0 md:grid-cols-[170px_minmax(0,1fr)] md:px-6 md:py-5 lg:grid-cols-[185px_minmax(0,1fr)]">
-      <div className="flex items-start gap-3 md:block">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/15 bg-primary/[0.06] text-primary"><Icon size={17} /></span>
-        <div className="md:mt-3">
-          <h2 className="font-heading text-base font-bold">{title}</h2>
-          <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">{description}</p>
-        </div>
+    <section id={id} className="scroll-mt-24 border-b border-border py-8 last:border-b-0 md:py-10">
+      <div className="mb-6 flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-primary/10 text-primary"><Icon size={17} /></span>
+        <h2 className="font-heading text-lg font-extrabold">{title}</h2>
       </div>
       <div className="min-w-0">{children}</div>
     </section>
@@ -291,13 +320,13 @@ function Field({ label, icon: Icon, required = false, className = "", children }
 
 function Toggle({ icon: Icon, checked, onChange, title, text }) {
   return (
-    <label className="group flex min-h-24 cursor-pointer items-start gap-3 rounded-md border border-border bg-secondary/25 p-4 transition-[background-color,border-color] hover:border-primary/25 hover:bg-primary/[0.03]">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors ${checked ? "bg-primary/10 text-primary" : "bg-card text-muted-foreground"}`}><Icon size={17} /></span>
+    <label className="group flex min-h-20 cursor-pointer items-center gap-3 py-4 transition-colors hover:bg-secondary/20 sm:px-2">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center transition-colors ${checked ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}><Icon size={17} /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{title}</span>
         <span className="mt-1 block text-xs leading-5 text-muted-foreground">{text}</span>
       </span>
-      <span className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}>
+      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}>
         <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="sr-only" />
         <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? "translate-x-6" : "translate-x-1"}`} />
       </span>

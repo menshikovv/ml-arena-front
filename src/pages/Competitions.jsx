@@ -140,12 +140,6 @@ export default function Competitions() {
       });
   }, [accessFilter, competitions, search, sort, statusFilter, typeFilter]);
 
-  const activeCount = competitions.filter((item) => getStatus(item) === "active").length;
-  const participantCount = competitions.reduce((sum, item) => sum + (item.participants_count || 0), 0);
-  const nearestDeadline = competitions
-    .filter((item) => getStatus(item) === "active" && item.deadline)
-    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
-
   const switchSection = (value) => {
     setSearchParams(value === "community" ? { section: "community" } : {});
     setSearch("");
@@ -171,30 +165,7 @@ export default function Competitions() {
 
   return (
     <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
-      <Reveal>
-        <header className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
-          <div>
-            <h1 className="font-heading text-4xl font-extrabold leading-tight sm:text-5xl">Соревнования</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
-              Практические ML-задачи от ML-Арены, партнёров и сообщества. Официальные результаты могут влиять на сезонный рейтинг и подтверждённую часть ML-паспорта; практика сообщества сохраняется отдельно.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 border border-border bg-card">
-            {[
-              { label: "Активно", value: activeCount },
-              { label: "Участников", value: participantCount || "—" },
-              { label: "Ближайший дедлайн", value: nearestDeadline ? new Date(nearestDeadline.deadline).toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) : "—" },
-            ].map((stat, index) => (
-              <div key={stat.label} className={cn("p-4", index > 0 && "border-l border-border")}>
-                <p className="text-[10px] font-semibold text-muted-foreground">{stat.label}</p>
-                <p className="mt-3 font-heading text-xl font-extrabold">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-        </header>
-      </Reveal>
-
-      <Reveal className="mt-7" delay={0.04}>
+      <Reveal delay={0.04}>
         <section className="grid gap-px border border-border bg-border md:grid-cols-2">
           {[
             {

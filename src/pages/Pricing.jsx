@@ -15,11 +15,12 @@ import {
   FlaskConical,
   LineChart,
   LockKeyhole,
+  MessagesSquare,
+  Presentation,
   Route,
   ShieldCheck,
   Sparkles,
   Target,
-  UsersRound,
   X,
 } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
@@ -65,10 +66,16 @@ const FEATURES = [
     note: "Без платного продвижения",
   },
   {
-    icon: UsersRound,
-    title: "Вебинары и сообщество",
-    description: "Участвуйте в групповых разборах, вебинарах и обсуждениях с другими активными участниками.",
-    note: "1–2 события в месяц",
+    icon: Presentation,
+    title: "Вебинары",
+    description: "Встречи и групповые разборы от экспертов, которые помогают развивать навыки и выбирать следующий шаг.",
+    note: "Встречи с экспертами",
+  },
+  {
+    icon: MessagesSquare,
+    title: "Сообщество",
+    description: "Общий чат участников и разработчиков ML-Арены для вопросов, обмена опытом и обсуждения платформы.",
+    note: "Чат участников",
   },
 ];
 
