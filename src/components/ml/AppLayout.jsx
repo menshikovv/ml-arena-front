@@ -49,7 +49,15 @@ export default function AppLayout({ children }) {
   const navItems = user?.role === "admin"
     ? [...NAV_ITEMS, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Админка", icon: ShieldCheck }]
     : NAV_ITEMS;
-  const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const isActive = (path) => {
+    if (path === "/ml-passport") {
+      return location.pathname === path
+        || location.pathname.startsWith(`${path}/`)
+        || location.pathname === "/profile"
+        || (location.pathname.startsWith("/profile/") && location.pathname !== "/profile/edit");
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
 
   useEffect(() => {
