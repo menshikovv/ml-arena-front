@@ -33,22 +33,30 @@ const SECTIONS = [
   { id: "profile-visibility", label: "Видимость", icon: ShieldCheck },
 ];
 
+const splitFullName = (fullName = "") => {
+  const [firstName = "", ...lastNameParts] = fullName.trim().split(/\s+/).filter(Boolean);
+  return { first_name: firstName, last_name: lastNameParts.join(" ") };
+};
+
 export default function ProfileEdit() {
   const { user, updateProfile, updateAvatar, deleteAvatar } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
-  const initial = useMemo(() => ({
-    nickname: user?.nickname || "",
-    full_name: user?.full_name || "",
-    city: user?.city || "",
-    education_status: user?.education_status || "",
-    organization: user?.organization || "",
-    github_url: user?.github_url || "",
-    kaggle_url: user?.kaggle_url || "",
-    bio: user?.bio || "",
-    visible_to_employers: Boolean(user?.visible_to_employers),
-    public_profile: user?.public_profile ?? true,
-  }), [user]);
+  const initial = useMemo(() => {
+    const name = splitFullName(user?.full_name);
+    return {
+      nickname: user?.nickname || "",
+      ...name,
+      city: user?.city || "",
+      education_status: user?.education_status || "",
+      organization: user?.organization || "",
+      github_url: user?.github_url || "",
+      kaggle_url: user?.kaggle_url || "",
+      bio: user?.bio || "",
+      visible_to_employers: Boolean(user?.visible_to_employers),
+      public_profile: user?.public_profile ?? true,
+    };
+  }, [user]);
   const [form, setForm] = useState(initial);
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || "");
   const [avatarFile, setAvatarFile] = useState(null);
@@ -58,7 +66,7 @@ export default function ProfileEdit() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(initial) || Boolean(avatarFile) || removeAvatar;
-  const completionFields = [form.full_name, form.city, form.education_status, form.organization, form.github_url, form.bio];
+  const completionFields = [form.first_name, form.last_name, form.city, form.education_status, form.organization, form.github_url, form.bio];
   const completion = Math.round((completionFields.filter(Boolean).length / completionFields.length) * 100);
 
   useEffect(() => {
@@ -130,7 +138,8 @@ export default function ProfileEdit() {
     }
     setLoading(true);
     try {
-      await updateProfile(form);
+      const { first_name: firstName, last_name: lastName, ...profileData } = form;
+      await updateProfile({ ...profileData, full_name: [firstName, lastName].filter(Boolean).join(" ") });
       if (avatarFile) await updateAvatar(avatarFile);
       else if (removeAvatar) await deleteAvatar();
       toast({ title: "Профиль сохранён" });
@@ -152,11 +161,6 @@ export default function ProfileEdit() {
         <form onSubmit={handleSubmit} className="overflow-hidden border border-border bg-card shadow-[0_18px_60px_hsl(var(--foreground)/0.06)]">
           <div className="grid lg:grid-cols-[230px_minmax(0,1fr)]">
             <aside className="border-b border-border bg-secondary/20 lg:border-b-0 lg:border-r">
-              <div className="border-b border-border px-5 py-5 lg:px-6 lg:py-7">
-                <p className="font-heading text-xl font-extrabold">Настройки</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-
               <nav className="flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-4 lg:block lg:space-y-1 lg:overflow-visible lg:p-3" aria-label="Разделы профиля">
                 {SECTIONS.map(({ id, label, icon: Icon }) => (
                   <button
@@ -208,11 +212,11 @@ export default function ProfileEdit() {
                     onDrop={handleAvatarDrop}
                   >
                     <button type="button" onClick={() => fileRef.current?.click()} className="group relative w-fit rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4" title="Изменить фото">
-                      <Avatar name={form.full_name || form.nickname} src={avatarPreview} size={100} className="ring-4 ring-secondary/60 shadow-lg" />
+                      <Avatar name={[form.first_name, form.last_name].filter(Boolean).join(" ") || form.nickname} src={avatarPreview} size={100} className="ring-4 ring-secondary/60 shadow-lg" />
                       <span className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/60 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"><Camera size={23} /></span>
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-heading text-xl font-bold">{form.full_name || form.nickname || "Новый участник"}</p>
+                      <p className="truncate font-heading text-xl font-bold">{[form.first_name, form.last_name].filter(Boolean).join(" ") || form.nickname || "Новый участник"}</p>
                       <p className="mt-1 truncate text-sm text-muted-foreground">@{form.nickname || "nickname"}</p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Camera size={15} /> Изменить фото</Button>
@@ -223,14 +227,17 @@ export default function ProfileEdit() {
                     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
                   </div>
 
-                  <div className="mt-7 grid gap-5 sm:grid-cols-2">
+                  <div className="mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                     <Field label="Никнейм" required>
                       <Input value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="username" maxLength={30} className={INPUT_CLASS} required />
                     </Field>
-                    <Field label="Имя и фамилия">
-                      <Input value={form.full_name} onChange={(event) => update("full_name", event.target.value)} autoComplete="name" maxLength={120} className={INPUT_CLASS} />
+                    <Field label="Имя">
+                      <Input value={form.first_name} onChange={(event) => update("first_name", event.target.value)} autoComplete="given-name" maxLength={60} className={INPUT_CLASS} />
                     </Field>
-                    <div className="space-y-2 sm:col-span-2">
+                    <Field label="Фамилия">
+                      <Input value={form.last_name} onChange={(event) => update("last_name", event.target.value)} autoComplete="family-name" maxLength={60} className={INPUT_CLASS} />
+                    </Field>
+                    <div className="space-y-2 sm:col-span-2 xl:col-span-3">
                       <div className="flex items-center justify-between gap-3">
                         <Label htmlFor="bio">О себе</Label>
                         <span className="text-[11px] tabular-nums text-muted-foreground">{form.bio.length}/1000</span>
