@@ -1,4 +1,4 @@
-import { ApiError, apiData, apiRequest, clearAccessToken, queryString, restoreSession, setAccessToken } from "@/api/client";
+import { API_URL, ApiError, apiData, apiRequest, clearAccessToken, getAccessToken, queryString, restoreSession, setAccessToken } from "@/api/client";
 
 const json = (body) => JSON.stringify(body);
 
@@ -99,7 +99,7 @@ export const api = {
     userNotes: (id) => apiData(`/api/v1/admin/users/${id}/notes`),
     addUserNote: (id, note) => apiData(`/api/v1/admin/users/${id}/notes`, { method: "POST", body: json({ note }) }),
     grantBadge: (userId, badgeId) => apiData(`/api/v1/admin/users/${userId}/badges/${badgeId}/grant`, { method: "POST" }),
-    revokeBadge: (userId, badgeId) => apiData(`/api/v1/admin/users/${userId}/badges/${badgeId}/revoke`, { method: "POST" }),
+    revokeBadge: (userId, badgeId, reason) => apiData(`/api/v1/admin/users/${userId}/badges/${badgeId}/revoke`, { method: "POST", body: json({ reason }) }),
     organizations: (params) => apiRequest(`/api/v1/admin/organizations${queryString(params)}`),
     organization: (id) => apiData(`/api/v1/admin/organizations/${id}`),
     createOrganization: (body) => apiData("/api/v1/admin/organizations", { method: "POST", body: json(body) }),
@@ -109,6 +109,7 @@ export const api = {
     metric: (id) => apiData(`/api/v1/admin/metrics/${id}`),
     createMetric: (body) => apiData("/api/v1/admin/metrics", { method: "POST", body: json(body) }),
     updateMetric: (id, body) => apiData(`/api/v1/admin/metrics/${id}`, { method: "PATCH", body: json(body) }),
+    createMetricVersion: (id, body) => apiData(`/api/v1/admin/metrics/${id}/versions`, { method: "POST", body: json(body) }),
     metricAction: (id, action, body) => apiData(`/api/v1/admin/metrics/${id}/${action}`, { method: "POST", ...(body ? { body: json(body) } : {}) }),
     deleteMetric: (id) => apiData(`/api/v1/admin/metrics/${id}`, { method: "DELETE" }),
     datasets: (params) => apiRequest(`/api/v1/admin/datasets${queryString(params)}`),
@@ -121,6 +122,7 @@ export const api = {
     deleteDataset: (id) => apiData(`/api/v1/admin/datasets/${id}`, { method: "DELETE" }),
     validateDatasetVersion: (id) => apiData(`/api/v1/admin/dataset-versions/${id}/validate`, { method: "POST" }),
     datasetValidation: (id) => apiData(`/api/v1/admin/dataset-versions/${id}/validation`),
+    downloadDatasetFile: (id) => downloadFromApi(`/api/v1/admin/dataset-files/${id}/download`),
     tasks: (params) => apiRequest(`/api/v1/admin/tasks${queryString(params)}`),
     task: (id) => apiData(`/api/v1/admin/tasks/${id}`),
     createTask: (body) => apiData("/api/v1/admin/tasks", { method: "POST", body: json(body) }),
@@ -168,6 +170,8 @@ export const api = {
     updateBlogPost: (id, body) => apiData(`/api/v1/admin/blog/posts/${id}`, { method: "PATCH", body: json(body) }),
     deleteBlogPost: (id) => apiData(`/api/v1/admin/blog/posts/${id}`, { method: "DELETE" }),
     blogPostAction: (id, action, body) => apiData(`/api/v1/admin/blog/posts/${id}/${action}`, { method: "POST", ...(body ? { body: json(body) } : {}) }),
+    blogPostPreviewToken: (id) => apiData(`/api/v1/admin/blog/posts/${id}/preview-token`, { method: "POST" }),
+    blogPreview: (token) => apiData(`/api/v1/blog/preview${queryString({ token })}`),
     blogPostRevisions: (id) => apiData(`/api/v1/admin/blog/posts/${id}/revisions`),
     blogPostMetrics: (id) => apiData(`/api/v1/admin/blog/posts/${id}/metrics`),
     blogCategories: () => apiData("/api/v1/admin/blog/categories"),
@@ -182,8 +186,23 @@ export const api = {
     attachBlogMedia: (body) => apiData("/api/v1/admin/blog/media", { method: "POST", body: json(body) }),
     updateBlogMedia: (id, body) => apiData(`/api/v1/admin/blog/media/${id}`, { method: "PATCH", body: json(body) }),
     deleteBlogMedia: (id) => apiData(`/api/v1/admin/blog/media/${id}`, { method: "DELETE" }),
+    blogMediaDownload: (id) => downloadFromApi(`/api/v1/admin/blog/media/${id}/download`),
   },
 };
+
+async function downloadFromApi(path) {
+  const response = await fetch(`${API_URL}${path}`, { headers: { Authorization: `Bearer ${getAccessToken() || ""}` } });
+  if (!response.ok) throw new ApiError(response.status, { message: "Не удалось скачать файл" });
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = response.headers.get("Content-Disposition")?.match(/filename="?([^";]+)"?/)?.[1] || "download";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 const sha256Constants = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
