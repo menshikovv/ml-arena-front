@@ -12,11 +12,9 @@ import {
   Clock3,
   History,
   Loader2,
-  Medal,
   RefreshCw,
   Search,
   ShieldCheck,
-  Sparkles,
   Swords,
   Target,
   Trophy,
@@ -96,14 +94,6 @@ const TASKS = {
     metric: "ndcg",
   },
 };
-
-const DUEL_RATING = [
-  { name: "AI_Ninja", rating: 1580, duels: 48, wins: 38 },
-  { name: "DataWizard", rating: 1520, duels: 48, wins: 38 },
-  { name: "TensorLord", rating: 1480, duels: 49, wins: 35 },
-  { name: "NeuralFox", rating: 1420, duels: 40, wins: 30 },
-  { name: "ML_Glider", rating: 1380, duels: 40, wins: 25 },
-];
 
 const RULES = [
   { icon: Clock3, title: "60 минут", text: "Одинаковое основное время для обоих участников." },
@@ -649,31 +639,6 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
         })}
       </Stagger>
 
-      <section className="border-y border-border py-9">
-        <div className="grid gap-8 lg:grid-cols-[.7fr_1.3fr]">
-          <div>
-            <h2 className="font-heading text-2xl font-bold">Сильнейшие дуэлянты</h2>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-              Рейтинг меняется после каждого человеческого рейтингового матча. Premium не влияет на подбор, время или число попыток.
-            </p>
-            <Button asChild variant="outline" className="mt-5">
-              <Link to="/rating?tab=duels">Открыть рейтинг <ArrowRight size={15} /></Link>
-            </Button>
-          </div>
-          <div className="divide-y divide-border">
-            {DUEL_RATING.map((player, index) => (
-              <div key={player.name} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-3">
-                <span className="font-mono text-xs text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar name={player.name} size={30} />
-                  <span className="truncate text-sm font-semibold">{player.name}</span>
-                </div>
-                <span className="font-heading text-sm font-bold tabular-nums">{player.rating}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
       <DuelGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>
   );
@@ -1090,71 +1055,6 @@ function HistoryView({ duels, isLoading }) {
   );
 }
 
-function RatingView() {
-  const rows = [
-    ...DUEL_RATING,
-    { name: "GradientHero", rating: 1280, duels: 32, wins: 18 },
-    { name: CURRENT_USER.name, rating: CURRENT_USER.rating, duels: 29, wins: 18, current: true },
-    { name: "LossMin", rating: 1210, duels: 25, wins: 15 },
-  ].sort((a, b) => b.rating - a.rating);
-
-  return (
-    <Reveal>
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div>
-          <h1 className="font-heading text-3xl font-bold">Рейтинг дуэлянтов</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Позиция рассчитывается по Duel Elo. При подборе учитываются только игроки в диапазоне 200 очков.
-          </p>
-          <div className="mt-7 overflow-x-auto border-y border-border">
-            <div className="min-w-[620px]">
-              <div className="grid grid-cols-[56px_1fr_100px_100px_100px] border-b border-border py-3 text-xs text-muted-foreground">
-                <span>Место</span><span>Участник</span><span>Лига</span><span>Матчи</span><span className="text-right">Elo</span>
-              </div>
-              {rows.map((player, index) => (
-                <Link
-                  key={player.name}
-                  to={player.current ? "/profile/me" : "/profile/p1"}
-                  className={cn(
-                    "grid min-h-16 grid-cols-[56px_1fr_100px_100px_100px] items-center border-b border-border text-sm transition-colors hover:bg-secondary/50",
-                    player.current && "bg-primary/5",
-                  )}
-                >
-                  <span className="font-mono text-xs text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
-                  <div className="flex items-center gap-3">
-                    <Avatar name={player.name} size={32} />
-                    <span className="font-semibold">{player.name}</span>
-                    {player.current && <span className="text-[10px] font-medium text-primary">Это ты</span>}
-                  </div>
-                  <LeagueBadge rating={player.rating} size="sm" />
-                  <span className="text-muted-foreground">{player.duels}</span>
-                  <span className="text-right font-heading font-bold tabular-nums">{player.rating}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-        <aside className="border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-6">
-          <Medal className="text-primary" size={24} />
-          <h2 className="mt-4 font-heading text-xl font-bold">Твоя позиция</h2>
-          <p className="mt-4 font-heading text-5xl font-bold">#{CURRENT_USER.rank}</p>
-          <div className="mt-4 flex items-center gap-2">
-            <LeagueBadge rating={CURRENT_USER.rating} size="sm" />
-            <span className="text-sm font-semibold">{CURRENT_USER.rating} Elo</span>
-          </div>
-          <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-secondary">
-            <div className="h-full w-[73%] rounded-full bg-primary" />
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">Ещё 54 Elo до золотой лиги</p>
-          <Button asChild className="mt-6 w-full">
-            <Link to="/duels/matchmaking"><Sparkles size={15} /> Улучшить позицию</Link>
-          </Button>
-        </aside>
-      </div>
-    </Reveal>
-  );
-}
-
 export default function Duels() {
   const { user } = useAuth();
   const location = useLocation();
@@ -1165,9 +1065,7 @@ export default function Duels() {
   const [challengeTicket, setChallengeTicket] = useState(null);
   const view = location.pathname.endsWith("/history")
     ? "history"
-    : location.pathname.endsWith("/rating")
-      ? "rating"
-      : location.pathname.includes("/challenges/")
+    : location.pathname.includes("/challenges/")
         ? "challenge"
       : location.pathname.endsWith("/matchmaking")
         ? "matchmaking"
@@ -1260,7 +1158,6 @@ export default function Duels() {
         />
       )}
       {view === "history" && <HistoryView duels={duels} isLoading={duelsQuery.isLoading} />}
-      {view === "rating" && <RatingView />}
       {view === "challenge" && <ArenaChallengeView />}
       <ChallengeChooser
         open={challengeOpen}
