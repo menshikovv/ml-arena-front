@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { api, uploadFile } from "@/api/mlArenaApi";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 
@@ -102,16 +104,18 @@ function FileSlot({ label, required, value, onChange }) {
   return (
     <label className="group flex min-h-24 cursor-pointer items-center gap-4 border border-dashed border-border bg-card p-4 hover:border-primary/40 hover:bg-primary/[0.025]">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary/10 text-primary"><Upload size={18} /></span>
-      <span className="min-w-0 flex-1"><span className="block text-sm font-bold">{label}{required && " *"}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{value || "Выберите файл для предпросмотра"}</span></span>
-      <input type="file" className="sr-only" accept=".csv,.zip,.parquet" onChange={(event) => onChange(event.target.files?.[0]?.name || "")} />
+      <span className="min-w-0 flex-1"><span className="block text-sm font-bold">{label}{required && " *"}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{value?.name || "Выберите CSV-файл"}</span></span>
+      <input type="file" className="sr-only" accept=".csv,text/csv" onChange={(event) => onChange(event.target.files?.[0] || null)} />
     </label>
   );
 }
 
 export default function CommunityCompetitionCreate() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(INITIAL_FORM);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedCompetition, setSubmittedCompetition] = useState(null);
+  const [submitError, setSubmitError] = useState("");
   const metrics = METRICS[form.direction] || [];
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
 
@@ -127,14 +131,64 @@ export default function CommunityCompetitionCreate() {
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
-  if (submitted) {
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      setSubmitError("");
+      const metricCodes = { "ROC-AUC": "roc_auc", Accuracy: "accuracy", F1: "f1", LogLoss: "logloss", RMSE: "rmse", MAE: "mae", "R²": "r2", "NDCG@10": "ndcg", "MAP@10": "map" };
+      const difficulty = { "Начальная": "Starter", "Лёгкая": "Easy", "Средняя": "Medium", "Высокая": "Hard", "Экспертная": "Expert" }[form.difficulty] || form.difficulty;
+      const competition = await api.communityCompetitions.create({
+        title: form.title.trim(),
+        short_description: form.description.trim(),
+        description: form.statement.trim(),
+        task_type: form.direction,
+        custom_direction_label: form.direction === "other" ? form.customDirection.trim() : null,
+        metric_code: metricCodes[form.metric] || form.metric.toLowerCase(),
+        difficulty,
+        access: form.access,
+        max_participants: form.maxParticipants ? Number(form.maxParticipants) : null,
+        starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
+        submission_deadline: new Date(form.endsAt).toISOString(),
+        daily_submission_limit: Number(form.attempts),
+        public_split_percent: Number(form.split.split("/")[0]),
+        rules: "Один аккаунт на участника. Решения загружаются только в CSV.",
+        external_data_policy: form.externalData === "forbidden" ? "Запрещены" : "Разрешены",
+        ai_tools_policy: form.aiTools === "allowed" ? "Разрешены" : "Запрещены",
+        tie_break_policy: form.tieBreak,
+        rights_confirmed: form.rightsConfirmed,
+      });
+      const competitionId = competition.id;
+      const dataset = await api.communityCompetitions.createDataset(competitionId, {
+        name: `${form.title.trim()} — данные`,
+        description: form.description.trim(),
+        version: "1.0",
+      });
+      const versionId = dataset.version_id || dataset.current_version?.id || dataset.version?.id || dataset.id;
+      const files = [
+        [form.trainFile, "train", "participant"],
+        [form.testFile, "test", "participant"],
+        [form.sampleFile, "sample_submission", "participant"],
+        [form.targetFile, "private_labels", "evaluator_only"],
+      ];
+      for (let position = 0; position < files.length; position += 1) {
+        const [file, kind, visibility] = files[position];
+        const upload = await uploadFile(file, "dataset", { community_competition_id: competitionId });
+        await api.communityCompetitions.attachDatasetFile(competitionId, versionId, { upload_id: upload.id, kind, visibility, position });
+      }
+      await api.communityCompetitions.submitForReview(competitionId);
+      return competition;
+    },
+    onSuccess: setSubmittedCompetition,
+    onError: (error) => setSubmitError(error.message || "Не удалось отправить соревнование на модерацию."),
+  });
+
+  if (submittedCompetition) {
     return (
       <div className="mx-auto flex min-h-[calc(100vh-70px)] max-w-3xl items-center px-4 py-12">
         <div className="w-full border border-border bg-card p-7 text-center shadow-xl sm:p-10">
           <span className="mx-auto flex h-14 w-14 items-center justify-center bg-primary text-primary-foreground"><CheckCircle2 size={27} /></span>
           <h1 className="mt-7 font-heading text-3xl font-extrabold">Макет отправлен на модерацию</h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-muted-foreground">Это фронтендовый сценарий: данные не были отправлены на сервер. После подключения API здесь появятся номер заявки, комментарии модератора и история изменений.</p>
-          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row"><Button asChild><Link to="/competitions?section=community">К соревнованиям сообщества</Link></Button><Button variant="outline" onClick={() => { setSubmitted(false); setStep(0); }}>Вернуться к черновику</Button></div>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-muted-foreground">Черновик, датасет и файлы сохранены. Заявка № {submittedCompetition.id} передана модераторам ML-Арены.</p>
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row"><Button onClick={() => navigate(`/competitions/${submittedCompetition.id}`)}>Открыть соревнование</Button><Button asChild variant="outline"><Link to="/competitions?section=community">К соревнованиям сообщества</Link></Button></div>
         </div>
       </div>
     );
@@ -184,7 +238,7 @@ export default function CommunityCompetitionCreate() {
 
             {step === 2 && <div className="space-y-5"><Field label="Полное условие" hint="Цель, target, доступные признаки и ожидаемый результат."><Textarea rows={7} value={form.statement} onChange={(event) => update("statement", event.target.value)} placeholder="Опишите постановку задачи..." /></Field><div className="grid gap-5 sm:grid-cols-2"><Field label="Метрика" hint="Только из безопасного списка."><Select value={form.metric} onChange={(event) => update("metric", event.target.value)}><option value="">Выберите метрику</option>{metrics.map((item) => <option key={item}>{item}</option>)}</Select></Field><Field label="Формат предсказаний"><Input value={form.predictionFormat} onChange={(event) => update("predictionFormat", event.target.value)} placeholder="id, prediction" /></Field></div><div className="border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground"><Settings2 size={18} className="mb-2 text-primary" />Пользовательский scoring.py не выполняется. Платформа использует выбранную метрику и безопасную конфигурацию.</div></div>}
 
-            {step === 3 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">Файлы остаются только в локальном состоянии формы. Реальная загрузка появится после подключения API.</p><div className="grid gap-3 sm:grid-cols-2"><FileSlot label="train.csv" required value={form.trainFile} onChange={(value) => update("trainFile", value)} /><FileSlot label="test.csv" required value={form.testFile} onChange={(value) => update("testFile", value)} /><FileSlot label="sample_submission.csv" required value={form.sampleFile} onChange={(value) => update("sampleFile", value)} /><FileSlot label="Скрытые ответы test" required value={form.targetFile} onChange={(value) => update("targetFile", value)} /></div><div className="mt-4 flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-muted-foreground"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />Скрытые ответы доступны только контуру проверки и не должны попадать в файлы участников.</div></div>}
+            {step === 3 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">Файлы загрузятся в защищённое хранилище после подтверждения последнего шага.</p><div className="grid gap-3 sm:grid-cols-2"><FileSlot label="train.csv" required value={form.trainFile} onChange={(value) => update("trainFile", value)} /><FileSlot label="test.csv" required value={form.testFile} onChange={(value) => update("testFile", value)} /><FileSlot label="sample_submission.csv" required value={form.sampleFile} onChange={(value) => update("sampleFile", value)} /><FileSlot label="Скрытые ответы test" required value={form.targetFile} onChange={(value) => update("targetFile", value)} /></div><div className="mt-4 flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-muted-foreground"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />Скрытые ответы доступны только контуру проверки и не должны попадать в файлы участников.</div></div>}
 
             {step === 4 && <div className="grid gap-3 sm:grid-cols-3">{[{ id: "open", icon: Users, title: "Открыто", text: "Любой зарегистрированный участник может присоединиться." }, { id: "invite_only", icon: LockKeyhole, title: "По приглашению", text: "Доступ по системному приглашению или одноразовой ссылке." }, { id: "application", icon: FileCheck2, title: "По заявке", text: "Организатор принимает или отклоняет заявку по нику." }].map((item) => <ToggleCard key={item.id} active={form.access === item.id} icon={item.icon} title={item.title} text={item.text} onClick={() => update("access", item.id)} />)}<div className="sm:col-span-3"><Field label="Максимум участников" hint="Необязательно. Контактные данные участников организатору не передаются."><Input type="number" min="2" value={form.maxParticipants} onChange={(event) => update("maxParticipants", event.target.value)} placeholder="Без ограничения" /></Field></div></div>}
 
@@ -195,7 +249,7 @@ export default function CommunityCompetitionCreate() {
 
           <div className="flex flex-col-reverse gap-3 border-t border-border bg-secondary/25 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
             <Button type="button" variant="outline" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0}><ArrowLeft size={16} /> Назад</Button>
-            {step < STEPS.length - 1 ? <Button type="button" onClick={() => setStep((value) => Math.min(STEPS.length - 1, value + 1))} disabled={!canContinue}>Продолжить <ArrowRight size={16} /></Button> : <Button type="button" onClick={() => setSubmitted(true)} disabled={!canContinue}><Send size={16} /> Отправить на модерацию</Button>}
+            {step < STEPS.length - 1 ? <Button type="button" onClick={() => setStep((value) => Math.min(STEPS.length - 1, value + 1))} disabled={!canContinue}>Продолжить <ArrowRight size={16} /></Button> : <div className="flex flex-col items-end gap-2">{submitError && <p className="max-w-xl text-right text-sm text-destructive">{submitError}</p>}<Button type="button" onClick={() => submitMutation.mutate()} disabled={!canContinue || submitMutation.isPending}><Send size={16} /> {submitMutation.isPending ? "Загружаем и отправляем..." : "Отправить на модерацию"}</Button></div>}
           </div>
         </main>
       </div>

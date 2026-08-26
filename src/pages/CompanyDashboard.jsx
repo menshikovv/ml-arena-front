@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/mlArenaApi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,15 +28,20 @@ export default function CompanyDashboard() {
   const [inviteMsg, setInviteMsg] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: competitions } = useQuery({
-    queryKey: ["company-competitions"],
-    queryFn: () => base44.entities.Competition.filter({ company_name: "Моя компания" }, "-created_date", 20),
+  const organizationQuery = useQuery({ queryKey: ["organization-me"], queryFn: api.organizations.me });
+  const organization = organizationQuery.data;
+  const competitionsQuery = useQuery({
+    queryKey: ["company-competitions", organization?.id],
+    queryFn: () => api.organizations.competitions(organization.id, { limit: 100, offset: 0 }),
+    enabled: Boolean(organization?.id),
   });
+  const competitions = competitionsQuery.data?.data || competitionsQuery.data?.items || [];
 
-  const { data: profiles } = useQuery({
+  const profilesQuery = useQuery({
     queryKey: ["visible-profiles"],
-    queryFn: () => base44.entities.MLProfile.filter({ visible_to_employers: true }, "-rating", 50),
+    queryFn: () => api.profiles.search({ visible_to_employers: true, limit: 50, offset: 0 }),
   });
+  const profiles = profilesQuery.data?.data || profilesQuery.data?.items || [];
 
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
@@ -61,14 +66,13 @@ export default function CompanyDashboard() {
       return;
     }
     try {
-      await base44.entities.Competition.create({
+      await api.organizations.createCompetition(organization.id, {
         ...form,
-        status: "active",
-        company_name: "Моя компания",
-        max_submits_free: 5,
-        max_submits_pro: 15,
-        prize_fund: Number(form.prize_fund) || 0,
-        participants_count: 0,
+        submission_deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+        prize_amount: Math.round((Number(form.prize_fund) || 0) * 100),
+        prize_currency: "RUB",
+        daily_submission_limit: 5,
+        public_split_percent: 30,
         banner_color: "#7C3AED",
       });
       toast.success("Соревнование создано!");
@@ -83,20 +87,8 @@ export default function CompanyDashboard() {
   const handleSendInvite = async () => {
     if (!inviteMsg) return;
     try {
-      await base44.entities.JobInvite.create({
-        company_name: "Моя компания",
-        candidate_name: inviteModal.user_name,
-        candidate_email: inviteModal.user_name + "@example.com",
-        message: inviteMsg,
-        position: "ML Engineer",
-        status: "pending",
-      });
-      await base44.integrations.Core.SendEmail({
-        to: inviteModal.user_name + "@example.com",
-        subject: "Приглашение на собеседование от Моя компания",
-        body: `Здравствуйте, ${inviteModal.user_name}!\n\n${inviteMsg}\n\nС уважением,\nкоманда Моя компания`,
-      });
-      toast.success("Приглашение отправлено!");
+      await navigator.clipboard.writeText(inviteMsg);
+      toast.success("Текст приглашения скопирован. Отправьте его кандидату через указанные им публичные контакты.");
       setInviteModal(null);
       setInviteMsg("");
     } catch (err) {

@@ -36,7 +36,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
@@ -184,13 +184,15 @@ export default function Profile() {
     queryKey: ["profile", id || "me"],
     queryFn: async () => {
       try {
-        return await base44.entities.MLProfile.get(id || "me");
+        return id && id !== "me" ? await api.profiles.get(id) : await api.profiles.me();
       } catch (error) {
         if (previewEnabled) return PREVIEW_PROFILE;
         throw error;
       }
     },
   });
+  const badgesQuery = useQuery({ queryKey: ["profile-badges", id || profile?.id], queryFn: () => api.profiles.badges(id || profile.id), enabled: Boolean(id || profile?.id) });
+  const badges = Array.isArray(badgesQuery.data) ? badgesQuery.data : badgesQuery.data?.items || badgesQuery.data?.data || [];
   const selectedResult = useMemo(() => OFFICIAL_RESULTS.find((item) => item.id === selectedResultId) || OFFICIAL_RESULTS[0], [selectedResultId]);
 
   if (isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
@@ -210,6 +212,8 @@ export default function Profile() {
         <section className="relative overflow-hidden bg-card p-5 sm:p-7 lg:p-8"><div className="absolute inset-x-0 top-0 h-1 bg-primary" /><div className="flex flex-col gap-6 sm:flex-row sm:items-start"><Avatar name={profile.user_name} src={profile.avatar_url} size={104} className="ring-2 ring-primary/20" /><div className="min-w-0 flex-1"><div className="flex flex-wrap gap-2"><LeagueBadge rating={rating} size="lg" /><SourceBadge type="official"><ShieldCheck size={12} />{OFFICIAL_RESULTS.length} официальных подтверждения</SourceBadge></div><h1 className="mt-4 font-heading text-3xl font-extrabold leading-tight sm:text-4xl">{profile.user_name}</h1>{profile.full_name && <p className="mt-1 text-sm text-muted-foreground">{profile.full_name}</p>}<p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">{profile.bio || "ML-специалист с подтверждённой практикой в классификации, регрессии и NLP. Паспорт разделяет официальные результаты, практику сообщества и внешние достижения."}</p><div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">{profile.city && <span className="flex items-center gap-1.5"><MapPin size={13} />{profile.city}</span>}{profile.university && <span className="flex items-center gap-1.5"><GraduationCap size={13} />{profile.university}</span>}{profile.company && <span className="flex items-center gap-1.5"><BriefcaseBusiness size={13} />{profile.company}</span>}{profile.github_url && <a href={profile.github_url} className="flex items-center gap-1.5 hover:text-primary"><Github size={13} />GitHub</a>}{profile.kaggle_url && <a href={profile.kaggle_url} className="flex items-center gap-1.5 hover:text-primary"><LinkIcon size={13} />Kaggle</a>}</div></div></div><div className="mt-7 grid gap-px bg-border sm:grid-cols-4">{[["Рейтинг сезона", rating, "место #184"], ["Подтверждений", 18, "официальный слой"], ["Воспроизведено", 2, "контролируемая среда"], ["Последний результат", "12 дней", "свежесть подтверждения"]].map(([label, value, detail]) => <div key={label} className="bg-card px-4 py-4"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-2 font-heading text-xl font-extrabold">{value}</p><p className="mt-1 text-[10px] text-muted-foreground">{detail}</p></div>)}</div></section>
         <aside className="flex flex-col bg-card p-5 sm:p-7">{employerMode ? <EmployerSummary visible={visibleToEmployers} /> : <OwnerSummary visible={visibleToEmployers} onVisibility={() => setVisibilityOverride(!visibleToEmployers)} onConsultation={() => setConsultationOpen(true)} />}</aside>
       </Reveal>
+
+      {badges.length > 0 && <Reveal className="mt-4 border border-border bg-card p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-xs text-muted-foreground">Бейджи платформы</p><h2 className="mt-1 font-heading text-xl font-extrabold">Подтверждённые достижения</h2></div><Award size={22} className="text-primary" /></div><div className="mt-5 flex flex-wrap gap-2">{badges.map((badge) => <div key={badge.id || badge.slug || badge.name} className="flex items-center gap-2 border border-primary/20 bg-primary/5 px-3 py-2"><span className="flex h-8 w-8 items-center justify-center bg-primary/10 text-primary"><Award size={16} /></span><span><strong className="block text-sm">{badge.name || badge.title}</strong>{(badge.description || badge.granted_at) && <span className="block text-[10px] text-muted-foreground">{badge.description || new Date(badge.granted_at).toLocaleDateString("ru-RU")}</span>}</span></div>)}</div></Reveal>}
 
       <Stagger className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Официальные соревнования" value="18" detail="5 итоговых top-10" /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Человеческие дуэли" value={totalDuels || 18} detail={`${winRate}% побед · Elo 1246`} /></StaggerItem><StaggerItem><SummaryMetric icon={Users} label="Практика сообщества" value="7" detail="не влияет на рейтинг" /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Внешние достижения" value="1 + 1" detail="подтверждено · на проверке" /></StaggerItem></Stagger>
 

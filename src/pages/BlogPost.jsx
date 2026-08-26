@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Copy, Send, Share2, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Copy, Pencil, Send, Share2, Trash2, UserRound } from "lucide-react";
 import BlogCover from "@/components/ml/BlogCover";
 import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/api/mlArenaApi";
 import { useAuth } from "@/lib/AuthContext";
 import { BLOG_POSTS, formatBlogDate, getBlogCategory, getBlogPost } from "@/lib/blog-data";
 
@@ -22,10 +25,40 @@ function RelatedCard({ post }) {
 
 export default function BlogPost() {
   const { slug } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
-  const post = getBlogPost(slug);
+  const [comment, setComment] = useState("");
+  const localPost = getBlogPost(slug);
+  const postQuery = useQuery({ queryKey: ["blog-post", slug], queryFn: () => api.blog.post(slug), retry: false });
+  const serverPost = postQuery.data;
+  const post = serverPost ? {
+    ...localPost,
+    ...serverPost,
+    category: serverPost.category?.slug || serverPost.primary_category?.slug || serverPost.category_slug || localPost?.category || "news",
+    tags: (serverPost.tags || localPost?.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug),
+    publishedAt: serverPost.published_at || serverPost.publishedAt || localPost?.publishedAt,
+    readingTime: serverPost.reading_time_minutes || serverPost.reading_time || serverPost.readingTime || localPost?.readingTime || 5,
+    author: serverPost.author?.display_name || serverPost.author?.name || serverPost.author || localPost?.author || "ML-Арена",
+    visual: localPost?.visual || { type: "grid", title: serverPost.title },
+    sections: localPost?.sections || [],
+  } : localPost;
   const category = post ? getBlogCategory(post.category) : null;
+  const commentsQuery = useQuery({ queryKey: ["blog-comments", serverPost?.id], queryFn: () => api.blog.comments(serverPost.id), enabled: Boolean(serverPost?.id) });
+  const comments = Array.isArray(commentsQuery.data) ? commentsQuery.data : commentsQuery.data?.items || [];
+  const createComment = useMutation({
+    mutationFn: () => api.blog.createComment(serverPost.id, comment.trim()),
+    onSuccess: () => { setComment(""); queryClient.invalidateQueries({ queryKey: ["blog-comments", serverPost.id] }); },
+  });
+  const updateComment = useMutation({
+    mutationFn: ({ id, body }) => api.blog.updateComment(id, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blog-comments", serverPost.id] }),
+  });
+  const deleteComment = useMutation({
+    mutationFn: (id) => api.blog.deleteComment(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blog-comments", serverPost.id] }),
+  });
+  const canManageComment = (item) => Boolean(user?.id && (item.author_id === user.id || item.user_id === user.id || item.author?.id === user.id));
 
   const relatedPosts = useMemo(() => {
     if (!post) return [];
@@ -64,6 +97,12 @@ export default function BlogPost() {
     };
   }, [post]);
 
+  useEffect(() => {
+    if (!serverPost?.id) return;
+    api.blog.trackEvent(serverPost.id, "view").catch(() => undefined);
+  }, [serverPost?.id]);
+
+  if (!post && postQuery.isLoading) return <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">Загружаем материал…</div>;
   if (!post) return <Navigate to="/blog" replace />;
 
   const currentUrl = typeof window === "undefined" ? "" : window.location.href;
@@ -116,7 +155,7 @@ export default function BlogPost() {
 
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,760px)_230px] lg:items-start lg:justify-between lg:py-16">
           <article className="min-w-0">
-            <div className="space-y-12">
+            {serverPost?.body_html ? <div className="prose prose-slate max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: serverPost.body_html }} /> : <div className="space-y-12">
               {post.sections.map((section, sectionIndex) => (
                 <Reveal key={section.id} delay={Math.min(sectionIndex * 0.03, 0.12)}>
                   <section id={section.id} className="scroll-mt-24">
@@ -133,7 +172,7 @@ export default function BlogPost() {
                   </section>
                 </Reveal>
               ))}
-            </div>
+            </div>}
 
             <Reveal className="mt-14 border-y border-border py-8">
               <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
@@ -141,9 +180,11 @@ export default function BlogPost() {
                   <h2 className="font-heading text-2xl font-extrabold">{cta.title}</h2>
                   <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{cta.text}</p>
                 </div>
-                <Button asChild size="lg"><Link to={ctaTarget}>{cta.label} <ArrowRight size={16} /></Link></Button>
+                <Button asChild size="lg"><Link to={ctaTarget} onClick={() => serverPost?.id && api.blog.trackEvent(serverPost.id, "cta_click").catch(() => undefined)}>{cta.label} <ArrowRight size={16} /></Link></Button>
               </div>
             </Reveal>
+
+            {serverPost?.id && <Reveal className="mt-12 border-t border-border pt-8"><h2 className="font-heading text-2xl font-extrabold">Комментарии</h2>{isAuthenticated ? <form className="mt-5" onSubmit={(event) => { event.preventDefault(); if (comment.trim()) createComment.mutate(); }}><Textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={2000} rows={4} placeholder="Напишите комментарий" /><div className="mt-3 flex justify-end"><Button type="submit" disabled={!comment.trim() || createComment.isPending}>Отправить</Button></div>{createComment.error && <p className="mt-2 text-sm text-destructive">{createComment.error.message}</p>}</form> : <p className="mt-4 text-sm text-muted-foreground">Войдите, чтобы оставить комментарий.</p>}<div className="mt-6 divide-y divide-border border-y border-border">{comments.map((item) => <article key={item.id} className="py-5"><div className="flex items-center justify-between gap-3"><p className="text-sm font-bold">{item.author?.nickname || item.author_name || "Участник"}</p><div className="flex items-center gap-2"><time className="text-xs text-muted-foreground">{item.created_at ? new Date(item.created_at).toLocaleDateString("ru-RU") : ""}</time>{canManageComment(item) && <><button type="button" className="text-muted-foreground hover:text-primary" aria-label="Редактировать комментарий" onClick={() => { const body = window.prompt("Изменить комментарий", item.body); if (body?.trim() && body.trim() !== item.body) updateComment.mutate({ id: item.id, body: body.trim() }); }}><Pencil size={14} /></button><button type="button" className="text-muted-foreground hover:text-destructive" aria-label="Удалить комментарий" onClick={() => { if (window.confirm("Удалить комментарий?")) deleteComment.mutate(item.id); }}><Trash2 size={14} /></button></>}</div></div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.body}</p></article>)}{!commentsQuery.isLoading && !comments.length && <p className="py-6 text-sm text-muted-foreground">Комментариев пока нет.</p>}</div></Reveal>}
 
             <Reveal className="mt-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
               <div className="flex flex-wrap gap-2">

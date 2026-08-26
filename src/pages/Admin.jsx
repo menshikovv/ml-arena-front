@@ -2,11 +2,11 @@ import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CheckCircle2, CircleAlert,
+  Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CalendarClock, CheckCircle2, CircleAlert,
   ClipboardCheck, Database, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
   Award, Copy, ImageIcon, LockKeyhole, Newspaper, Pause, Pencil, Play, Plus, RefreshCw,
   Save, Search, Send, Settings2, ShieldAlert, ShieldCheck, SlidersHorizontal, Trash2,
-  Trophy, Upload, UserCheck, Users, X,
+  Trophy, Undo2, Upload, UserCheck, Users, X,
 } from "lucide-react";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ const SECTIONS = [
   { id: "users", label: "Пользователи", icon: Users, permission: "users.read" },
   { id: "organizations", label: "Организации", icon: Building2, any: ["settings.manage", "competitions.read"] },
   { id: "competitions", label: "Соревнования", icon: Trophy, permission: "competitions.read" },
+  { id: "rating", label: "Сезоны рейтинга", icon: Award, permission: "settings.manage" },
   { id: "submissions", label: "Отправки", icon: FileClock, permission: "submissions.read" },
   { id: "moderation", label: "Модерация", icon: ShieldAlert, permission: "moderation.read" },
   { id: "content", label: "Блог", icon: Newspaper, permission: "content.read" },
@@ -374,6 +375,9 @@ function CompetitionsSection({ permissions, requestAction }) {
       {can(permissions, "competitions.read") && <ActionButton onClick={() => setOperations(competition)}><Gauge size={13} /> Готовность и рейтинг</ActionButton>}
       {can(permissions, "competitions.write") && <ActionButton onClick={() => setEditor({ creating: false, id: competition.id })}><Pencil size={13} /> Изменить</ActionButton>}
       {can(permissions, "competitions.write") && <ActionButton onClick={() => duplicate.mutate(competition.id)} disabled={duplicate.isPending}><Copy size={13} /> Создать копию</ActionButton>}
+      {competition.origin === "community" && ["submitted_for_review", "moderation"].includes(competition.status) && can(permissions, "competitions.publish") && <ActionButton tone="primary" onClick={() => requestAction({ title: "Одобрить соревнование сообщества", description: "Сервер повторно проверит датасет, скрытые ответы и ограничения community-контура.", confirm: "Одобрить", reason: true, run: (reason) => api.admin.moderateCommunityCompetition(competition.id, { decision: "approve", reason }), invalidate: ["admin", "competitions"] })}><CheckCircle2 size={13} /> Одобрить community</ActionButton>}
+      {competition.origin === "community" && ["submitted_for_review", "moderation"].includes(competition.status) && can(permissions, "competitions.publish") && <ActionButton onClick={() => requestAction({ title: "Вернуть на доработку", description: "Автор увидит причину и сможет изменить черновик.", confirm: "Вернуть", reason: true, run: (reason) => api.admin.moderateCommunityCompetition(competition.id, { decision: "request_changes", reason }), invalidate: ["admin", "competitions"] })}><Undo2 size={13} /> На доработку</ActionButton>}
+      {competition.origin === "community" && ["submitted_for_review", "moderation"].includes(competition.status) && can(permissions, "competitions.publish") && <ActionButton tone="danger" onClick={() => requestAction({ title: "Отклонить соревнование сообщества", description: "Заявка будет отклонена с обязательной причиной.", confirm: "Отклонить", danger: true, reason: true, run: (reason) => api.admin.moderateCommunityCompetition(competition.id, { decision: "reject", reason }), invalidate: ["admin", "competitions"] })}><Ban size={13} /> Отклонить</ActionButton>}
       {["draft", "moderation", "scheduled"].includes(competition.status) && can(permissions, "competitions.publish") && <ActionButton tone="primary" onClick={() => execute(competition, "publish", "Опубликовать соревнование", "Сервер проверит датасет, метрику, правила, политики и дедлайн.")}><Play size={13} /> Опубликовать</ActionButton>}
       {["moderation", "scheduled", "active", "finalizing"].includes(competition.status) && can(permissions, "competitions.pause") && <ActionButton onClick={() => execute(competition, "pause", "Поставить на паузу", "Приём новых решений будет временно остановлен.", { reason: true })}><Pause size={13} /> Пауза</ActionButton>}
       {competition.status === "paused" && can(permissions, "competitions.pause") && <ActionButton tone="primary" onClick={() => execute(competition, "resume", "Возобновить соревнование", "Сервер повторно проверит дедлайн и состояние организатора.")}><Play size={13} /> Возобновить</ActionButton>}
@@ -1039,6 +1043,19 @@ function ResourcesSection({ permissions, requestAction }) {
   return <><SectionHeading title="Ресурсы платформы" description="Создание, версии, публикация и архивирование сущностей, от которых зависит работа платформы." count={listTotal(query.data)} action={canCreate ? <Button onClick={() => setEditor({ type: active, mode: "create", item: null })}><Plus size={16} /> Создать {current.singular}</Button> : null} /><div className="mb-4 flex flex-wrap gap-2">{available.map(([id, resource]) => { const Icon = resource.icon; return <button key={id} type="button" onClick={() => setActive(id)} className={`inline-flex h-10 items-center gap-2 border px-3 text-sm font-semibold ${active === id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:text-primary"}`}><Icon size={15} />{resource.label}</button>; })}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((item) => <div key={item.id} className="grid gap-4 px-5 py-4 xl:grid-cols-[minmax(220px,1fr)_130px_150px_minmax(280px,auto)] xl:items-center"><div><p className="font-semibold">{displayName(item)}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{item.code || item.slug || item.id}</p>{item.current_version && <p className="mt-1 text-xs text-muted-foreground">Версия {item.current_version.version} · {item.current_version.exposure_status || item.current_version.direction || "текущая"}</p>}</div><Status value={item.status} /><p className="text-sm text-muted-foreground">{formatDate(item.updated_at || item.created_at)}</p><div className="xl:justify-self-end">{actions(item)}</div></div>)}</div></TableShell><ResourceEditorDialog editor={editor} onClose={() => setEditor(null)} onSaved={saved} /><DatasetFilesDialog datasetId={datasetFilesId} permissions={permissions} onClose={() => setDatasetFilesId(null)} onSaved={invalidate} /></>;
 }
 
+function RatingSeasonsSection({ requestAction }) {
+  const [form, setForm] = useState({ name: "", slug: "", starts_at: "", ends_at: "" });
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons });
+  const rows = Array.isArray(query.data) ? query.data : query.data?.items || [];
+  const create = useMutation({
+    mutationFn: () => api.admin.createRatingSeason({ ...form, starts_at: new Date(form.starts_at).toISOString(), ends_at: new Date(form.ends_at).toISOString() }),
+    onSuccess: () => { setForm({ name: "", slug: "", starts_at: "", ends_at: "" }); queryClient.invalidateQueries({ queryKey: ["rating-seasons"] }); },
+  });
+  const transition = (season, target) => requestAction({ title: `Перевести сезон в статус «${target}»`, description: `${season.name || season.slug}. Переход и снимки рейтинга будут зафиксированы сервером.`, confirm: "Подтвердить переход", reason: true, run: (reason) => api.admin.transitionRatingSeason(season.id, target, { reason }), invalidate: ["rating-seasons"] });
+  return <><SectionHeading title="Сезоны рейтинга" description="Создание сезонов и аудируемые переходы draft → scheduled/active → frozen → archived." count={rows.length} /><div className="mb-6 grid gap-3 border border-border bg-card p-5 md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_auto]"><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Название сезона" /><Input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="slug" /><Input type="datetime-local" value={form.starts_at} onChange={(event) => setForm((current) => ({ ...current, starts_at: event.target.value }))} /><Input type="datetime-local" value={form.ends_at} onChange={(event) => setForm((current) => ({ ...current, ends_at: event.target.value }))} /><Button onClick={() => create.mutate()} disabled={!form.name.trim() || !form.slug.trim() || !form.starts_at || !form.ends_at || create.isPending}><Plus size={15} /> Создать</Button>{create.error && <p className="text-sm text-destructive md:col-span-2 xl:col-span-5">{create.error.message}</p>}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((season) => <div key={season.id} className="grid gap-4 p-5 md:grid-cols-[1fr_auto_auto] md:items-center"><div><p className="font-semibold">{season.name || season.slug}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(season.starts_at)} — {formatDate(season.ends_at)}</p></div><Status value={season.status} /><ActionMenu>{season.status === "draft" && <><ActionButton onClick={() => transition(season, "scheduled")}><CalendarClock size={13} /> Запланировать</ActionButton><ActionButton tone="primary" onClick={() => transition(season, "active")}><Play size={13} /> Активировать</ActionButton></>}{["scheduled", "active"].includes(season.status) && <ActionButton onClick={() => transition(season, "frozen")}><Pause size={13} /> Зафиксировать</ActionButton>}{season.status === "frozen" && <ActionButton tone="danger" onClick={() => transition(season, "archived")}><Archive size={13} /> В архив</ActionButton>}</ActionMenu></div>)}</div></TableShell></>;
+}
+
 function AuditSection() {
   const [filters, setFilters] = useState({ action: "", actor_user_id: "", target_type: "", target_id: "" });
   const deferredFilters = useDeferredValue(filters);
@@ -1109,6 +1126,7 @@ export default function Admin() {
           {active === "users" && <UsersSection {...shared} />}
           {active === "organizations" && <OrganizationsSection {...shared} />}
           {active === "competitions" && <CompetitionsSection {...shared} />}
+          {active === "rating" && <RatingSeasonsSection {...shared} />}
           {active === "submissions" && <SubmissionsSection {...shared} />}
           {active === "moderation" && <ModerationSection {...shared} />}
           {active === "content" && <ContentSection {...shared} />}

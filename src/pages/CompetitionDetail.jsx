@@ -31,15 +31,13 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { base44 } from "@/api/base44Client";
-import { api } from "@/api/mlArenaApi";
+import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  COMMUNITY_COMPETITIONS,
   METRIC_LABELS,
   TASK_TYPE_LABELS,
   formatScore,
@@ -382,17 +380,12 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
     try {
       setStatus("uploading");
       setProgress(24);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const upload = await uploadFile(file, "competition_submission", { competition_id: competition.id });
       setProgress(100);
       setStatus("validating");
       setStatus("scoring");
-      const submission = await base44.entities.Submission.create({
-        competition_id: competition.id,
-        user_name: "Ты",
-        file_url,
-        attempt_number: mySubmissions.length + 1,
-        created_date: new Date().toISOString(),
-      });
+      const created = await api.competitions.submit(competition.id, upload.id, competition.current_dataset_version_id);
+      const submission = created.id ? await waitForSubmission(created.id) : created;
       const score = Number(submission.public_score ?? submission.score);
       if (!Number.isFinite(score)) throw new Error("Проверка завершилась без результата");
       setStatus("scored");
@@ -671,7 +664,7 @@ function DiscussionTab({ discussions, newThread, setNewThread, onCreate }) {
   );
 }
 
-function ParticipationPanel({ competition, status, joined, submissions, leaderboard, onJoin, onSubmit }) {
+function ParticipationPanel({ competition, status, joined, submissions, leaderboard, onJoin, onLeave, onSubmit, leaving }) {
   const mySubmissions = submissions.filter((submission) => submission.user_name === "Ты");
   const best = mySubmissions.reduce((current, item) => {
     if (!current) return item;
@@ -710,7 +703,7 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
           {joinLabel}
         </Button>
       ) : status === "active" ? (
-        <Button className="mt-5 w-full" onClick={onSubmit}><Upload size={15} /> Загрузить CSV</Button>
+        <div className="mt-5 space-y-2"><Button className="w-full" onClick={onSubmit}><Upload size={15} /> Загрузить CSV</Button><Button className="w-full" variant="ghost" onClick={onLeave} disabled={leaving}>{leaving ? <Loader2 size={15} className="animate-spin" /> : null}Выйти из соревнования</Button></div>
       ) : status === "upcoming" ? (
         <Button className="mt-5 w-full" disabled><Clock3 size={15} /> Ещё не началось</Button>
       ) : (
@@ -727,12 +720,13 @@ export default function CompetitionDetail() {
   const queryClient = useQueryClient();
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [newThread, setNewThread] = useState({ title: "", content: "" });
   const activeTab = TABS.some((tab) => tab.id === section) ? section : "overview";
 
   const { data: competition, isLoading, isError } = useQuery({
     queryKey: ["competition", id],
-    queryFn: () => COMMUNITY_COMPETITIONS.find((item) => item.id === id) || base44.entities.Competition.get(id),
+    queryFn: () => api.competitions.get(id),
     enabled: Boolean(id),
     retry: false,
   });
@@ -746,32 +740,43 @@ export default function CompetitionDetail() {
         throw error;
       }
     },
-    enabled: Boolean(id) && !id.startsWith("community-"),
+    enabled: Boolean(id),
     retry: false,
   });
-  const { data: submissions = [] } = useQuery({
+  const submissionsQuery = useQuery({
     queryKey: ["submissions", id],
-    queryFn: () => base44.entities.Submission.filter({ competition_id: id }, "-score", 100),
+    queryFn: () => api.competitions.submissions(id, { limit: 100, offset: 0 }),
     enabled: Boolean(id),
   });
-  const { data: discussions = [] } = useQuery({
+  const submissions = submissionsQuery.data?.data || submissionsQuery.data?.items || [];
+  const leaderboardQuery = useQuery({
+    queryKey: ["competition-leaderboard", id],
+    queryFn: () => api.competitions.leaderboard(id, { limit: 100, offset: 0 }),
+    enabled: Boolean(id),
+  });
+  const resultCardQuery = useQuery({
+    queryKey: ["competition-result-card", id],
+    queryFn: () => api.competitions.resultCard(id),
+    enabled: Boolean(id && competition && ["completed", "finished"].includes(competition.status)),
+    retry: false,
+  });
+  const { data: discussionsResponse } = useQuery({
     queryKey: ["discussions", id],
-    queryFn: () => base44.entities.Discussion.filter({ competition_id: id }, "-created_date", 50),
+    queryFn: () => api.competitions.discussion(id),
     enabled: Boolean(id),
   });
+  const discussions = Array.isArray(discussionsResponse) ? discussionsResponse : discussionsResponse?.items || [];
 
   const leaderboard = useMemo(() => {
-    if (!competition) return [];
-    const best = new Map();
-    submissions.forEach((submission) => {
-      if (typeof submission.score !== "number") return;
-      const existing = best.get(submission.user_name);
-      if (!existing || (isHigherBetter(competition.metric) ? submission.score > existing.score : submission.score < existing.score)) {
-        best.set(submission.user_name, submission);
-      }
-    });
-    return Array.from(best.values()).sort((a, b) => isHigherBetter(competition.metric) ? b.score - a.score : a.score - b.score);
-  }, [competition, submissions]);
+    const rows = leaderboardQuery.data?.rows || leaderboardQuery.data?.items || leaderboardQuery.data?.data || [];
+    return rows.map((row, index) => ({
+      ...row,
+      id: row.id || row.submission_id || `${row.user_id || row.user_name}-${index}`,
+      user_name: row.user_name || row.nickname || row.user?.nickname || "Участник",
+      score: Number(row.score ?? row.best_score ?? row.public_score),
+      rank: row.rank || index + 1,
+    }));
+  }, [leaderboardQuery.data]);
 
   useEffect(() => {
     setJoined(Boolean(participation));
@@ -782,17 +787,15 @@ export default function CompetitionDetail() {
     setJoining(true);
     try {
       if (competition.origin === "community") {
-        if (competition.access_type === "invite_only") {
+        if ((competition.access || competition.access_type) === "invite_only") {
           toast("Для участия нужно системное приглашение");
           return;
         }
-        if (competition.access_type === "application") {
-          toast.success("Заявка подготовлена. Отправка появится после подключения API.");
+        if ((competition.access || competition.access_type) === "application") {
+          await api.communityCompetitions.apply(id, "Хочу принять участие в соревновании");
+          toast.success("Заявка отправлена организатору");
           return;
         }
-        setJoined(true);
-        toast.success("Вы участвуете в соревновании сообщества");
-        return;
       }
       const rules = await api.competitions.rules(id);
       await api.competitions.join(id, rules.version || competition.rules_version || "v1");
@@ -806,21 +809,26 @@ export default function CompetitionDetail() {
     }
   };
 
+  const leave = async () => {
+    if (leaving || !joined) return;
+    setLeaving(true);
+    try {
+      await api.competitions.leave(id);
+      setJoined(false);
+      await queryClient.invalidateQueries({ queryKey: ["competition-participation", id] });
+      toast.success("Вы вышли из соревнования");
+    } catch (error) {
+      toast.error(error.message || "Не удалось выйти из соревнования");
+    } finally {
+      setLeaving(false);
+    }
+  };
+
   const createThread = async () => {
     if (!newThread.title.trim() || !newThread.content.trim()) return;
     try {
-      await base44.entities.Discussion.create({
-        competition_id: id,
-        title: newThread.title.trim(),
-        content: newThread.content.trim(),
-        author_name: "Ты",
-      });
-      setNewThread({ title: "", content: "" });
-      queryClient.invalidateQueries({ queryKey: ["discussions", id] });
-      toast.success("Вопрос опубликован");
-    } catch (error) {
-      toast.error(error.message || "Не удалось опубликовать вопрос");
-    }
+      toast("Публикация обсуждений пока не поддерживается серверным API");
+    } catch (error) { toast.error(error.message || "Не удалось опубликовать вопрос"); }
   };
 
   const onSubmitted = async (score) => {
@@ -867,6 +875,12 @@ export default function CompetitionDetail() {
         <div className="mt-5 flex gap-3 border border-violet-500/25 bg-violet-500/5 p-4">
           <CircleUserRound className="mt-0.5 shrink-0 text-violet-600 dark:text-violet-400" size={18} />
           <div><p className="text-sm font-semibold">Соревнование сообщества</p><p className="mt-1 text-xs leading-5 text-muted-foreground">ML-Арена проверяет формат CSV и считает результат, но не проверяет код решения. Результат не влияет на сезонный рейтинг и хранится отдельно в ML-паспорте.</p></div>
+        </div>
+      )}
+
+      {resultCardQuery.data && (
+        <div className="mt-5 grid gap-px border border-border bg-border sm:grid-cols-3">
+          {[["Итоговое место", resultCardQuery.data.rank ? `#${resultCardQuery.data.rank}` : "—"], ["Итоговый результат", safeScore(resultCardQuery.data.score ?? resultCardQuery.data.final_score, competition.metric)], ["Статус проверки", resultCardQuery.data.verification_status || resultCardQuery.data.status || "Подтверждён"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-lg font-bold">{value}</p></div>)}
         </div>
       )}
 
@@ -947,6 +961,8 @@ export default function CompetitionDetail() {
           submissions={submissions}
           leaderboard={leaderboard}
           onJoin={join}
+          onLeave={leave}
+          leaving={leaving}
           onSubmit={() => navigate(`/competitions/${id}/submit`)}
         />
       </div>

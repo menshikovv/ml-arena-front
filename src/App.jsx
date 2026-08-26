@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/ml/AppLayout";
 import CookieConsent from "@/components/CookieConsent";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -108,6 +108,16 @@ function SuperAdminPreview({ children }) {
   return children;
 }
 
+function CompetitionInviteAccept() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const invite = useQuery({ queryKey: ["competition-invite", token], queryFn: () => api.communityCompetitions.acceptInvite(token), enabled: Boolean(token), retry: false });
+  if (!token) return <Navigate to="/competitions" replace />;
+  if (invite.isLoading) return <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">Принимаем приглашение…</div>;
+  if (invite.error) return <div className="mx-auto max-w-xl px-5 py-16 text-center"><h1 className="font-heading text-2xl font-extrabold">Приглашение не принято</h1><p className="mt-3 text-sm text-muted-foreground">{invite.error.message}</p></div>;
+  return <Navigate to={`/competitions/${invite.data?.competition_id || invite.data?.competition?.id || ""}`} replace />;
+}
+
 function AppRoutes() {
   const { isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -139,6 +149,9 @@ function AppRoutes() {
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/companies" element={<Cooperation embedded />} />
         <Route path="/support" element={<Help embedded />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/competitions/invites/accept" element={<CompetitionInviteAccept />} />
+        </Route>
         {showFounderPlaceholders ? (
           <>
             <Route path="/competitions/*" element={<FounderPlaceholder section="competitions" />} />

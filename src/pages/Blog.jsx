@@ -1,14 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CalendarDays, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
 import BlogCover from "@/components/ml/BlogCover";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { api } from "@/api/mlArenaApi";
 import { BLOG_CATEGORIES, BLOG_POSTS, formatBlogDate, getBlogCategory } from "@/lib/blog-data";
 import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 const PAGE_SIZE = 6;
+
+function adaptPost(post) {
+  const fallback = BLOG_POSTS.find((item) => item.slug === post.slug);
+  return {
+    ...fallback,
+    ...post,
+    category: post.category?.slug || post.primary_category?.slug || post.category_slug || fallback?.category || "news",
+    tags: (post.tags || fallback?.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug),
+    publishedAt: post.published_at || post.publishedAt || fallback?.publishedAt,
+    readingTime: post.reading_time_minutes || post.reading_time || post.readingTime || fallback?.readingTime || 5,
+    featured: post.is_featured ?? post.featured ?? fallback?.featured,
+    visual: fallback?.visual || { type: "grid", title: post.title },
+  };
+}
 
 function normalize(value) {
   return value.toLowerCase().replaceAll("ё", "е").replace(/\s+/g, " ").trim();
@@ -52,6 +68,17 @@ export default function Blog() {
   const queryParam = searchParams.get("query") || "";
   const [search, setSearch] = useState(queryParam);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const postsQuery = useQuery({
+    queryKey: ["blog-posts", activeCategory, queryParam, visibleCount],
+    queryFn: () => api.blog.posts({ category: activeCategory, q: queryParam.trim().length >= 2 ? queryParam.trim() : undefined, limit: Math.min(50, visibleCount + 1), offset: 0 }),
+    staleTime: 30000,
+  });
+  const categoriesQuery = useQuery({ queryKey: ["blog-categories"], queryFn: api.blog.categories, staleTime: 300000 });
+  const responsePosts = postsQuery.data?.data || postsQuery.data?.items || [];
+  const serverPosts = responsePosts.map(adaptPost);
+  const posts = serverPosts.length || postsQuery.isSuccess ? serverPosts : BLOG_POSTS;
+  const serverCategories = Array.isArray(categoriesQuery.data) ? categoriesQuery.data.map((item) => ({ slug: item.slug, name: item.name })) : [];
+  const categories = serverCategories.length ? [{ slug: "all", name: "Все" }, ...serverCategories] : BLOG_CATEGORIES;
 
   useEffect(() => {
     setSearch(queryParam);
@@ -86,17 +113,17 @@ export default function Blog() {
   }, [activeCategory, queryParam]);
 
   const normalizedQuery = normalize(queryParam);
-  const filteredPosts = useMemo(() => BLOG_POSTS
+  const filteredPosts = useMemo(() => posts
     .filter((post) => {
       if (activeCategory !== "all" && post.category !== activeCategory) return false;
       if (normalizedQuery.length < 2) return true;
       const haystack = normalize([post.title, post.excerpt, ...post.tags].join(" "));
       return haystack.includes(normalizedQuery);
     })
-    .sort((first, second) => second.publishedAt.localeCompare(first.publishedAt)), [activeCategory, normalizedQuery]);
+    .sort((first, second) => String(second.publishedAt).localeCompare(String(first.publishedAt))), [activeCategory, normalizedQuery, posts]);
 
   const showFeatured = activeCategory === "all" && normalizedQuery.length < 2;
-  const featured = BLOG_POSTS.find((post) => post.featured);
+  const featured = posts.find((post) => post.featured);
   const listPosts = showFeatured ? filteredPosts.filter((post) => !post.featured) : filteredPosts;
   const visiblePosts = listPosts.slice(0, visibleCount);
 
@@ -183,7 +210,7 @@ export default function Blog() {
               <p className="mt-2 text-sm text-muted-foreground">{filteredPosts.length} {materialWord(filteredPosts.length)}</p>
             </div>
             <div className="scrollbar-thin flex max-w-full gap-2 overflow-x-auto pb-1">
-              {BLOG_CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <button key={category.slug} type="button" onClick={() => selectCategory(category.slug)} className={`shrink-0 rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors ${activeCategory === category.slug ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"}`}>{category.name}</button>
               ))}
             </div>

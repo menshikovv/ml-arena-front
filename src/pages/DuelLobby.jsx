@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { base44 } from "@/api/base44Client";
+import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
@@ -160,7 +160,7 @@ function RulesDialog({ open, onClose }) {
   );
 }
 
-function LobbyView({ duel, onStart, starting }) {
+function LobbyView({ duel, onStart, onLeave, starting, leaving }) {
   const [ready, setReady] = useState(false);
   const [countdown, setCountdown] = useState(10);
 
@@ -204,6 +204,7 @@ function LobbyView({ duel, onStart, starting }) {
             </div>
           ))}
         </div>
+        <Button variant="ghost" className="mx-auto mt-4 flex" onClick={onLeave} disabled={leaving}>{leaving ? <Loader2 size={15} className="animate-spin" /> : null}Покинуть лобби</Button>
 
         <div className="mt-7 flex flex-col items-center">
           {ready && <TimerDisplay seconds={countdown} />}
@@ -262,21 +263,15 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
     try {
       setState("uploading");
       setProgress(22);
-      await sleep(220);
       setProgress(67);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const upload = await uploadFile(file, "duel_submission", { duel_id: duel.id });
       setProgress(100);
       setState("validating");
-      await sleep(500);
       setState("scoring");
-      await sleep(700);
-
-      const submittedAt = new Date().toISOString();
-      const updatedDuel = await base44.entities.Duel.update(duel.id, {
-        player1_file_url: file_url,
-        player1_submitted_at: submittedAt,
-      });
-      const userScore = Number(updatedDuel.player1_score);
+      const created = await api.duels.submit(duel.id, upload.id);
+      const checked = created.id ? await waitForSubmission(created.id) : created;
+      const submittedAt = checked.created_at || new Date().toISOString();
+      const userScore = Number(checked.score ?? checked.public_score);
       if (!Number.isFinite(userScore)) throw new Error("Проверка завершилась без результата");
 
       setScore(userScore);
@@ -293,7 +288,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
       setState("scored");
       setFile(null);
       toast.success(`Решение проверено: ${safeScore(userScore, duel.metric)}`);
-      await onFinished(updatedDuel.status === "completed");
+      await onFinished(checked.duel_status === "completed");
     } catch (uploadError) {
       setState("failed");
       setError(uploadError.message || "Проверка временно недоступна. Попробуй отправить файл ещё раз.");
@@ -714,10 +709,11 @@ export default function DuelLobby() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [starting, setStarting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const { data: duel, isLoading, isError, refetch } = useQuery({
     queryKey: ["duel", id],
-    queryFn: () => base44.entities.Duel.get(id),
+    queryFn: () => api.duels.get(id),
     enabled: Boolean(id),
     refetchInterval: 5000,
     retry: false,
@@ -731,15 +727,18 @@ export default function DuelLobby() {
       : duel?.status === "lobby"
         ? "lobby"
         : "live";
+  const resultQuery = useQuery({
+    queryKey: ["duel-result", id],
+    queryFn: () => api.duels.result(id),
+    enabled: Boolean(id && stage === "result"),
+    retry: false,
+  });
 
   const startDuel = useCallback(async () => {
     if (!duel || starting) return;
     setStarting(true);
     try {
-      const updated = await base44.entities.Duel.update(duel.id, {
-        status: "active",
-        started_at: new Date().toISOString(),
-      });
+      const updated = await api.duels.ready(duel.id, true);
       await queryClient.invalidateQueries({ queryKey: ["duel", duel.id] });
       if (["live", "active"].includes(updated.status)) {
         toast.success("Дуэль началась");
@@ -764,6 +763,19 @@ export default function DuelLobby() {
     }
   }, [id, navigate, queryClient, refetch]);
 
+  const leaveDuel = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      await api.duels.leave(id);
+      toast.success("Вы покинули лобби");
+      navigate("/duels", { replace: true });
+    } catch (error) {
+      toast.error(error.message || "Не удалось покинуть лобби");
+      setLeaving(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
   }
@@ -781,10 +793,10 @@ export default function DuelLobby() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
-      {stage === "lobby" && <LobbyView duel={duel} onStart={startDuel} starting={starting} />}
+      {stage === "lobby" && <LobbyView duel={duel} onStart={startDuel} onLeave={leaveDuel} starting={starting} leaving={leaving} />}
       {stage === "live" && <LiveView duel={duel} overtime={false} onFinished={finishScoring} />}
       {stage === "overtime" && <LiveView duel={duel} overtime onFinished={finishScoring} />}
-      {stage === "result" && <ResultView duel={duel} />}
+      {stage === "result" && <ResultView duel={{ ...duel, ...(resultQuery.data || {}) }} />}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -24,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
+import { api } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -184,6 +186,11 @@ export default function Pricing() {
   const reduceMotion = useReducedMotion();
   const { toast } = useToast();
   const annual = period === "year";
+  const plansQuery = useQuery({ queryKey: ["billing-plans"], queryFn: api.billing.plans, staleTime: 60000 });
+  const plans = Array.isArray(plansQuery.data) ? plansQuery.data : [];
+  const premiumPlan = plans.find((plan) => String(plan.code || plan.name).toLowerCase().includes("premium"));
+  const monthlyPrice = premiumPlan ? Math.round(Number(premiumPlan.amount) / 100) : 790;
+  const annualAmount = premiumPlan?.annual_amount ? Math.round(Number(premiumPlan.annual_amount) / 100) : monthlyPrice * 12;
 
   const requestPremium = () => {
     toast({
@@ -239,12 +246,12 @@ export default function Pricing() {
               <motion.div key={period} initial={reduceMotion ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, y: -4 }} transition={{ duration: 0.18 }}>
                 {annual ? (
                   <>
-                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">11 880 ₽</span><span className="pb-1 text-sm text-muted-foreground">в год</span></div>
-                    <p className="mt-2 text-sm font-semibold text-primary">990 ₽ в месяц · экономия 3 600 ₽ от основной цены</p>
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{annualAmount.toLocaleString("ru-RU")} ₽</span><span className="pb-1 text-sm text-muted-foreground">в год</span></div>
+                    <p className="mt-2 text-sm font-semibold text-primary">{Math.round(annualAmount / 12).toLocaleString("ru-RU")} ₽ в месяц</p>
                   </>
                 ) : (
                   <>
-                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">790 ₽</span><span className="pb-1 text-sm text-muted-foreground">в месяц</span></div>
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{monthlyPrice.toLocaleString("ru-RU")} ₽</span><span className="pb-1 text-sm text-muted-foreground">в месяц</span></div>
                     <p className="mt-2 text-sm"><span className="text-muted-foreground line-through">1 290 ₽</span><span className="ml-2 font-semibold text-primary">временная Founder-цена</span></p>
                   </>
                 )}

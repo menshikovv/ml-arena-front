@@ -25,9 +25,9 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { base44 } from "@/api/base44Client";
+import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
@@ -478,7 +478,7 @@ function DuelGuideDialog({ open, onClose }) {
   );
 }
 
-function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, taskType, setTaskType }) {
+function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId }) {
   const [searchNick, setSearchNick] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const matchedOpponent = useMemo(() => {
@@ -526,6 +526,8 @@ function OverviewView({ duels, opponents, isLoading, createDuel, isCreating, tas
           </div>
         </section>
       </Reveal>
+
+      {challenges.length > 0 && <Reveal delay={0.04} className="border-b border-border py-7"><div className="mb-4 flex items-center justify-between"><h2 className="font-heading text-xl font-bold">Ожидающие вызовы</h2><span className="text-xs text-muted-foreground">{challenges.length}</span></div><div className="space-y-2">{challenges.map((challenge) => { const outgoing = challenge.direction === "outgoing" || challenge.challenger_id === currentUserId || challenge.challenger?.id === currentUserId; const opponent = outgoing ? challenge.opponent : challenge.challenger; const name = opponent?.nickname || (outgoing ? challenge.opponent_name : challenge.challenger_name) || "Соперник"; return <div key={challenge.id} className="flex flex-col gap-4 border border-border bg-card p-4 sm:flex-row sm:items-center"><Avatar name={name} size={40} /><div className="min-w-0 flex-1"><p className="font-semibold">{name}</p><p className="mt-1 text-xs text-muted-foreground">{outgoing ? "Исходящий вызов" : "Входящий вызов"} · {TASKS[challenge.task_type]?.label || challenge.task_type} · {challenge.rated === false ? "без рейтинга" : "рейтинговая"}</p></div><div className="flex gap-2">{outgoing ? <Button size="sm" variant="outline" onClick={() => onChallengeAction(challenge.id, "withdraw")} disabled={challengePending}>Отозвать</Button> : <><Button size="sm" onClick={() => onChallengeAction(challenge.id, "accept")} disabled={challengePending}>Принять</Button><Button size="sm" variant="outline" onClick={() => onChallengeAction(challenge.id, "decline")} disabled={challengePending}>Отклонить</Button></>}</div></div>; })}</div></Reveal>}
 
       <Reveal delay={0.06} className="py-9">
         <div className="mb-4 flex items-end justify-between gap-4">
@@ -681,30 +683,47 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
   const [status, setStatus] = useState("idle");
   const [seconds, setSeconds] = useState(0);
   const [opponent, setOpponent] = useState(null);
+  const [ticket, setTicket] = useState(null);
   const timerRef = useRef(null);
-  const matchRef = useRef(null);
+  const navigate = useNavigate();
+  const ticketQuery = useQuery({
+    queryKey: ["duel-matchmaking", ticket?.id],
+    queryFn: () => api.matchmaking.get(ticket.id),
+    enabled: Boolean(ticket?.id) && status === "searching",
+    refetchInterval: 1500,
+  });
 
   useEffect(() => () => {
     window.clearInterval(timerRef.current);
-    window.clearTimeout(matchRef.current);
   }, []);
+
+  const startMutation = useMutation({
+    mutationFn: () => api.matchmaking.search({ task_type: taskType, rated: true }),
+    onSuccess: (nextTicket) => { setTicket(nextTicket); setStatus("searching"); setSeconds(0); setOpponent(null); timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000); },
+    onError: (error) => toast.error(error.message || "Не удалось начать поиск"),
+  });
 
   const start = () => {
     setStatus("searching");
     setSeconds(0);
     setOpponent(null);
-    timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000);
-    matchRef.current = window.setTimeout(() => {
-      const candidates = opponents.filter(
-        (item) => item.online && Math.abs(CURRENT_USER.rating - item.rating) <= 200 && item.focus.includes(taskType),
-      );
-      if (candidates.length) {
-        window.clearInterval(timerRef.current);
-        setOpponent(candidates[0]);
+    startMutation.mutate();
+  };
+
+  useEffect(() => {
+    const current = ticketQuery.data;
+    if (!current) return;
+    if (current.duel_id || current.status === "matched") {
+      window.clearInterval(timerRef.current);
+      if (current.duel_id) navigate(`/duels/${current.duel_id}`);
+      else {
+        const found = current.opponent || opponents.find((item) => item.id === current.opponent_user_id);
+        setOpponent(found || null);
         setStatus("found");
       }
-    }, 4200);
-  };
+    }
+    if (["expired", "no_opponent"].includes(current.status)) { window.clearInterval(timerRef.current); setStatus("empty"); }
+  }, [navigate, opponents, ticketQuery.data]);
 
   useEffect(() => {
     if (status === "searching" && seconds >= 120) {
@@ -715,10 +734,22 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
 
   const ratingWindow = seconds < 30 ? 100 : seconds < 60 ? 150 : 200;
 
-  const cancel = () => {
+  const cancel = async () => {
     window.clearInterval(timerRef.current);
-    window.clearTimeout(matchRef.current);
+    if (ticket?.id) await api.matchmaking.cancel(ticket.id).catch((error) => toast.error(error.message));
     setStatus("cancelled");
+  };
+  const continueSearch = async () => {
+    if (!ticket?.id) return start();
+    try {
+      const nextTicket = await api.matchmaking.continue(ticket.id);
+      setTicket(nextTicket);
+      setSeconds(0);
+      setStatus("searching");
+      timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    } catch (error) {
+      toast.error(error.message || "Не удалось продолжить поиск");
+    }
   };
 
   return (
@@ -805,11 +836,11 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
               </>
             ) : status === "empty" ? (
               <>
-                <Button onClick={openChallenge}><BrainCircuit size={16} /> Выбрать вызов</Button>
-                <Button variant="outline" onClick={start}>Продолжить поиск</Button>
+                <Button onClick={() => openChallenge(ticket)}><BrainCircuit size={16} /> Выбрать вызов</Button>
+                <Button variant="outline" onClick={continueSearch}>Продолжить поиск</Button>
               </>
             ) : (
-              <Button onClick={start}><Zap size={16} /> Найти соперника</Button>
+              <Button onClick={start} disabled={startMutation.isPending}>{startMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />} Найти соперника</Button>
             )}
           </div>
         </div>
@@ -833,17 +864,30 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
 function ArenaChallengeView() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { attemptId } = useParams();
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const directionKey = params.get("direction") || "classification";
   const levelKey = params.get("level") || "medium";
-  const task = TASKS[directionKey] || TASKS.classification;
-  const level = CHALLENGE_LEVELS[levelKey] || CHALLENGE_LEVELS.medium;
+  const challengeQuery = useQuery({ queryKey: ["arena-challenge", attemptId], queryFn: () => api.arenaChallenges.get(attemptId), enabled: Boolean(attemptId && attemptId !== "new"), refetchInterval: (query) => ["active", "scoring"].includes(query.state.data?.status) ? 2000 : false });
+  const challenge = challengeQuery.data;
+  const fallbackTask = TASKS[directionKey] || TASKS.classification;
+  const task = { ...fallbackTask, ...(challenge?.task || {}), label: challenge?.task?.label || fallbackTask.label, metric: challenge?.metric || challenge?.task?.metric || fallbackTask.metric };
+  const fallbackLevel = CHALLENGE_LEVELS[levelKey] || CHALLENGE_LEVELS.medium;
+  const level = { ...fallbackLevel, label: challenge?.difficulty_label || fallbackLevel.label, benchmark: Number(challenge?.benchmark_score ?? fallbackLevel.benchmark), reward: String(challenge?.benchmark_rating ?? fallbackLevel.reward) };
   const [seconds, setSeconds] = useState(3600);
   const [attempts, setAttempts] = useState(0);
   const [bestScore, setBestScore] = useState(null);
   const [status, setStatus] = useState("active");
   const [uploadState, setUploadState] = useState("idle");
   const won = bestScore !== null && bestScore > level.benchmark;
+
+  useEffect(() => {
+    if (!challenge) return;
+    setAttempts(challenge.attempts_count ?? challenge.submissions_count ?? 0);
+    if (challenge.best_score !== undefined && challenge.best_score !== null) setBestScore(Number(challenge.best_score));
+    if (challenge.seconds_remaining !== undefined) setSeconds(challenge.seconds_remaining);
+    if (["completed", "finished", "expired"].includes(challenge.status)) setStatus("result");
+  }, [challenge]);
 
   useEffect(() => {
     if (status !== "active") return undefined;
@@ -855,17 +899,28 @@ function ArenaChallengeView() {
     if (seconds === 0 && status === "active") setStatus("result");
   }, [seconds, status]);
 
-  const submitResult = () => {
-    if (attempts >= 5 || uploadState === "validating") return;
+  const submitResult = async (file) => {
+    if (!file || !challenge?.id || attempts >= 5 || uploadState === "validating") return;
     setUploadState("validating");
-    window.setTimeout(() => {
+    try {
+      const upload = await uploadFile(file, "duel_submission", { arena_challenge_id: challenge.id });
+      const result = await api.arenaChallenges.submit(challenge.id, upload.id);
       const nextAttempt = attempts + 1;
-      const score = Number((level.benchmark + (nextAttempt >= 2 ? 0.0167 : -0.0124)).toFixed(4));
+      const score = Number(result.score ?? result.public_score ?? result.best_score);
       setAttempts(nextAttempt);
-      setBestScore((current) => current === null ? score : Math.max(current, score));
+      if (Number.isFinite(score)) setBestScore((current) => current === null ? score : Math.max(current, score));
       setUploadState("scored");
-      toast.success(nextAttempt >= 2 ? "Эталон превзойдён" : "Результат проверен");
-    }, 900);
+      toast.success(result.benchmark_beaten ? "Эталон превзойдён" : "Результат проверен");
+      challengeQuery.refetch();
+    } catch (error) {
+      setUploadState("idle");
+      toast.error(error.message || "Не удалось проверить CSV");
+    }
+  };
+
+  const finishChallenge = async () => {
+    try { await api.arenaChallenges.finish(challenge.id); setStatus("result"); challengeQuery.refetch(); }
+    catch (error) { toast.error(error.message || "Не удалось завершить вызов"); }
   };
 
   if (status === "result") {
@@ -944,16 +999,12 @@ function ArenaChallengeView() {
                 <div><h2 className="font-heading text-xl font-bold">Отправка результата</h2><p className="mt-2 text-sm text-muted-foreground">Загрузите CSV с колонками `id` и `prediction`.</p></div>
                 <span className="text-xs font-semibold text-muted-foreground">{attempts} из 5</span>
               </div>
-              <button
-                type="button"
-                onClick={submitResult}
-                disabled={attempts >= 5 || uploadState === "validating"}
-                className="mt-5 flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/25 px-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <label className={cn("mt-5 flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/25 px-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5", (attempts >= 5 || uploadState === "validating") && "cursor-not-allowed opacity-60")}>
+                <input type="file" accept=".csv,text/csv" className="sr-only" disabled={attempts >= 5 || uploadState === "validating"} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; submitResult(file); }} />
                 {uploadState === "validating" ? <Loader2 className="animate-spin text-primary" size={24} /> : <Upload className="text-primary" size={24} />}
                 <span className="mt-3 text-sm font-semibold">{uploadState === "validating" ? "Проверяем формат и результат…" : "Выбрать CSV-файл"}</span>
                 <span className="mt-1 text-xs text-muted-foreground">Невалидный файл не расходует попытку</span>
-              </button>
+              </label>
             </section>
           </main>
 
@@ -972,7 +1023,7 @@ function ArenaChallengeView() {
               <h3 className="mt-3 text-sm font-semibold">Как считается результат</h3>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">Победа может дать небольшой бонус только один раз для этой задачи. Поражение не снижает рейтинг и не входит в процент побед над людьми.</p>
             </section>
-            <Button variant="outline" className="w-full" onClick={() => setStatus("result")}>Завершить вызов</Button>
+            <Button variant="outline" className="w-full" onClick={finishChallenge} disabled={!challenge?.id}>Завершить вызов</Button>
           </aside>
         </div>
       </div>
@@ -1111,6 +1162,7 @@ export default function Duels() {
   const queryClient = useQueryClient();
   const [taskType, setTaskType] = useState("classification");
   const [challengeOpen, setChallengeOpen] = useState(false);
+  const [challengeTicket, setChallengeTicket] = useState(null);
   const view = location.pathname.endsWith("/history")
     ? "history"
     : location.pathname.endsWith("/rating")
@@ -1121,14 +1173,18 @@ export default function Duels() {
         ? "matchmaking"
         : "overview";
 
-  const { data: duels = [], isLoading } = useQuery({
+  const duelsQuery = useQuery({
     queryKey: ["duels"],
-    queryFn: () => base44.entities.Duel.list("-created_date", 30),
+    queryFn: () => api.duels.list({ limit: 50, offset: 0 }),
   });
-  const { data: profiles = [] } = useQuery({
+  const duels = Array.isArray(duelsQuery.data) ? duelsQuery.data : duelsQuery.data?.data || duelsQuery.data?.items || [];
+  const profilesQuery = useQuery({
     queryKey: ["duel-opponents"],
-    queryFn: () => base44.entities.MLProfile.list("-rating", 50),
+    queryFn: () => api.profiles.search({ limit: 50, offset: 0 }),
   });
+  const profiles = profilesQuery.data?.data || profilesQuery.data?.items || [];
+  const challengesQuery = useQuery({ queryKey: ["duel-challenges"], queryFn: () => api.duels.challenges({ status: "pending", limit: 50, offset: 0 }) });
+  const challenges = challengesQuery.data?.data || challengesQuery.data?.items || [];
   const opponents = useMemo(() => profiles
     .filter((profile) => profile.id && profile.id !== user?.id)
     .map((profile) => ({
@@ -1142,26 +1198,11 @@ export default function Duels() {
     })), [profiles, user?.id]);
 
   const createDuelMutation = useMutation({
-    mutationFn: ({ opponent, selectedTask }) => {
-      const task = TASKS[selectedTask];
-      return base44.entities.Duel.create({
+    mutationFn: ({ opponent, selectedTask }) => api.duels.createChallenge({
         opponent_user_id: opponent.id,
-        player1_name: CURRENT_USER.name,
-        player1_rating: CURRENT_USER.rating,
-        player2_name: opponent.name,
-        player2_rating: opponent.rating,
-        player2_avatar: null,
-        status: "lobby",
-        task_title: task.title,
-        task_description: task.description,
         task_type: selectedTask,
-        metric: task.metric,
-        duration_minutes: 60,
-        rating_window: 200,
-        dataset_url: "#",
-        created_date: new Date().toISOString(),
-      });
-    },
+        rated: true,
+      }),
     onSuccess: (duel) => {
       queryClient.invalidateQueries({ queryKey: ["duels"] });
       toast.success("Вызов отправлен сопернику");
@@ -1173,10 +1214,21 @@ export default function Duels() {
   const createDuel = (opponent, selectedTask = taskType) => {
     createDuelMutation.mutate({ opponent, selectedTask });
   };
+  const challengeAction = useMutation({
+    mutationFn: ({ id, action }) => action === "accept" ? api.duels.acceptChallenge(id) : action === "withdraw" ? api.duels.withdrawChallenge(id) : api.duels.declineChallenge(id),
+    onSuccess: (result, variables) => { queryClient.invalidateQueries({ queryKey: ["duel-challenges"] }); queryClient.invalidateQueries({ queryKey: ["duels"] }); if (variables.action === "accept" && result?.duel_id) navigate(`/duels/${result.duel_id}`); },
+    onError: (error) => toast.error(error.message || "Не удалось обработать вызов"),
+  });
 
-  const startChallenge = (level) => {
-    setChallengeOpen(false);
-    navigate(`/duels/challenges/new?direction=${taskType}&level=${level}`);
+  const startChallenge = async (level) => {
+    if (!challengeTicket?.id) return;
+    try {
+      const challenge = await api.matchmaking.startArenaChallenge(challengeTicket.id, level);
+      setChallengeOpen(false);
+      navigate(`/duels/challenges/${challenge.id}?direction=${taskType}&level=${level}`);
+    } catch (error) {
+      toast.error(error.message || "Не удалось запустить вызов ML-Арены");
+    }
   };
 
   return (
@@ -1185,12 +1237,16 @@ export default function Duels() {
       {view === "overview" && (
         <OverviewView
           duels={duels}
+          challenges={challenges}
           opponents={opponents}
-          isLoading={isLoading}
+          isLoading={duelsQuery.isLoading}
           createDuel={createDuel}
           isCreating={createDuelMutation.isPending}
           taskType={taskType}
           setTaskType={setTaskType}
+          onChallengeAction={(id, action) => challengeAction.mutate({ id, action })}
+          challengePending={challengeAction.isPending}
+          currentUserId={user?.id}
         />
       )}
       {view === "matchmaking" && (
@@ -1200,10 +1256,10 @@ export default function Duels() {
           pending={createDuelMutation.isPending}
           taskType={taskType}
           setTaskType={setTaskType}
-          openChallenge={() => setChallengeOpen(true)}
+          openChallenge={(ticket) => { setChallengeTicket(ticket); setChallengeOpen(true); }}
         />
       )}
-      {view === "history" && <HistoryView duels={duels} isLoading={isLoading} />}
+      {view === "history" && <HistoryView duels={duels} isLoading={duelsQuery.isLoading} />}
       {view === "rating" && <RatingView />}
       {view === "challenge" && <ArenaChallengeView />}
       <ChallengeChooser

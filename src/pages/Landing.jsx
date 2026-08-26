@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -36,6 +37,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import ThemeToggle from "@/components/ml/ThemeToggle";
+import { api } from "@/api/mlArenaApi";
 
 const FEATURES = [
   { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: Классификация, Регрессия, NLP, Компьютерное зрение, Временные ряды, Ранжирование, Кластеризация, RecSys. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
@@ -236,12 +238,13 @@ function HeroCompanion({ reduceMotion }) {
   );
 }
 
-function ArenaPreview() {
-  const rows = [
+function ArenaPreview({ entries = [] }) {
+  const fallbackRows = [
     { rank: "01", name: "datawizard", task: "Кредитный скоринг", score: "0.9412", change: "+24" },
     { rank: "02", name: "ml_ninja", task: "Тональность отзывов", score: "0.9368", change: "+18" },
     { rank: "03", name: "Ты", task: "Цены на жильё", score: "0.9214", change: "+31", active: true },
   ];
+  const rows = entries.length ? entries.slice(0, 3).map((entry, index) => ({ rank: String(entry.rank || index + 1).padStart(2, "0"), name: entry.nickname || entry.user_name || entry.name, task: entry.task_title || "Общий рейтинг", score: String(entry.rating ?? entry.score ?? "—"), change: entry.change ? `${entry.change > 0 ? "+" : ""}${entry.change}` : "", active: entry.is_current_user })) : fallbackRows;
 
   return (
     <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
@@ -388,6 +391,12 @@ export default function Landing() {
   const registrationTarget = `/register${location.search}`;
   const primaryTarget = isAuthenticated ? "/profile" : registrationTarget;
   const reduceMotion = useReducedMotion();
+  const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
+  const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
+  useQuery({ queryKey: ["public-config"], queryFn: api.public.config, staleTime: 300000 });
+  useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
+  const previewEntries = leaderboardPreview.data?.items || leaderboardPreview.data?.rows || (Array.isArray(leaderboardPreview.data) ? leaderboardPreview.data : []);
+  const landingStats = STATS.map((item, index) => index === 1 && publicStats.data?.prize_amount ? { ...item, value: `${Math.round(publicStats.data.prize_amount / 100).toLocaleString("ru-RU")} ₽` } : item);
   const reveal = {
     hidden: reduceMotion ? {} : { opacity: 0, y: 22 },
     visible: { opacity: 1, y: 0 },
@@ -586,7 +595,7 @@ export default function Landing() {
             </div>
 
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:mt-0">
-              {STATS.map((stat, index) => (
+              {landingStats.map((stat, index) => (
                 <motion.div
                   key={stat.label}
                   initial={reduceMotion ? false : { opacity: 0 }}
@@ -785,7 +794,7 @@ export default function Landing() {
                   </motion.div>
                 ))}
               </div>
-              <ArenaPreview />
+              <ArenaPreview entries={previewEntries} />
             </div>
           </div>
         </section>

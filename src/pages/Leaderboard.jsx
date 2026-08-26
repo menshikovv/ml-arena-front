@@ -22,7 +22,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
@@ -64,26 +64,29 @@ const TAB_META = {
   duels: { label: "Дуэли", icon: Swords, metric: "Рейтинг дуэлей", description: "Сезонный рейтинг после пяти калибровочных матчей" },
 };
 
-function adaptProfile(profile, index) {
-  const duelCount = (profile.duels_won || 0) + (profile.duels_lost || 0);
+function adaptRatingRow(entry, index, currentUserId) {
+  const profile = entry.profile || entry.user || entry;
+  const duelCount = entry.human_duel_count ?? entry.duels_count ?? (entry.wins || 0) + (entry.losses || 0);
+  const id = entry.user_id || profile.id;
   return {
-    id: profile.id,
-    name: profile.user_name,
-    avatar: profile.avatar_url,
-    overall: profile.overall_season_score || 0,
-    competition: profile.competition_season_score || 0,
-    competitionRank: profile.competition_rank || index + 1,
-    competitions: profile.competitions_participated || 0,
-    best: profile.best_percentile || null,
-    duel: profile.duel_season_rating || 1000,
-    duelRank: profile.duel_rank || null,
+    id,
+    name: profile.nickname || profile.user_name || profile.username || entry.nickname || `Участник ${index + 1}`,
+    avatar: profile.avatar_url || entry.avatar_url,
+    overall: Number(entry.overall_score ?? entry.score ?? entry.rating ?? 0),
+    competition: Number(entry.competition_score ?? entry.competition_points ?? 0),
+    competitionRank: entry.competition_rank ?? entry.rank ?? index + 1,
+    competitions: entry.competition_count ?? entry.competitions_count ?? 0,
+    best: entry.best_percentile ?? null,
+    duel: Number(entry.duel_rating ?? entry.duel_score ?? 1000),
+    duelRank: entry.duel_rank ?? null,
     duels: duelCount,
-    wins: profile.duels_won || 0,
-    streak: profile.duel_streak || 0,
-    activity: profile.last_activity_at || "—",
-    directions: profile.strong_directions || [],
-    directionScores: profile.direction_scores || {},
-    verified: profile.reproduced_count || 0,
+    wins: entry.wins ?? 0,
+    streak: entry.win_streak ?? entry.streak ?? 0,
+    activity: entry.updated_at || entry.last_activity_at || "—",
+    directions: entry.directions || profile.strong_directions || [],
+    directionScores: entry.direction_scores || {},
+    verified: entry.verified_results_count ?? entry.competition_count ?? 0,
+    me: Boolean(entry.is_current_user || (currentUserId && id === currentUserId)),
   };
 }
 
@@ -99,8 +102,8 @@ function rankValue(row, tab, direction) {
   return row.overall;
 }
 
-function SeasonSelector({ value, onChange }) {
-  return <label className="relative block"><span className="sr-only">Сезон</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 appearance-none border border-border bg-card pl-4 pr-10 text-sm font-semibold outline-none hover:border-primary/40 focus:border-primary"><option value="founder-2026">Founder Season · активен</option><option value="beta-2025">Beta Season · архив</option></select><History className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} /></label>;
+function SeasonSelector({ value, onChange, seasons }) {
+  return <label className="relative block"><span className="sr-only">Сезон</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 appearance-none border border-border bg-card pl-4 pr-10 text-sm font-semibold outline-none hover:border-primary/40 focus:border-primary">{seasons.map((item) => <option key={item.slug} value={item.slug}>{item.name || item.title || item.slug}{item.status === "active" ? " · активен" : item.status === "archived" ? " · архив" : ""}</option>)}</select><History className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} /></label>;
 }
 
 function MyPosition({ row, rank, tab, direction, archived }) {
@@ -147,26 +150,28 @@ export default function Leaderboard() {
   const [search, setSearch] = useState("");
   const tab = TAB_META[searchParams.get("tab")] ? searchParams.get("tab") : "overall";
   const direction = DIRECTION_LABELS[searchParams.get("direction")] ? searchParams.get("direction") : "all";
-  const season = searchParams.get("season") || "founder-2026";
-  const archived = season !== "founder-2026";
+  const seasonParam = searchParams.get("season") || "";
   const previewEnabled = String(import.meta.env.VITE_ENABLE_CLOSED_SECTIONS || "").toLowerCase() === "true";
 
-  const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ["rating-profiles"],
-    queryFn: async () => {
-      try { return await base44.entities.MLProfile.list("-rating", 50); }
-      catch (error) { if (previewEnabled) return []; throw error; }
-    },
-  });
-
-  const sourceRows = useMemo(() => previewEnabled ? RATING_ROWS : profiles.map(adaptProfile), [previewEnabled, profiles]);
+  const seasonsQuery = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons, staleTime: 60000 });
+  const seasons = Array.isArray(seasonsQuery.data) ? seasonsQuery.data : seasonsQuery.data?.items || [];
+  const activeSeason = seasons.find((item) => item.status === "active")?.slug || seasons[0]?.slug || "founder-2026";
+  const season = seasonParam || activeSeason;
+  const archived = seasons.find((item) => item.slug === season)?.status === "archived";
+  const ratingQuery = useQuery({ queryKey: ["rating-v3", tab, season, direction], queryFn: () => api.rating.get({ tab, season, ...(direction !== "all" ? { direction } : {}) }) });
+  const ratingPayload = ratingQuery.data || {};
+  const ratingItems = Array.isArray(ratingPayload) ? ratingPayload : ratingPayload.items || ratingPayload.rows || ratingPayload.entries || [];
+  const currentUserId = ratingPayload.current_user?.user_id || ratingPayload.current_user?.id;
+  const serverRows = ratingItems.map((entry, index) => adaptRatingRow(entry, index, currentUserId));
+  if (ratingPayload.current_user && !serverRows.some((row) => row.me)) serverRows.push(adaptRatingRow(ratingPayload.current_user, serverRows.length, currentUserId));
+  const sourceRows = previewEnabled && !serverRows.length ? RATING_ROWS : serverRows;
   const rankedRows = useMemo(() => sourceRows
     .filter((row) => direction === "all" || row.directionScores?.[direction] > 0)
     .filter((row) => tab !== "duels" || row.duels >= 5)
     .sort((a, b) => rankValue(b, tab, direction) - rankValue(a, tab, direction)), [direction, sourceRows, tab]);
   const rows = useMemo(() => rankedRows.filter((row) => !search.trim() || row.name.toLowerCase().includes(search.trim().toLowerCase())), [rankedRows, search]);
 
-  const myRow = sourceRows.find((row) => row.me) || sourceRows[0];
+  const myRow = sourceRows.find((row) => row.me);
   const myIndex = rankedRows.findIndex((row) => row.id === myRow?.id);
   const myRank = myIndex >= 0 ? myIndex + 1 : null;
   const updateParam = (key, value, defaultValue) => { const next = new URLSearchParams(searchParams); if (value === defaultValue) next.delete(key); else next.set(key, value); setSearchParams(next); };
@@ -174,7 +179,7 @@ export default function Leaderboard() {
 
   return (
     <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
-      <Reveal><header className="grid gap-7 border-b border-border pb-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"><div><h1 className="font-heading text-4xl font-extrabold leading-tight sm:text-5xl">Рейтинг ML-Арены</h1><p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground sm:text-base">Результаты участников в текущем сезоне. Соревнования и дуэли считаются отдельно, а общий рейтинг объединяет их с весами 70% и 30%. Выберите направление, чтобы сравнить участников в конкретной области ML.</p></div><div className="flex flex-col items-stretch gap-3 sm:flex-row"><SeasonSelector value={season} onChange={(value) => updateParam("season", value, "founder-2026")} /><Button asChild variant="outline"><Link to="/rating/methodology"><BookOpenCheck size={16} />Как считается рейтинг?</Link></Button></div></header></Reveal>
+      <Reveal><header className="grid gap-7 border-b border-border pb-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"><div><h1 className="font-heading text-4xl font-extrabold leading-tight sm:text-5xl">Рейтинг ML-Арены</h1><p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground sm:text-base">Результаты участников в текущем сезоне. Соревнования и дуэли считаются отдельно, а общий рейтинг объединяет их с весами 70% и 30%. Выберите направление, чтобы сравнить участников в конкретной области ML.</p></div><div className="flex flex-col items-stretch gap-3 sm:flex-row"><SeasonSelector value={season} seasons={seasons.length ? seasons : [{ slug: season, name: "Founder Season", status: "active" }]} onChange={(value) => updateParam("season", value, activeSeason)} /><Button asChild variant="outline"><Link to={`/rating/methodology?season=${encodeURIComponent(season)}`}><BookOpenCheck size={16} />Как считается рейтинг?</Link></Button></div></header></Reveal>
 
       {archived && <div className="mt-5 flex items-start gap-3 border border-border bg-secondary/50 p-4 text-sm"><History size={18} className="mt-0.5 shrink-0 text-primary" /><div><p className="font-semibold">Сезон завершён</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Рейтинг зафиксирован и доступен только для просмотра. Долгосрочные результаты сохранены в ML-паспортах участников.</p></div></div>}
 
@@ -196,7 +201,7 @@ export default function Leaderboard() {
 
       <section className="mt-8">
         <div className="flex items-end justify-between gap-4"><div><h2 className="font-heading text-2xl font-extrabold md:text-3xl">{TAB_META[tab].label}{direction !== "all" ? ` · ${DIRECTION_LABELS[direction]}` : ""}</h2><p className="mt-2 text-xs text-muted-foreground">{rows.length} участников в текущей выборке</p></div>{search && <button type="button" onClick={() => setSearch("")} className="text-xs font-semibold text-primary hover:underline">Сбросить поиск</button>}</div>
-        {isLoading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div> : rows.length ? <div className="mt-5 overflow-hidden border border-border bg-card"><div className="hidden grid-cols-[64px_minmax(210px,1.2fr)_minmax(170px,0.8fr)_minmax(160px,0.7fr)_140px] border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-semibold text-muted-foreground md:grid"><span>Место</span><span>Участник</span><span>{tab === "overall" ? "Компоненты" : tab === "competitions" ? "Активность" : "Матчи"}</span><span>{tab === "competitions" ? "Подтверждения" : tab === "duels" ? "Серия" : "Направления"}</span><span className="text-right">{TAB_META[tab].metric}</span></div><Stagger delay={0.04}>{rows.map((row, index) => <StaggerItem key={row.id}><RatingRow row={row} rank={index + 1} tab={tab} direction={direction} /><MobileRatingCard row={row} rank={index + 1} tab={tab} direction={direction} /></StaggerItem>)}</Stagger></div> : <div className="mt-5 border-y border-dashed border-border py-16 text-center"><Search className="mx-auto text-muted-foreground" size={28} /><h3 className="mt-4 font-heading text-xl font-extrabold">Участники не найдены</h3><p className="mt-2 text-sm text-muted-foreground">Измените поиск или выберите другое направление.</p></div>}
+        {ratingQuery.isLoading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div> : rows.length ? <div className="mt-5 overflow-hidden border border-border bg-card"><div className="hidden grid-cols-[64px_minmax(210px,1.2fr)_minmax(170px,0.8fr)_minmax(160px,0.7fr)_140px] border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-semibold text-muted-foreground md:grid"><span>Место</span><span>Участник</span><span>{tab === "overall" ? "Компоненты" : tab === "competitions" ? "Активность" : "Матчи"}</span><span>{tab === "competitions" ? "Подтверждения" : tab === "duels" ? "Серия" : "Направления"}</span><span className="text-right">{TAB_META[tab].metric}</span></div><Stagger delay={0.04}>{rows.map((row, index) => <StaggerItem key={row.id}><RatingRow row={row} rank={index + 1} tab={tab} direction={direction} /><MobileRatingCard row={row} rank={index + 1} tab={tab} direction={direction} /></StaggerItem>)}</Stagger></div> : <div className="mt-5 border-y border-dashed border-border py-16 text-center"><Search className="mx-auto text-muted-foreground" size={28} /><h3 className="mt-4 font-heading text-xl font-extrabold">Участники не найдены</h3><p className="mt-2 text-sm text-muted-foreground">Измените поиск или выберите другое направление.</p></div>}
       </section>
 
       <Reveal className="mt-10" delay={0.08}><section className="grid gap-px border border-border bg-border md:grid-cols-3">{[[ShieldCheck, "Premium не влияет на место", "Подписка не меняет формулы, лимиты рейтинговых попыток и подбор соперников."], [Zap, "Вызов ML-Арены ограничен", "Победа даёт небольшой бонус 0–10, максимум 40 за сезон. Поражение не отнимает рейтинг."], [Info, "Рейтинг — не оценка знаний", "Это сравнительный результат текущего сезона. Доказательства навыков хранятся в ML-паспорте."]].map(([Icon, title, text]) => <article key={title} className="bg-card p-6"><Icon size={20} className="text-primary" /><h3 className="mt-5 font-heading text-lg font-extrabold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p></article>)}</section></Reveal>
@@ -205,10 +210,13 @@ export default function Leaderboard() {
 }
 
 export function RatingMethodology() {
+  const [searchParams] = useSearchParams();
+  const methodology = useQuery({ queryKey: ["rating-methodology", searchParams.get("season")], queryFn: () => api.rating.methodology({ ...(searchParams.get("season") ? { season: searchParams.get("season") } : {}) }), staleTime: 60000 });
+  const method = methodology.data || {};
   return (
     <div className="mx-auto w-full max-w-[1120px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
       <Link to="/rating" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary"><ArrowLeft size={16} />Вернуться к рейтингу</Link>
-      <header className="mt-7 border-b border-border pb-8"><h1 className="font-heading text-4xl font-extrabold leading-tight sm:text-5xl">Как считается рейтинг</h1><p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">Методика Founder Season. Рейтинг начинается заново в каждом сезоне, а подтверждённые результаты прошлых сезонов остаются в ML-паспорте и архиве.</p><div className="mt-5 flex flex-wrap gap-2"><span className="border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">rating_v3_founder</span><span className="border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">70% соревнования · 30% дуэли</span></div></header>
+      <header className="mt-7 border-b border-border pb-8"><h1 className="font-heading text-4xl font-extrabold leading-tight sm:text-5xl">Как считается рейтинг</h1><p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">{method.description || "Методика Founder Season. Рейтинг начинается заново в каждом сезоне, а подтверждённые результаты прошлых сезонов остаются в ML-паспорте и архиве."}</p><div className="mt-5 flex flex-wrap gap-2"><span className="border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{method.version || method.code || "rating_v3_founder"}</span><span className="border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">{method.competition_weight_percent ?? 70}% соревнования · {method.duel_weight_percent ?? 30}% дуэли</span></div></header>
 
       <Reveal className="mt-8"><MethodSection number="01" icon={Trophy} title="Соревнования" lead="Любой валидный финальный результат даёт минимум 50 очков. Высокое место, сложность задачи и размер события увеличивают награду."><Formula>50 + 950 × (1 − процентиль)² × сложность × надёжность</Formula><div className="mt-5 grid gap-px border border-border bg-border sm:grid-cols-4">{[["Начальная", "×0,90"], ["Стандартная", "×1,00"], ["Продвинутая", "×1,10"], ["Экспертная", "×1,20"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-xl font-extrabold">{value}</p></div>)}</div><p className="mt-4 text-xs leading-5 text-muted-foreground">Если валидных финальных участников меньше 10, бонус за место не начисляется, но сохраняются 50 очков за завершение.</p></MethodSection></Reveal>
 

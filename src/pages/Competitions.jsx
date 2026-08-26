@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -23,7 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/mlArenaApi";
 import CompetitionCard from "@/components/ml/CompetitionCard";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
@@ -109,14 +109,15 @@ export default function Competitions() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [requestOpen]);
 
-  const { data: officialData = [], isLoading } = useQuery({
-    queryKey: ["competitions"],
-    queryFn: () => base44.entities.Competition.list("-created_date", 50),
+  const { data: competitionsResponse, isLoading } = useQuery({
+    queryKey: ["competitions", section],
+    queryFn: () => api.competitions.list({ limit: 50, offset: 0, origin: section === "community" ? "community" : "official" }),
   });
+  const serverCompetitions = Array.isArray(competitionsResponse) ? competitionsResponse : competitionsResponse?.data || competitionsResponse?.items || [];
 
   const competitions = useMemo(
-    () => section === "community" ? COMMUNITY_COMPETITIONS : officialData.map(enrichOfficial),
-    [officialData, section],
+    () => section === "community" ? (serverCompetitions.length ? serverCompetitions : COMMUNITY_COMPETITIONS) : serverCompetitions.map(enrichOfficial),
+    [section, serverCompetitions],
   );
 
   const filtered = useMemo(() => {
@@ -156,11 +157,28 @@ export default function Competitions() {
     setSort("deadline");
   };
 
+  const requestMutation = useMutation({
+    mutationFn: () => api.cooperation.createLead({
+      name: requestForm.name.trim(),
+      company: requestForm.company.trim(),
+      email: requestForm.contact.trim().toLowerCase(),
+      role: null,
+      goal: "competition",
+      comment: `${requestForm.description.trim()}${requestForm.prize.trim() ? `\nПризовой фонд: ${requestForm.prize.trim()}` : ""}`,
+      consent_privacy: true,
+      consent_marketing: false,
+    }),
+    onSuccess: () => {
+      toast.success("Заявка отправлена команде ML-Арены");
+      setRequestOpen(false);
+      setRequestForm({ company: "", name: "", contact: "", prize: "", description: "" });
+    },
+    onError: (error) => toast.error(error.message || "Не удалось отправить заявку"),
+  });
+
   const submitRequest = (event) => {
     event.preventDefault();
-    toast.success("Заявка подготовлена. Отправка появится после подключения формы к API.");
-    setRequestOpen(false);
-    setRequestForm({ company: "", name: "", contact: "", prize: "", description: "" });
+    requestMutation.mutate();
   };
 
   return (
@@ -289,18 +307,18 @@ export default function Competitions() {
           <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestOpen(false); }}>
             <motion.div role="dialog" aria-modal="true" aria-labelledby="competition-request-title" className="w-full max-w-xl overflow-hidden border border-border bg-card shadow-2xl" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }}>
               <div className="flex items-start justify-between gap-5 border-b border-border px-5 py-5 md:px-6">
-                <div className="flex gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary/10 text-primary"><Building2 size={19} /></span><div><h2 id="competition-request-title" className="font-heading text-xl font-extrabold">Провести соревнование с ML-Ареной</h2><p className="mt-1 text-sm leading-5 text-muted-foreground">Расскажите о задаче — форма пока работает как фронтендовый предпросмотр.</p></div></div>
+                <div className="flex gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary/10 text-primary"><Building2 size={19} /></span><div><h2 id="competition-request-title" className="font-heading text-xl font-extrabold">Провести соревнование с ML-Ареной</h2><p className="mt-1 text-sm leading-5 text-muted-foreground">Расскажите о задаче, и команда свяжется с вами.</p></div></div>
                 <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setRequestOpen(false)} aria-label="Закрыть форму"><X size={17} /></Button>
               </div>
               <form className="space-y-4 px-5 py-5 md:px-6" onSubmit={submitRequest}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Компания или проект"><Input required value={requestForm.company} onChange={(event) => setRequestForm({ ...requestForm, company: event.target.value })} placeholder="Название компании" /></Field>
                   <Field label="Ваше имя"><Input required value={requestForm.name} onChange={(event) => setRequestForm({ ...requestForm, name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
-                  <Field label="Email или Telegram"><Input required value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" /></Field>
+                  <Field label="Email"><Input required type="email" value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" /></Field>
                   <Field label="Призовой фонд"><Input value={requestForm.prize} onChange={(event) => setRequestForm({ ...requestForm, prize: event.target.value })} placeholder="Например, 300 000 ₽" /></Field>
                 </div>
                 <Field label="Кратко о задаче"><Textarea required rows={4} value={requestForm.description} onChange={(event) => setRequestForm({ ...requestForm, description: event.target.value })} placeholder="Что нужно решить и какой результат вы ожидаете" /></Field>
-                <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => setRequestOpen(false)}>Отмена</Button><Button type="submit"><Send size={15} /> Подготовить заявку</Button></div>
+                <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => setRequestOpen(false)}>Отмена</Button><Button type="submit" disabled={requestMutation.isPending}>{requestMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Отправить заявку</Button></div>
               </form>
             </motion.div>
           </motion.div>
