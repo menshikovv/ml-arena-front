@@ -62,10 +62,11 @@ export default function ProfileEdit() {
   const navigate = useNavigate();
   const fileRef = useRef(null);
   const initial = useMemo(() => {
-    const name = splitFullName(user?.full_name);
+    const fallbackName = splitFullName(user?.full_name);
     return {
       nickname: user?.nickname || "",
-      ...name,
+      first_name: user?.first_name ?? fallbackName.first_name,
+      last_name: user?.last_name ?? fallbackName.last_name,
       city: user?.city || "",
       birth_date: user?.birth_date || "",
       education_status: user?.education_status || "",
@@ -167,8 +168,7 @@ export default function ProfileEdit() {
     }
     setLoading(true);
     try {
-      const { first_name: firstName, last_name: lastName, ...profileData } = form;
-      await updateProfile({ ...profileData, full_name: [firstName, lastName].filter(Boolean).join(" ") });
+      await updateProfile({ ...form, full_name: [form.first_name, form.last_name].filter(Boolean).join(" ") });
       if (avatarFile) await updateAvatar(avatarFile);
       else if (removeAvatar) await deleteAvatar();
       toast({ title: "Профиль сохранён" });

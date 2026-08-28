@@ -6,12 +6,16 @@ const PENDING_EMAIL_KEY = "ml-arena-pending-email";
 const AuthContext = createContext(null);
 
 function mapUser(account = {}, profile = {}) {
+  const firstName = profile.first_name ?? account.first_name ?? "";
+  const lastName = profile.last_name ?? account.last_name ?? "";
   return {
     ...account,
     ...profile,
     id: account.id || profile.user_id,
     nickname: profile.user_name || profile.username || profile.nickname || account.nickname || account.username || account.email?.split("@")[0],
-    full_name: profile.full_name ?? profile.name ?? account.full_name ?? account.name ?? "",
+    first_name: firstName,
+    last_name: lastName,
+    full_name: profile.full_name ?? profile.name ?? account.full_name ?? account.name ?? [firstName, lastName].filter(Boolean).join(" "),
     education_status: profile.university || "",
     organization: profile.company || account.organization_name || "",
     birth_date: profile.birth_date || "",
@@ -138,6 +142,8 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = useCallback(async (changes) => {
     const body = {
       user_name: changes.nickname,
+      first_name: changes.first_name || null,
+      last_name: changes.last_name || null,
       full_name: changes.full_name || null,
       bio: changes.bio || null,
       city: changes.city || null,
