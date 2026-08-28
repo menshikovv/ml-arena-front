@@ -38,8 +38,8 @@ const SECTIONS = [
 ];
 
 function listRows(response) {
-  if (Array.isArray(response)) return response;
-  return Array.isArray(response?.data) ? response.data : [];
+  const items = Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : response?.items || response?.data?.items || [];
+  return Array.isArray(items) ? items.filter((item) => item && typeof item === "object") : [];
 }
 
 function listTotal(response) {
@@ -62,7 +62,8 @@ function formatDate(value) {
 }
 
 function displayName(item) {
-  return item.user_name || item.username || item.full_name || item.name || item.title || item.email_masked || item.email || item.id;
+  if (!item || typeof item !== "object") return "Запись без данных";
+  return item.user_name || item.username || item.full_name || item.name || item.title || item.email_masked || item.email || item.id || "Запись без имени";
 }
 
 function Status({ value }) {
