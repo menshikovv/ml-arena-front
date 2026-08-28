@@ -69,7 +69,7 @@ export default function Profile() {
   const duelLosses = duelRating?.losses ?? stats.duels_lost;
   const challengeBonus = duelRating?.challenge_bonus;
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
-  const displayName = fullName || profile.user_name;
+  const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
 
   if (profileQuery.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
