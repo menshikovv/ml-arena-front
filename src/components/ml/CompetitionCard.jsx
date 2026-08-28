@@ -47,7 +47,7 @@ function getTimeLabel(competition, status) {
 export default function CompetitionCard({ competition, status, meta, userState, featured = false, sequence = 1 }) {
   const color = TASK_TYPE_COLORS[competition.task_type] || "hsl(var(--primary))";
   const statusMeta = STATUS_META[status] || STATUS_META.active;
-  const isRestricted = competition.is_private || meta.access !== "Открыто";
+  const isRestricted = competition.is_private || ["application", "invite_only", "partner", "premium"].includes(competition.access_type || competition.access);
   const isCommunity = competition.origin === "community";
   const isRated = !isCommunity && competition.rated !== false;
   const sequenceLabel = String(sequence).padStart(2, "0");

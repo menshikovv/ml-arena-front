@@ -29,34 +29,8 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { COMMUNITY_COMPETITIONS, TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
-
-const COMPETITION_META = {
-  c1: { difficulty: "Средняя", access: "Открыто", domain: "Финтех" },
-  c2: { difficulty: "Лёгкая", access: "Открыто", domain: "NLP" },
-  c3: { difficulty: "Высокая", access: "Открыто", domain: "Финтех" },
-  c4: { difficulty: "Высокая", access: "Открыто", domain: "Ритейл" },
-  c5: { difficulty: "Средняя", access: "Открыто", domain: "Транспорт" },
-  c6: { difficulty: "Начальная", access: "Открыто", domain: "Синтетика" },
-  c7: { difficulty: "Экспертная", access: "Открыто", domain: "Исследования" },
-  c8: { difficulty: "Лёгкая", access: "Открыто", domain: "Телеком" },
-  c9: { difficulty: "Высокая", access: "Открыто", domain: "Здравоохранение" },
-  c10: { difficulty: "Экспертная", access: "По приглашению", domain: "Беспилотники" },
-};
-
-const COMMUNITY_META = {
-  "community-churn": { difficulty: "Средняя", access: "Открыто", domain: "Продукты" },
-  "community-demand": { difficulty: "Лёгкая", access: "По заявке", domain: "Транспорт" },
-  "community-ranking": { difficulty: "Высокая", access: "По приглашению", domain: "EdTech" },
-};
-
-const USER_STATES = {
-  c1: { joined: true, rank: 17, score: "2.0731", attemptsLeft: 2 },
-  c2: { joined: true, attemptsLeft: 5 },
-  c6: { joined: true, rank: 12, score: "98.71%" },
-  "community-churn": { joined: true, rank: 9, score: "0.8842", attemptsLeft: 3 },
-};
 
 const FAIRNESS = [
   { icon: ShieldCheck, title: "Равные лимиты", text: "В рейтинговых соревнованиях число попыток одинаково для всех. Premium не даёт преимущества." },
@@ -79,13 +53,27 @@ function getStatus(competition) {
   return "active";
 }
 
-function enrichOfficial(competition, index) {
+function enrichOfficial(competition) {
   return {
     ...competition,
-    origin: competition.origin || (index % 3 === 1 ? "official_partner" : "official_platform"),
-    rated: competition.rated !== false,
-    access_type: competition.is_private ? "invite_only" : "open",
-    passport_evidence_level: "arena_verified",
+    origin: competition.origin || "official_platform",
+    access_type: competition.access_type || competition.access || (competition.is_private ? "invite_only" : "open"),
+  };
+}
+
+const ACCESS_LABELS = {
+  open: "Открыто",
+  application: "По заявке",
+  invite_only: "По приглашению",
+  partner: "Партнёрское",
+  premium: "Premium",
+};
+
+function getCardMeta(competition) {
+  const access = competition.access_type || competition.access;
+  return {
+    difficulty: competition.difficulty || "Не указана",
+    access: ACCESS_LABELS[access] || access || "Не указан",
   };
 }
 
@@ -116,7 +104,7 @@ export default function Competitions() {
   const serverCompetitions = Array.isArray(competitionsResponse) ? competitionsResponse : competitionsResponse?.data || competitionsResponse?.items || [];
 
   const competitions = useMemo(
-    () => section === "community" ? (serverCompetitions.length ? serverCompetitions : COMMUNITY_COMPETITIONS) : serverCompetitions.map(enrichOfficial),
+    () => section === "community" ? serverCompetitions : serverCompetitions.map(enrichOfficial),
     [section, serverCompetitions],
   );
 
@@ -127,8 +115,8 @@ export default function Competitions() {
         const status = getStatus(competition);
         const statusMatches = statusFilter === "finished" ? ["finished", "finalizing"].includes(status) : status === statusFilter;
         const searchMatches = !query
-          || competition.title.toLowerCase().includes(query)
-          || competition.description.toLowerCase().includes(query)
+          || String(competition.title || "").toLowerCase().includes(query)
+          || String(competition.description || "").toLowerCase().includes(query)
           || competition.company_name?.toLowerCase().includes(query);
         const typeMatches = typeFilter === "all" || competition.task_type === typeFilter;
         const accessMatches = accessFilter === "all" || competition.access_type === accessFilter;
@@ -263,7 +251,7 @@ export default function Competitions() {
           {(search || typeFilter !== "all" || accessFilter !== "all" || sort !== "deadline") && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-primary hover:underline">Сбросить фильтры</button>}
         </div>
 
-        {isLoading && section === "official" ? (
+        {isLoading ? (
           <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin text-primary" size={26} /></div>
         ) : filtered.length ? (
           <Stagger className="mt-6 space-y-5" delay={0.05}>
@@ -272,8 +260,7 @@ export default function Competitions() {
                 <CompetitionCard
                   competition={competition}
                   status={getStatus(competition)}
-                  meta={(section === "community" ? COMMUNITY_META : COMPETITION_META)[competition.id] || { difficulty: "Средняя", access: "Открыто", domain: "Другое" }}
-                  userState={USER_STATES[competition.id]}
+                  meta={getCardMeta(competition)}
                   featured={section === "official" && index === 0}
                   sequence={index + 1}
                 />
@@ -283,9 +270,9 @@ export default function Competitions() {
         ) : (
           <div className="mt-6 border-y border-dashed border-border py-16 text-center">
             <Filter className="mx-auto text-muted-foreground" size={28} />
-            <h2 className="mt-4 font-heading text-xl font-extrabold">По этим условиям ничего не найдено</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Измените фильтры или откройте соревнования в другой стадии.</p>
-            <Button variant="outline" className="mt-5" onClick={clearFilters}>Сбросить фильтры</Button>
+            <h2 className="mt-4 font-heading text-xl font-extrabold">{section === "community" ? "В сообществе пока нет соревнований" : "По этим условиям ничего не найдено"}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{section === "community" ? "Новые соревнования появятся здесь после публикации организатором." : "Измените фильтры или откройте соревнования в другой стадии."}</p>
+            {section === "community" ? <Button asChild className="mt-5"><Link to="/competitions/community/create"><Plus size={16} /> Создать соревнование</Link></Button> : <Button variant="outline" className="mt-5" onClick={clearFilters}>Сбросить фильтры</Button>}
           </div>
         )}
       </section>
