@@ -644,7 +644,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
   );
 }
 
-function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge }) {
+function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge, canPlay }) {
   const [status, setStatus] = useState("idle");
   const [seconds, setSeconds] = useState(0);
   const [opponent, setOpponent] = useState(null);
@@ -654,7 +654,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
   const ticketQuery = useQuery({
     queryKey: ["duel-matchmaking", ticket?.id],
     queryFn: () => api.matchmaking.get(ticket.id),
-    enabled: Boolean(ticket?.id) && status === "searching",
+    enabled: canPlay && Boolean(ticket?.id) && status === "searching",
     refetchInterval: 1500,
   });
 
@@ -669,6 +669,10 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
   });
 
   const start = () => {
+    if (!canPlay) {
+      toast("Поиск соперника требует аккаунт участника.");
+      return;
+    }
     setStatus("searching");
     setSeconds(0);
     setOpponent(null);
@@ -700,11 +704,13 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
   const ratingWindow = seconds < 30 ? 100 : seconds < 60 ? 150 : 200;
 
   const cancel = async () => {
+    if (!canPlay) return;
     window.clearInterval(timerRef.current);
     if (ticket?.id) await api.matchmaking.cancel(ticket.id).catch((error) => toast.error(error.message));
     setStatus("cancelled");
   };
   const continueSearch = async () => {
+    if (!canPlay) return;
     if (!ticket?.id) return start();
     try {
       const nextTicket = await api.matchmaking.continue(ticket.id);
@@ -830,10 +836,12 @@ function ArenaChallengeView() {
   const location = useLocation();
   const navigate = useNavigate();
   const { attemptId } = useParams();
+  const { user } = useAuth();
+  const canPlay = user?.role === "user";
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const directionKey = params.get("direction") || "classification";
   const levelKey = params.get("level") || "medium";
-  const challengeQuery = useQuery({ queryKey: ["arena-challenge", attemptId], queryFn: () => api.arenaChallenges.get(attemptId), enabled: Boolean(attemptId && attemptId !== "new"), refetchInterval: (query) => ["active", "scoring"].includes(query.state.data?.status) ? 2000 : false });
+  const challengeQuery = useQuery({ queryKey: ["arena-challenge", attemptId], queryFn: () => api.arenaChallenges.get(attemptId), enabled: canPlay && Boolean(attemptId && attemptId !== "new"), refetchInterval: (query) => ["active", "scoring"].includes(query.state.data?.status) ? 2000 : false });
   const challenge = challengeQuery.data;
   const fallbackTask = TASKS[directionKey] || TASKS.classification;
   const task = { ...fallbackTask, ...(challenge?.task || {}), label: challenge?.task?.label || fallbackTask.label, metric: challenge?.metric || challenge?.task?.metric || fallbackTask.metric };
@@ -865,6 +873,10 @@ function ArenaChallengeView() {
   }, [seconds, status]);
 
   const submitResult = async (file) => {
+    if (!canPlay) {
+      toast("Отправка решения требует аккаунт участника.");
+      return;
+    }
     if (!file || !challenge?.id || attempts >= 5 || uploadState === "validating") return;
     setUploadState("validating");
     try {
@@ -884,6 +896,10 @@ function ArenaChallengeView() {
   };
 
   const finishChallenge = async () => {
+    if (!canPlay) {
+      toast("Завершение вызова требует аккаунт участника.");
+      return;
+    }
     try { await api.arenaChallenges.finish(challenge.id); setStatus("result"); challengeQuery.refetch(); }
     catch (error) { toast.error(error.message || "Не удалось завершить вызов"); }
   };
@@ -1063,7 +1079,7 @@ export default function Duels() {
   const [taskType, setTaskType] = useState("classification");
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [challengeTicket, setChallengeTicket] = useState(null);
-  const canUseDuels = Boolean(user);
+  const canReadPersonalDuels = user?.role === "user";
   const view = location.pathname.endsWith("/history")
     ? "history"
     : location.pathname.includes("/challenges/")
@@ -1075,16 +1091,16 @@ export default function Duels() {
   const duelsQuery = useQuery({
     queryKey: ["duels"],
     queryFn: () => api.duels.list({ limit: 50, offset: 0 }),
-    enabled: canUseDuels,
+    enabled: canReadPersonalDuels,
   });
   const duels = Array.isArray(duelsQuery.data) ? duelsQuery.data : duelsQuery.data?.data || duelsQuery.data?.items || [];
   const profilesQuery = useQuery({
     queryKey: ["duel-opponents"],
     queryFn: () => api.profiles.search({ limit: 50, offset: 0 }),
-    enabled: canUseDuels,
+    enabled: Boolean(user),
   });
   const profiles = profilesQuery.data?.data || profilesQuery.data?.items || [];
-  const challengesQuery = useQuery({ queryKey: ["duel-challenges"], queryFn: () => api.duels.challenges({ status: "pending", limit: 50, offset: 0 }), enabled: canUseDuels });
+  const challengesQuery = useQuery({ queryKey: ["duel-challenges"], queryFn: () => api.duels.challenges({ status: "pending", limit: 50, offset: 0 }), enabled: canReadPersonalDuels });
   const challenges = challengesQuery.data?.data || challengesQuery.data?.items || [];
   const opponents = useMemo(() => profiles
     .filter((profile) => profile.id && profile.id !== user?.id)
@@ -1113,6 +1129,10 @@ export default function Duels() {
   });
 
   const createDuel = (opponent, selectedTask = taskType) => {
+    if (!canReadPersonalDuels) {
+      toast("Создавать и просматривать личные матчи может только аккаунт участника.");
+      return;
+    }
     createDuelMutation.mutate({ opponent, selectedTask });
   };
   const challengeAction = useMutation({
@@ -1122,6 +1142,10 @@ export default function Duels() {
   });
 
   const startChallenge = async (level) => {
+    if (!canReadPersonalDuels) {
+      toast("Вызов ML-Арены доступен только аккаунту участника.");
+      return;
+    }
     if (!challengeTicket?.id) return;
     try {
       const challenge = await api.matchmaking.startArenaChallenge(challengeTicket.id, level);
@@ -1145,7 +1169,13 @@ export default function Duels() {
           isCreating={createDuelMutation.isPending}
           taskType={taskType}
           setTaskType={setTaskType}
-          onChallengeAction={(id, action) => challengeAction.mutate({ id, action })}
+          onChallengeAction={(id, action) => {
+            if (!canReadPersonalDuels) {
+              toast("Управление вызовами доступно только аккаунту участника.");
+              return;
+            }
+            challengeAction.mutate({ id, action });
+          }}
           challengePending={challengeAction.isPending}
           currentUserId={user?.id}
         />
@@ -1158,6 +1188,7 @@ export default function Duels() {
           taskType={taskType}
           setTaskType={setTaskType}
           openChallenge={(ticket) => { setChallengeTicket(ticket); setChallengeOpen(true); }}
+          canPlay={canReadPersonalDuels}
         />
       )}
       {view === "history" && <HistoryView duels={duels} isLoading={duelsQuery.isLoading} />}

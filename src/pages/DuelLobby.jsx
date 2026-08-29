@@ -32,6 +32,7 @@ import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/AuthContext";
 import { METRIC_LABELS, TASK_TYPE_LABELS, formatScore } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 
@@ -705,6 +706,8 @@ function ResultView({ duel }) {
 
 export default function DuelLobby() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const canPlay = user?.role === "user";
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -714,7 +717,7 @@ export default function DuelLobby() {
   const { data: duel, isLoading, isError, refetch } = useQuery({
     queryKey: ["duel", id],
     queryFn: () => api.duels.get(id),
-    enabled: Boolean(id),
+    enabled: canPlay && Boolean(id),
     refetchInterval: 5000,
     retry: false,
   });
@@ -730,11 +733,12 @@ export default function DuelLobby() {
   const resultQuery = useQuery({
     queryKey: ["duel-result", id],
     queryFn: () => api.duels.result(id),
-    enabled: Boolean(id && stage === "result"),
+    enabled: canPlay && Boolean(id && stage === "result"),
     retry: false,
   });
 
   const startDuel = useCallback(async () => {
+    if (!canPlay) return;
     if (!duel || starting) return;
     setStarting(true);
     try {
@@ -750,7 +754,7 @@ export default function DuelLobby() {
       toast.error(error.message || "Не удалось начать дуэль");
       setStarting(false);
     }
-  }, [duel, navigate, queryClient, starting]);
+  }, [canPlay, duel, navigate, queryClient, starting]);
 
   const finishScoring = useCallback(async (completed = false) => {
     await queryClient.invalidateQueries({ queryKey: ["duel", id] });
@@ -764,6 +768,7 @@ export default function DuelLobby() {
   }, [id, navigate, queryClient, refetch]);
 
   const leaveDuel = async () => {
+    if (!canPlay) return;
     if (leaving) return;
     setLeaving(true);
     try {
