@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Link, useParams } from "react-router-dom";
-import { Award, BriefcaseBusiness, CheckCircle2, Github, GraduationCap, History, Link as LinkIcon, Loader2, MapPin, ShieldCheck, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
+import { Award, BadgeCheck, BriefcaseBusiness, CheckCircle2, Crown, Flame, Github, GraduationCap, History, Link as LinkIcon, Loader2, MapPin, Medal, ShieldCheck, Sparkles, Star, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
@@ -20,6 +20,30 @@ const list = (value) => Array.isArray(value) ? value : value?.items || value?.da
 const currentRating = (value) => value?.current_user || value?.currentUser || null;
 const shown = (value) => value === undefined || value === null ? "—" : value;
 
+const BADGE_ICONS = {
+  award: Award,
+  badge: BadgeCheck,
+  badge_check: BadgeCheck,
+  crown: Crown,
+  flame: Flame,
+  medal: Medal,
+  sparkles: Sparkles,
+  star: Star,
+  swords: Swords,
+  target: Target,
+  trophy: Trophy,
+};
+
+const BADGE_COLORS = {
+  "blue-500": "border-blue-500/25 bg-blue-500/10 text-blue-600 dark:text-blue-300",
+  "cyan-500": "border-cyan-500/25 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300",
+  "emerald-500": "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+  "amber-500": "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+  "orange-500": "border-orange-500/25 bg-orange-500/10 text-orange-600 dark:text-orange-300",
+  "rose-500": "border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+  "violet-500": "border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-300",
+};
+
 function SummaryMetric({ icon: Icon, label, value, detail }) {
   return <Card className="h-full border-border bg-card p-5"><Icon size={19} className="text-primary" /><p className="mt-5 text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-2xl font-extrabold">{shown(value)}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p></Card>;
 }
@@ -32,6 +56,26 @@ function DirectionCard({ code, title, score }) {
   const value = Number(score || 0);
   const hasData = value > 0;
   return <article className="flex min-h-48 flex-col border border-border bg-card p-5"><div className="flex items-start justify-between gap-3"><span className="flex h-10 w-10 items-center justify-center bg-primary/10 text-primary"><Target size={18} /></span><span className={cn("border px-2 py-1 text-[10px] font-semibold", hasData ? "border-primary/20 bg-primary/5 text-primary" : "border-border text-muted-foreground")}>{hasData ? "Есть данные" : "Нет данных"}</span></div><h3 className="mt-5 font-heading text-xl font-extrabold">{title}</h3><div className="mt-auto pt-6"><div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Уровень из профиля</span><strong>{hasData ? `${value}%` : "—"}</strong></div><div className="mt-2 h-2 overflow-hidden bg-secondary"><div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></div><p className="mt-3 text-[11px] leading-5 text-muted-foreground">{hasData ? `Получено из profile.skills.${code}.` : "Сервер пока не вернул статистику по направлению."}</p></div></article>;
+}
+
+function BadgeCard({ grant }) {
+  const badge = grant?.badge || grant || {};
+  const Icon = BADGE_ICONS[badge.icon_key] || Award;
+  const awardedAt = grant?.awarded_at || grant?.granted_at;
+  const colorClass = BADGE_COLORS[badge.color_token] || "border-primary/20 bg-primary/10 text-primary";
+  const awardedDate = awardedAt ? new Date(awardedAt) : null;
+
+  return (
+    <article className="group flex min-h-56 flex-col border border-border bg-card p-5 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <span className={cn("flex h-12 w-12 items-center justify-center border", colorClass)}><Icon size={22} /></span>
+        {badge.code && <span className="max-w-[55%] truncate border border-border bg-secondary/40 px-2 py-1 font-mono text-[10px] text-muted-foreground">{badge.code}</span>}
+      </div>
+      <h3 className="mt-5 font-heading text-xl font-extrabold leading-tight">{badge.name || badge.title || "Бейдж"}</h3>
+      {badge.description && <p className="mt-2 text-sm leading-6 text-muted-foreground">{badge.description}</p>}
+      {awardedDate && !Number.isNaN(awardedDate.getTime()) && <p className="mt-auto pt-5 text-xs text-muted-foreground">Получен {awardedDate.toLocaleDateString("ru-RU")}</p>}
+    </article>
+  );
 }
 
 function RatingHistory({ history }) {
@@ -92,7 +136,7 @@ export default function Profile() {
 
       <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-3xl font-extrabold">Практика</h2><p className="mt-2 text-sm text-muted-foreground">Числа берутся из <code>profile.stats</code> и строки текущего пользователя в сезонном рейтинге.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Рейтинговые завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="Только человеческие дуэли" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="Только человеческие дуэли" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="Значение из rating.current_user" /></div>{humanDuels === 0 && challengeBonus == null && <div className="mt-6"><EmptyState title="Практика пока не рассчитана" text="После завершённых дуэлей и вызовов сервер обновит сезонную строку пользователя." /></div>}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((badge) => <article key={badge.id || badge.slug || badge.name} className="border border-border bg-card p-5"><Award size={20} className="text-primary" /><h3 className="mt-4 font-heading text-xl font-extrabold">{badge.name || badge.title}</h3>{badge.description && <p className="mt-2 text-sm leading-6 text-muted-foreground">{badge.description}</p>}{badge.granted_at && <p className="mt-4 text-xs text-muted-foreground">Выдан {new Date(badge.granted_at).toLocaleDateString("ru-RU")}</p>}</article>)}</div> : <EmptyState title="Бейджей пока нет" text="Здесь появятся только активные выдачи backend." />}</Reveal></Tabs.Content>
+      <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Здесь появятся только активные выдачи backend." />}</Reveal></Tabs.Content>
 
       <Tabs.Content value="career" className="mt-7 outline-none"><Reveal><div className="grid gap-3 md:grid-cols-2"><Card className="border-border bg-card p-6"><BriefcaseBusiness size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Карьерные данные</h2><div className="mt-5 divide-y divide-border">{[["Город", profile.city], ["Университет", profile.university], ["Компания", profile.company], ["Виден работодателям", profile.visible_to_employers ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong className="text-right">{shown(value)}</strong></div>)}</div></Card><Card className="border-border bg-card p-6"><UserRoundSearch size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Публичность</h2><div className="mt-5 divide-y divide-border">{[["Публичный профиль", profile.public_profile ? "Да" : "Нет"], ["Показывать имя", profile.show_real_name ? "Да" : "Нет"], ["Показывать карьерные данные", profile.show_career_details ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong>{value}</strong></div>)}</div></Card></div></Reveal></Tabs.Content>
     </Tabs.Root>
