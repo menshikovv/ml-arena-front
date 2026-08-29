@@ -108,7 +108,7 @@ export default function BlogPost() {
   const currentUrl = typeof window === "undefined" ? "" : window.location.href;
   const shareTelegram = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.title)}`;
   const shareVk = `https://vk.com/share.php?url=${encodeURIComponent(currentUrl)}&title=${encodeURIComponent(post.title)}`;
-  const cta = post.cta || { title: "Продолжить знакомство с ML-Ареной", text: "Создайте профиль и сохраните результаты своей практики.", label: "Создать профиль", to: "/register", authTo: "/profile" };
+  const cta = post.cta || { title: "Продолжить знакомство с ML-Ареной", text: "Войдите в аккаунт и сохраните результаты своей практики.", label: "Войти", to: "/login", authTo: "/profile" };
   const ctaTarget = isAuthenticated && cta.authTo ? cta.authTo : cta.to;
 
   const copyLink = async () => {

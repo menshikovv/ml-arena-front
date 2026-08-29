@@ -63,7 +63,7 @@ export default function FounderSeasonTelegramCard({ compact = false, embedded = 
               <Button type="button" onClick={handleResend} disabled={resending}>{resending ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Отправить письмо ещё раз</Button>
             ) : !isAuthenticated ? (
               <Button asChild>
-                <Link to="/register"><UserPlus size={16} /> Зарегистрироваться</Link>
+                <Link to="/login"><UserPlus size={16} /> Войти</Link>
               </Button>
             ) : telegramAvailable ? (
               <Button asChild>

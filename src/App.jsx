@@ -22,8 +22,6 @@ import Competitions from "@/pages/Competitions";
 import Cooperation from "@/pages/Cooperation";
 import DuelLobby from "@/pages/DuelLobby";
 import Duels from "@/pages/Duels";
-import FounderPlaceholder from "@/pages/FounderPlaceholder";
-import FounderProfile from "@/pages/FounderProfile";
 import Help from "@/pages/Help";
 import Landing from "@/pages/Landing";
 import Leaderboard, { RatingMethodology } from "@/pages/Leaderboard";
@@ -32,7 +30,6 @@ import Login from "@/pages/Login";
 import ProfileEdit from "@/pages/ProfileEdit";
 import Pricing from "@/pages/Pricing";
 import Profile from "@/pages/Profile";
-import Register from "@/pages/Register";
 import ResetPassword from "@/pages/ResetPassword";
 import VerifyEmail from "@/pages/VerifyEmail";
 
@@ -58,7 +55,6 @@ const pageMeta = [
   ["/support", "Поддержка — ML-Арена", "Ответы на частые вопросы и форма обращения в поддержку ML-Арены."],
   ["/companies", "Компаниям — ML-Арена", "Практические ML-соревнования, проверка специалистов и совместные проекты для компаний."],
   ["/login", "Вход — ML-Арена", "Войдите в аккаунт ML-Арены."],
-  ["/register", "Регистрация — ML-Арена", "Создайте аккаунт участника ML-Арены."],
   ["/verify-email", "Подтверждение почты — ML-Арена", "Подтвердите адрес электронной почты для входа в ML-Арену."],
   ["/forgot-password", "Восстановление пароля — ML-Арена", "Восстановите доступ к аккаунту ML-Арены."],
   ["/reset-password", "Новый пароль — ML-Арена", "Задайте новый пароль для аккаунта ML-Арены."],
@@ -92,22 +88,6 @@ function AdminEntry() {
   return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>}><Admin /></Suspense>;
 }
 
-function SuperAdminPreview({ children }) {
-  const { user } = useAuth();
-  const access = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: api.admin.me,
-    enabled: user?.role === "admin",
-    retry: false,
-    staleTime: 60000,
-  });
-
-  if (user?.role !== "admin") return <Navigate to="/" replace />;
-  if (access.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
-  if (!access.data?.roles?.includes("super_admin")) return <Navigate to="/" replace />;
-  return children;
-}
-
 function CompetitionInviteAccept() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -119,11 +99,7 @@ function CompetitionInviteAccept() {
 }
 
 function AppRoutes() {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
-  const isAdmin = user?.role === "admin";
-  const previewAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: isAdmin, retry: false, staleTime: 60000 });
-  const isSuperAdmin = previewAccess.data?.roles?.includes("super_admin");
-  const showFounderPlaceholders = !isSuperAdmin;
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return <div className="fixed inset-0 flex items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
@@ -134,7 +110,6 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -152,39 +127,30 @@ function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           <Route path="/competitions/invites/accept" element={<CompetitionInviteAccept />} />
         </Route>
-        {showFounderPlaceholders ? (
-          <>
-            <Route path="/competitions/*" element={<FounderPlaceholder section="competitions" />} />
-            <Route path="/duels/*" element={<FounderPlaceholder section="duels" />} />
-            <Route path="/rating" element={<FounderPlaceholder section="rating" />} />
-            <Route path="/ml-passport" element={<FounderPlaceholder section="passport" />} />
-          </>
-        ) : (
-          <Route element={<ProtectedRoute />}>
-            <Route path="/competitions" element={<Competitions />} />
-            <Route path="/competitions/community/create" element={<CommunityCompetitionCreate />} />
-            <Route path="/competitions/:id/:section?" element={<CompetitionDetail />} />
-            <Route path="/duels" element={<Duels />} />
-            <Route path="/duels/matchmaking" element={<Duels />} />
-            <Route path="/duels/history" element={<Duels />} />
-            <Route path="/duels/rating" element={<Duels />} />
-            <Route path="/duels/challenges/:attemptId" element={<Duels />} />
-            <Route path="/duels/:id/:stage?" element={<DuelLobby />} />
-            <Route path="/rating" element={<Leaderboard />} />
-            <Route path="/rating/methodology" element={<RatingMethodology />} />
-            <Route path="/ml-passport" element={<Navigate to="/profile" replace />} />
-          </Route>
-        )}
-        <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
-        <Route path="/pricing" element={<SuperAdminPreview><Pricing /></SuperAdminPreview>} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={showFounderPlaceholders ? <FounderProfile /> : <Profile />} />
+          <Route path="/competitions" element={<Competitions />} />
+          <Route path="/competitions/community/create" element={<CommunityCompetitionCreate />} />
+          <Route path="/competitions/:id/:section?" element={<CompetitionDetail />} />
+          <Route path="/duels" element={<Duels />} />
+          <Route path="/duels/matchmaking" element={<Duels />} />
+          <Route path="/duels/history" element={<Duels />} />
+          <Route path="/duels/rating" element={<Duels />} />
+          <Route path="/duels/challenges/:attemptId" element={<Duels />} />
+          <Route path="/duels/:id/:stage?" element={<DuelLobby />} />
+          <Route path="/rating" element={<Leaderboard />} />
+          <Route path="/rating/methodology" element={<RatingMethodology />} />
+          <Route path="/ml-passport" element={<Navigate to="/profile" replace />} />
+        </Route>
+        <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile" element={<Profile />} />
           <Route path="/profile/me" element={<Navigate to="/profile" replace />} />
-          {!showFounderPlaceholders && <Route path="/profile/:id" element={<Profile />} />}
+          <Route path="/profile/:id" element={<Profile />} />
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route path="/profile/edit" element={<ProfileEdit />} />
-          <Route path="/company/dashboard" element={<SuperAdminPreview><CompanyDashboard /></SuperAdminPreview>} />
+          <Route path="/company/dashboard" element={<CompanyDashboard />} />
           <Route path="/admin" element={<AdminEntry />} />
         </Route>
       </Route>

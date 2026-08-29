@@ -50,7 +50,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout compact title="Вход" footer={<>Нет аккаунта? <Link to="/register" className="font-medium text-primary hover:underline">Зарегистрироваться</Link></>}>
+    <AuthLayout compact title="Вход">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

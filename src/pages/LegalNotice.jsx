@@ -11,7 +11,7 @@ export default function LegalNotice({ type }) {
         <p>Сейчас интерфейс работает как локальный прототип: введённые данные сохраняются только в браузере и не передаются на сервер.</p>
         <p>{privacy ? "Перед подключением реальной регистрации здесь будет опубликована полная политика обработки и хранения персональных данных." : "Перед подключением реальной регистрации здесь будет опубликована полная версия правил участия и использования ML Арены."}</p>
       </div>
-      <Button asChild variant="outline" className="mt-6"><Link to="/register"><ArrowLeft size={15} /> Вернуться к регистрации</Link></Button>
+      <Button asChild variant="outline" className="mt-6"><Link to="/login"><ArrowLeft size={15} /> Вернуться ко входу</Link></Button>
     </AuthLayout>
   );
 }

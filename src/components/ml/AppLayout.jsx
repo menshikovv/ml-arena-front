@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, Crown, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRound, UserRoundCheck, X } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, Crown, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRoundCheck, X } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import ThemeToggle from "@/components/ml/ThemeToggle";
@@ -107,7 +107,6 @@ export default function AppLayout({ children }) {
         ) : (
           <div className={`space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
             <Button asChild size={collapsed ? "icon" : "sm"} variant="outline" className={collapsed ? "" : "w-full"}><Link to="/login" onClick={() => setMobileOpen(false)} title="Войти"><LogIn size={16} />{!collapsed && "Войти"}</Link></Button>
-            <Button asChild size={collapsed ? "icon" : "sm"} className={collapsed ? "" : "w-full"}><Link to="/register" onClick={() => setMobileOpen(false)} title="Регистрация"><UserRound size={16} />{!collapsed && "Регистрация"}</Link></Button>
           </div>
         )}
       </div>

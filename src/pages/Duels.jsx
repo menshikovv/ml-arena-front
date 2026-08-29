@@ -1063,7 +1063,7 @@ export default function Duels() {
   const [taskType, setTaskType] = useState("classification");
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [challengeTicket, setChallengeTicket] = useState(null);
-  const canUseDuels = user?.role === "user";
+  const canUseDuels = Boolean(user);
   const view = location.pathname.endsWith("/history")
     ? "history"
     : location.pathname.includes("/challenges/")
@@ -1131,10 +1131,6 @@ export default function Duels() {
       toast.error(error.message || "Не удалось запустить вызов ML-Арены");
     }
   };
-
-  if (!canUseDuels) {
-    return <div className="mx-auto w-full max-w-3xl px-4 py-16 md:px-6"><div className="border border-border bg-card p-7 text-center sm:p-10"><Swords className="mx-auto text-primary" size={30} /><h1 className="mt-5 font-heading text-3xl font-extrabold">Дуэли доступны участникам</h1><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Этот раздел использует личный аккаунт участника. Текущий аккаунт имеет роль «{user?.role === "admin" ? "администратор" : user?.role === "organization" ? "организация" : "неизвестная роль"}», поэтому сервер не разрешает получать личные матчи и вызовы.</p><Button asChild variant="outline" className="mt-6"><Link to={user?.role === "admin" ? "/admin" : "/"}>Вернуться</Link></Button></div></div>;
-  }
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">

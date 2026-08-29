@@ -388,8 +388,8 @@ export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
-  const registrationTarget = `/register${location.search}`;
-  const primaryTarget = isAuthenticated ? "/profile" : registrationTarget;
+  const loginTarget = `/login${location.search}`;
+  const primaryTarget = isAuthenticated ? "/profile" : loginTarget;
   const reduceMotion = useReducedMotion();
   const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
   const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
@@ -445,10 +445,7 @@ export default function Landing() {
                 <button type="button" onClick={logout} className="hidden h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] hover:bg-white/55 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 sm:flex" title="Выйти"><LogOut size={15} /></button>
               </>
             ) : (
-              <>
-                <Link to="/login" className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-4 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 sm:flex">Войти</Link>
-                <Link to={registrationTarget} className="group hidden h-9 items-center gap-2 rounded-[12px] bg-[#0084FF] px-4 font-[var(--font-sans)] text-[14px] font-semibold text-white transition-colors hover:bg-[#0074E0] lg:flex">Регистрация <ArrowRight size={14} /></Link>
-              </>
+              <Link to={loginTarget} className="group hidden h-9 items-center gap-2 rounded-[12px] border border-[#071A3A]/10 bg-white/35 px-4 font-[var(--font-sans)] text-[14px] font-semibold text-[#071A3A] transition-all hover:bg-white/55 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 sm:flex">Войти</Link>
             )}
             <button
               type="button"
@@ -516,8 +513,7 @@ export default function Landing() {
               </div>
             ) : (
               <div className="mt-6 space-y-2">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black dark:border-white/10 dark:text-white">Войти</Link>
-                <Link to={registrationTarget} onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[#0084FF] px-5 font-[var(--font-sans)] text-sm font-bold text-white">Регистрация <ArrowRight size={15} /></Link>
+                <Link to={loginTarget} onClick={() => setMobileMenuOpen(false)} className="flex h-11 items-center justify-center rounded-[14px] border border-black/10 px-5 font-[var(--font-sans)] text-sm font-semibold text-black dark:border-white/10 dark:text-white">Войти</Link>
               </div>
             )}
           </motion.div>
@@ -571,7 +567,7 @@ export default function Landing() {
                       className="group flex w-fit items-center gap-4 rounded-[16px] bg-[#0084FF] py-2 pl-6 pr-2 font-[var(--font-sans)] text-sm font-bold text-white transition-colors hover:bg-[#0074E0]"
                       style={{ boxShadow: "inset 0 4px 4px rgba(255,255,255,0.35), 0 10px 25px -5px rgba(0,132,255,0.25)" }}
                     >
-                      {isAuthenticated ? "Открыть профиль" : "Регистрация"}
+                      {isAuthenticated ? "Открыть профиль" : "Войти"}
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#0084FF]">
                         <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                       </span>
@@ -869,7 +865,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button asChild size="lg" variant="secondary" className="h-12 px-8">
                 <Link to={primaryTarget}>
-                  {isAuthenticated ? "Открыть профиль" : "Регистрация"} <ArrowRight size={18} className="ml-1" />
+                  {isAuthenticated ? "Открыть профиль" : "Войти"} <ArrowRight size={18} className="ml-1" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-12 border-primary-foreground/30 bg-transparent px-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
@@ -897,7 +893,7 @@ export default function Landing() {
               { title: "Платформа", links: [["/competitions", "Соревнования"], ["/duels", "Дуэли"], ["/rating", "Рейтинг"]] },
               { title: "Материалы", links: [["/blog", "Блог"], ["/ml-passport", "ML-паспорт"], ["/support", "Частые вопросы"]] },
               { title: "Компаниям", links: [["/companies", "Решения для компаний"], ["/companies#cooperation-form", "Обсудить сотрудничество"]] },
-              { title: "Поддержка", links: [["/support", "Помощь и FAQ"], ["/login", "Войти"], ["/register", "Регистрация"]] },
+              { title: "Поддержка", links: [["/support", "Помощь и FAQ"], ["/login", "Войти"]] },
             ].map((group) => (
               <div key={group.title}>
                 <p className="font-heading text-sm font-bold text-foreground">{group.title}</p>
