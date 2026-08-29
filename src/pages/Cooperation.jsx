@@ -182,7 +182,7 @@ export default function Cooperation({ embedded = false }) {
       <main>
         <section className="relative overflow-hidden border-b border-border bg-card">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--primary)/.07)_1px,transparent_1px),linear-gradient(hsl(var(--primary)/.07)_1px,transparent_1px)] bg-[size:56px_56px] opacity-50" />
-          <Reveal viewportReveal className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-20 xl:py-24">
+          <Reveal viewportReveal className="relative mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-20 lg:px-8 xl:py-24">
             <div>
               <h1 className="max-w-5xl font-heading text-4xl font-extrabold leading-[1.04] sm:text-5xl lg:text-6xl">Находите ML-специалистов по нашей системе ML-паспорта, а не только по резюме</h1>
               <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">ML-Арена помогает компаниям проводить практические ML-соревнования, проверять участников на реальных задачах и находить сильных специалистов по измеримым результатам.</p>
@@ -194,7 +194,7 @@ export default function Cooperation({ embedded = false }) {
           </Reveal>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
           <Reveal viewportReveal><h2 className="max-w-5xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">Резюме показывает опыт. Практическая задача показывает, как человек работает с ML.</h2><p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground">По резюме сложно сравнить кандидатов с похожим стеком. Практическая задача ставит участников в одинаковые условия и позволяет увидеть результат на одной шкале.</p></Reveal>
           <div className="mt-10 grid border border-border lg:grid-cols-2">
             <Reveal viewportReveal className="border-b border-border bg-secondary/25 p-6 lg:border-b-0 lg:border-r md:p-8">
@@ -209,19 +209,19 @@ export default function Cooperation({ embedded = false }) {
         </section>
 
         <section className="border-y border-border bg-secondary/25">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+          <div className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
             <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Что получает компания</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">Не набор функций платформы, а готовый путь от бизнес-задачи до измеримых результатов и подходящих специалистов.</p></Reveal>
             <Stagger viewportReveal className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{RESULT_ITEMS.map((item) => { const Icon = item.icon; return <StaggerItem key={item.title} className="h-full"><article className="group flex h-full min-h-64 flex-col border border-border bg-card p-6 shadow-sm transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"><span className="flex h-11 w-11 items-center justify-center bg-primary/10 text-primary transition-[transform,background-color] duration-300 group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground"><Icon size={20} /></span><h3 className="mt-8 font-heading text-xl font-bold transition-colors duration-300 group-hover:text-primary">{item.title}</h3><p className="mt-3 text-sm leading-7 text-muted-foreground">{item.text}</p></article></StaggerItem>; })}</Stagger>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
           <Reveal viewportReveal className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Как проходит пилот</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">Компании не нужно самостоятельно придумывать механику конкурса и собирать все части проекта.</p></div><p className="max-w-md border-l-2 border-primary pl-4 text-sm leading-6 text-muted-foreground">Ориентир для полноценного корпоративного пилота — 8–10 недель. График зависит от готовности данных и сложности задачи.</p></Reveal>
           <Stagger viewportReveal className="relative mt-12 grid gap-3 md:grid-cols-2 xl:grid-cols-6"><div className="absolute left-8 right-8 top-5 hidden h-px bg-border xl:block" />{PILOT_STEPS.map((step, index) => <StaggerItem key={step} className="relative"><div className="group grid h-full grid-cols-[42px_1fr] gap-3 border border-border bg-card p-4 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-md xl:block xl:min-h-48"><span className="relative z-[1] flex h-10 w-10 items-center justify-center bg-primary font-mono text-xs font-bold text-primary-foreground transition-transform duration-300 group-hover:-translate-y-0.5">0{index + 1}</span><p className="self-center font-heading text-sm font-bold leading-6 xl:mt-10">{step}</p></div></StaggerItem>)}</Stagger>
         </section>
 
         <section className="overflow-hidden border-y border-border bg-card">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:py-24 xl:grid-cols-[.92fr_1.08fr] xl:items-center">
+          <div className="mx-auto grid max-w-[1380px] gap-10 px-4 py-16 sm:px-6 md:py-24 lg:px-8 xl:grid-cols-[.92fr_1.08fr] xl:items-center">
             <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">Соревнование заканчивается. Выгода для компании только начинается.</h2><p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">ML-паспорт собирает результаты человека по разным задачам и направлениям. Так виден не один удачный результат, а история навыков на дистанции.</p><ul className="mt-8 grid gap-3 sm:grid-cols-2">{PASSPORT_ITEMS.map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"><Check size={16} className="mt-1 shrink-0 text-primary" /><span>{item}</span></li>)}</ul></Reveal>
             <Reveal viewportReveal delay={0.08} className="border border-border bg-background p-5 shadow-xl shadow-primary/5 sm:p-7">
               <div className="flex items-center justify-between gap-4 border-b border-border pb-5"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground"><UserRoundCheck size={20} /></span><div><p className="font-heading text-lg font-bold">ML-паспорт специалиста</p><p className="mt-1 text-xs text-muted-foreground">Подтверждённая история результатов</p></div></div><span className="border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">Проверено</span></div>
@@ -231,20 +231,20 @@ export default function Cooperation({ embedded = false }) {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
           <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Не просто место в одном соревновании</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">ML-паспорт помогает отвечать на прикладные вопросы о кандидате до следующего этапа отбора.</p></Reveal>
           <Stagger viewportReveal className="mt-10 grid border-l border-t border-border md:grid-cols-2 xl:grid-cols-3">{EMPLOYER_QUESTIONS.map((question, index) => <StaggerItem key={question} className="group min-h-40 border-b border-r border-border bg-card p-5 transition-colors duration-300 hover:bg-primary/[0.035]"><div className="flex items-start justify-between gap-5"><p className="max-w-sm font-heading text-base font-bold leading-6 transition-colors duration-300 group-hover:text-primary">{question}</p><span className="font-mono text-[10px] text-primary transition-transform duration-300 group-hover:-translate-x-1">0{index + 1}</span></div></StaggerItem>)}</Stagger>
         </section>
 
         <section className="border-y border-border bg-secondary/25">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+          <div className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
             <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Форматы сотрудничества</h2></Reveal>
             <Stagger viewportReveal className="mt-10 grid gap-4 lg:grid-cols-3">{FORMATS.map((item) => { const Icon = item.icon; return <StaggerItem key={item.title} className="h-full"><article className="group flex h-full min-h-64 flex-col border border-border bg-card p-6 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"><Icon size={22} className="text-primary transition-transform duration-300 group-hover:-translate-y-0.5" /><h3 className="mt-9 font-heading text-xl font-bold transition-colors duration-300 group-hover:text-primary">{item.title}</h3><p className="mt-3 text-sm leading-7 text-muted-foreground">{item.text}</p></article></StaggerItem>; })}</Stagger>
             <p className="mt-7 max-w-3xl border-l-2 border-primary pl-4 text-sm leading-6 text-muted-foreground">Формат и объём проекта подбираются под задачу компании. Если вы пока не знаете, какой формат нужен, это нормально — начнём с короткого обсуждения цели.</p>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
+        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
           <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Кто за что отвечает</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">Разделяем зоны ответственности заранее, чтобы пилот не превращался в дополнительный проект для команды компании.</p></Reveal>
           <div className="mt-10 grid border border-border lg:grid-cols-2">
             <Responsibility icon={Building2} title="От компании" items={COMPANY_NEEDS} />
@@ -253,11 +253,11 @@ export default function Cooperation({ embedded = false }) {
         </section>
 
         <section className="bg-primary text-primary-foreground">
-          <Reveal viewportReveal className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-center md:py-16"><div><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Открыты к пилотным проектам с компаниями</h2><p className="mt-4 max-w-3xl text-sm leading-7 text-primary-foreground/75 sm:text-base">Сейчас ML-Арена формирует первые корпоративные кейсы и готова запускать ограниченное число пилотов. Для каждого проекта вместе фиксируем задачу, критерии результата, сроки и объём работ.</p></div><Button type="button" size="lg" variant="secondary" className="group h-12 shrink-0" onClick={scrollToForm}>Обсудить пилот <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1" /></Button></Reveal>
+          <Reveal viewportReveal className="mx-auto flex max-w-[1380px] flex-col justify-between gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-center md:py-16 lg:px-8"><div><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Открыты к пилотным проектам с компаниями</h2><p className="mt-4 max-w-3xl text-sm leading-7 text-primary-foreground/75 sm:text-base">Сейчас ML-Арена формирует первые корпоративные кейсы и готова запускать ограниченное число пилотов. Для каждого проекта вместе фиксируем задачу, критерии результата, сроки и объём работ.</p></div><Button type="button" size="lg" variant="secondary" className="group h-12 shrink-0" onClick={scrollToForm}>Обсудить пилот <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1" /></Button></Reveal>
         </section>
 
         <section id="cooperation-form" className="scroll-mt-6 bg-background">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:py-24 xl:grid-cols-[.75fr_1.25fr]">
+          <div className="mx-auto grid max-w-[1380px] gap-10 px-4 py-16 sm:px-6 md:py-24 lg:px-8 xl:grid-cols-[.75fr_1.25fr]">
             <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Обсудить сотрудничество</h2><p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">Расскажите в двух словах, какую задачу хотите решить. Мы свяжемся с вами по указанной почте и предложим следующий шаг.</p><div className="mt-8 flex items-start gap-3 border-l-2 border-primary bg-secondary/30 p-4 text-sm leading-6 text-muted-foreground"><Mail size={18} className="mt-0.5 shrink-0 text-primary" />Стоимость и объём проекта обсуждаются после знакомства с задачей компании.</div></Reveal>
             <Reveal viewportReveal delay={0.08}>
               {submitted ? (
@@ -302,5 +302,5 @@ function Consent({ checked, onChange, error, muted = false, children }) {
 }
 
 function PublicHeader({ isAuthenticated }) {
-  return <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6"><Link to="/" className="flex items-center gap-2.5"><img src="/logo.svg" alt="" className="h-8 w-8 object-contain" /><span className="font-heading text-lg font-bold">ML-Арена</span></Link><div className="flex items-center gap-2"><ThemeToggle /><Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/support">Поддержка</Link></Button><Button asChild><Link to={isAuthenticated ? "/profile" : "/login"}>{isAuthenticated ? "Профиль" : "Войти"}</Link></Button></div></div></header>;
+  return <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"><Link to="/" className="flex items-center gap-2.5"><img src="/logo.svg" alt="" className="h-8 w-8 object-contain" /><span className="font-heading text-lg font-bold">ML-Арена</span></Link><div className="flex items-center gap-2"><ThemeToggle /><Button asChild variant="ghost" className="hidden sm:inline-flex"><Link to="/support">Поддержка</Link></Button><Button asChild><Link to={isAuthenticated ? "/profile" : "/login"}>{isAuthenticated ? "Профиль" : "Войти"}</Link></Button></div></div></header>;
 }

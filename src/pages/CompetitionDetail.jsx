@@ -858,7 +858,7 @@ export default function CompetitionDetail() {
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-5 md:px-6 md:py-7">
+    <div className="mx-auto w-full max-w-[1380px] px-4 pb-24 pt-6 md:px-6 lg:px-8 lg:py-10">
       <Link to="/competitions" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary">
         <ArrowLeft size={16} />
         Все соревнования

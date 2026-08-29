@@ -182,7 +182,7 @@ export default function ProfileEdit() {
 
   return (
     <div className="min-h-full bg-secondary/15">
-      <div className="mx-auto w-full max-w-[1440px] px-3 py-4 sm:px-5 md:px-7 md:py-7">
+      <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
         <button type="button" onClick={goBack} className="mb-4 inline-flex h-9 items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
           <ArrowLeft size={16} /> Вернуться в профиль
         </button>

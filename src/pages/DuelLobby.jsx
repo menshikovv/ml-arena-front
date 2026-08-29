@@ -797,7 +797,7 @@ export default function DuelLobby() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
+    <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
       {stage === "lobby" && <LobbyView duel={duel} onStart={startDuel} onLeave={leaveDuel} starting={starting} leaving={leaving} />}
       {stage === "live" && <LiveView duel={duel} overtime={false} onFinished={finishScoring} />}
       {stage === "overtime" && <LiveView duel={duel} overtime onFinished={finishScoring} />}

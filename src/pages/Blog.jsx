@@ -167,7 +167,7 @@ export default function Blog() {
   return (
     <div className="min-h-full bg-background text-foreground">
       <section className="border-b border-border bg-secondary/25">
-        <Reveal className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-[1fr_0.78fr] lg:items-end">
+        <Reveal className="mx-auto grid max-w-[1380px] gap-8 px-4 py-12 sm:px-6 lg:px-8 lg:grid-cols-[1fr_0.78fr] lg:items-end">
           <div>
             <h1 className="mt-5 max-w-3xl font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">Новости ML-Арены</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Разборы ML-задач, подготовка к соревнованиям, новости платформы и практические материалы без лишней теории.</p>
@@ -181,7 +181,7 @@ export default function Blog() {
         </Reveal>
       </section>
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14">
+      <main className="mx-auto max-w-[1380px] px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         {showFeatured && featured && (
           <Reveal>
             <Link to={`/blog/${featured.slug}`} className="group grid overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:grid-cols-[1.12fr_0.88fr]">
@@ -235,7 +235,7 @@ export default function Blog() {
       </main>
 
       <section className="border-y border-primary/20 bg-primary text-primary-foreground">
-        <Reveal className="mx-auto flex max-w-7xl flex-col justify-between gap-7 px-4 py-10 sm:px-6 md:flex-row md:items-center md:py-12">
+        <Reveal className="mx-auto flex max-w-[1380px] flex-col justify-between gap-7 px-4 py-10 sm:px-6 md:flex-row md:items-center md:py-12 lg:px-8">
           <div>
             <p className="font-heading text-2xl font-extrabold sm:text-3xl">Активности Founder Season — в Telegram</p>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/75">Мини-задачи, быстрые разборы и анонсы первого соревнования выходят в официальном канале ML-Арены.</p>

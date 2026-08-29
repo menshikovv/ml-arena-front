@@ -28,6 +28,7 @@ import { toast } from "react-hot-toast";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
+import { PageFrame, PageHeader } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -180,20 +181,21 @@ function DuelNav({ view }) {
 
 function RatingSummary() {
   return (
-    <div className="grid min-w-0 grid-cols-2 border-t border-border/80 xl:min-w-[320px] xl:border-l xl:border-t-0">
-      <div className="flex min-h-32 flex-col justify-between border-b border-r border-border/80 p-5">
+    <div className="grid min-w-0 grid-cols-2 md:grid-cols-4">
+      <div className="flex min-h-28 flex-col justify-between border-b border-r border-border/80 p-5 md:border-b-0">
         <span className="text-xs font-medium text-muted-foreground">Рейтинг сезона</span>
-        <span className="font-heading text-4xl font-bold tabular-nums">{CURRENT_USER.rating}</span>
+        <span className="font-heading text-3xl font-bold tabular-nums">{CURRENT_USER.rating}</span>
       </div>
-      <div className="flex min-h-32 flex-col justify-between border-b border-border/80 p-5">
-        <span className="text-xs font-medium uppercase text-muted-foreground">Место</span>
-        <span className="font-heading text-4xl font-bold tabular-nums">#{CURRENT_USER.rank}</span>
+      <div className="flex min-h-28 flex-col justify-between border-b border-border/80 p-5 md:border-b-0 md:border-r">
+        <span className="text-xs font-medium text-muted-foreground">Место</span>
+        <span className="font-heading text-3xl font-bold tabular-nums">#{CURRENT_USER.rank}</span>
       </div>
-      <div className="border-r border-border/80 p-5">
+      <div className="flex min-h-28 flex-col justify-between border-r border-border/80 p-5">
+        <span className="text-xs font-medium text-muted-foreground">Лига</span>
         <LeagueBadge rating={CURRENT_USER.rating} size="sm" />
-        <p className="mt-2 text-xs text-muted-foreground">54 очка до золота</p>
       </div>
-      <div className="p-5">
+      <div className="flex min-h-28 flex-col justify-between p-5">
+        <span className="text-xs font-medium text-muted-foreground">Текущая форма</span>
         <p className="text-sm font-semibold text-accent">Серия {CURRENT_USER.streak}</p>
         <p className="mt-1 text-xs text-muted-foreground">{CURRENT_USER.wins} побед · {CURRENT_USER.losses} поражений</p>
       </div>
@@ -479,18 +481,9 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
   return (
     <>
       <Reveal>
-        <section className="overflow-hidden border-y border-border bg-card">
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="flex min-h-[320px] flex-col justify-between p-6 md:p-10">
-              <div>
-                <h1 className="max-w-3xl font-heading text-3xl font-bold leading-tight md:text-5xl">
-                  Дуэли по машинному обучению
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                  Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат. Рейтинговые дуэли влияют на рейтинг текущего сезона и сохраняются в ML-паспорте.
-                </p>
-              </div>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <section>
+          <PageHeader title="Дуэли по машинному обучению" description="Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат.">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-11 px-6">
                   <Link to="/duels/matchmaking">
                     <Zap size={17} />
@@ -511,9 +504,8 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                   Как это работает
                 </Button>
               </div>
-            </div>
-            <RatingSummary />
-          </div>
+          </PageHeader>
+          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary /></div>
         </section>
       </Reveal>
 
@@ -1157,7 +1149,7 @@ export default function Duels() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-7">
+    <PageFrame>
       {!['matchmaking', 'challenge'].includes(view) && <DuelNav view={view} />}
       {view === "overview" && (
         <OverviewView
@@ -1200,6 +1192,6 @@ export default function Duels() {
         onTaskTypeChange={setTaskType}
         onStart={startChallenge}
       />
-    </div>
+    </PageFrame>
   );
 }

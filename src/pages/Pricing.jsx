@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
+import { PageFrame } from "@/components/ml/PageFrame";
 import { api } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -200,7 +201,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="mx-auto max-w-[1380px] px-4 py-7 sm:px-6 lg:px-8 lg:py-12">
+    <PageFrame>
       <Reveal>
         <section className="grid items-center gap-10 border-b border-border pb-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:gap-16 lg:pb-16">
           <div className="max-w-3xl">
@@ -416,6 +417,6 @@ export default function Pricing() {
           <Button size="lg" variant="secondary" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
         </section>
       </Reveal>
-    </div>
+    </PageFrame>
   );
 }

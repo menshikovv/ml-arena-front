@@ -25,6 +25,7 @@ import {
 import { toast } from "react-hot-toast";
 import { api } from "@/api/mlArenaApi";
 import CompetitionCard from "@/components/ml/CompetitionCard";
+import { PageFrame, PageHeader } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -170,9 +171,15 @@ export default function Competitions() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
+    <PageFrame>
+      <Reveal>
+        <PageHeader
+          title="Соревнования"
+          description="Практические ML-задачи от ML-Арены, партнёров и сообщества. Выбирайте направление, отправляйте решение и сохраняйте результат в ML-паспорте."
+        />
+      </Reveal>
       <Reveal delay={0.04}>
-        <section className="grid gap-px border border-border bg-border md:grid-cols-2">
+        <section className="mt-7 grid gap-px border border-border bg-border md:grid-cols-2">
           {[
             {
               id: "official",
@@ -311,7 +318,7 @@ export default function Competitions() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </PageFrame>
   );
 }
 

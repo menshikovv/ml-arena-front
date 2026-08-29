@@ -394,7 +394,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
             <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
             <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-[hsl(var(--chart-4))]/5 blur-3xl" />
           </motion.div>
-          <Reveal viewportReveal className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20">
+          <Reveal viewportReveal className="relative mx-auto max-w-[1380px] px-4 py-14 text-center sm:px-6 md:py-20 lg:px-8">
             <motion.span
               className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/15"
               animate={{ y: [0, -5, 0] }}
@@ -414,7 +414,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
           </Reveal>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-16">
+        <section className="mx-auto max-w-[1380px] px-4 py-14 sm:px-6 md:py-16 lg:px-8">
           <Reveal viewportReveal>
             <h2 className="font-heading text-2xl font-bold sm:text-3xl">Популярные темы</h2>
             <p className="mt-2 text-sm text-muted-foreground">Выберите направление, чтобы сразу перейти к нужным ответам.</p>
@@ -436,7 +436,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
         </section>
 
         <section id="faq" className="scroll-mt-6 border-y border-border bg-secondary/20">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 md:grid-cols-[220px_minmax(0,1fr)] md:py-16">
+          <div className="mx-auto grid max-w-[1380px] gap-8 px-4 py-14 sm:px-6 md:grid-cols-[220px_minmax(0,1fr)] md:py-16 lg:px-8">
             <Reveal viewportReveal className="min-w-0">
               <h2 className="font-heading text-2xl font-bold sm:text-3xl">Частые вопросы</h2>
               <div className="mt-6 flex gap-2 overflow-x-auto pb-1 md:flex-col">
@@ -497,7 +497,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
           </div>
         </section>
 
-        <section id="support" className="scroll-mt-6 mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
+        <section id="support" className="scroll-mt-6 mx-auto max-w-[1380px] px-4 py-14 sm:px-6 md:py-20 lg:px-8">
           <div className="grid gap-9 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
             <Reveal viewportReveal>
               <h2 className="font-heading text-3xl font-bold sm:text-4xl">Не нашли ответ? Напишите нам</h2>
@@ -577,7 +577,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
 function PublicHeader({ isAuthenticated }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5"><img src="/logo.svg" alt="" className="h-8 w-8 object-contain" /><span className="font-heading text-lg font-bold">ML-Арена</span></Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -633,7 +633,7 @@ function ContactsSection({ standalone = false }) {
         <div className="absolute bottom-1/3 left-1/3 w-80 h-80 rounded-full bg-sky/5 blur-3xl" />
       </motion.div>
 
-      <div className={`relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 ${standalone ? "md:py-16" : "md:py-20"}`}>
+      <div className={`relative mx-auto w-full max-w-[1380px] px-4 py-14 sm:px-6 lg:px-8 ${standalone ? "md:py-16" : "md:py-20"}`}>
         <Reveal viewportReveal y={16}>
           <Heading className={`font-heading font-bold ${standalone ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>Контакты</Heading>
           <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Выберите подходящий канал. Персональные вопросы не отправляйте в публичные комментарии.</p>
