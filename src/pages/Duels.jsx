@@ -657,7 +657,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
   }, []);
 
   const startMutation = useMutation({
-    mutationFn: () => api.matchmaking.search({ task_type: taskType, rated: true }),
+    mutationFn: () => api.matchmaking.search({ task_type: taskType, mode: "rated" }),
     onSuccess: (nextTicket) => { setTicket(nextTicket); setStatus("searching"); setSeconds(0); setOpponent(null); timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000); },
     onError: (error) => toast.error(error.message || "Не удалось начать поиск"),
   });
@@ -831,7 +831,7 @@ function ArenaChallengeView() {
   const navigate = useNavigate();
   const { attemptId } = useParams();
   const { user } = useAuth();
-  const canPlay = user?.role === "user";
+  const canPlay = ["user", "admin"].includes(user?.role);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const directionKey = params.get("direction") || "classification";
   const levelKey = params.get("level") || "medium";
@@ -1074,7 +1074,7 @@ export default function Duels() {
   const [taskType, setTaskType] = useState("classification");
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [challengeTicket, setChallengeTicket] = useState(null);
-  const canReadPersonalDuels = user?.role === "user";
+  const canReadPersonalDuels = ["user", "admin"].includes(user?.role);
   const view = location.pathname.endsWith("/history")
     ? "history"
     : location.pathname.includes("/challenges/")
@@ -1113,7 +1113,7 @@ export default function Duels() {
     mutationFn: ({ opponent, selectedTask }) => api.duels.createChallenge({
         opponent_user_id: opponent.id,
         task_type: selectedTask,
-        rated: true,
+        mode: "rated",
       }),
     onSuccess: (duel) => {
       queryClient.invalidateQueries({ queryKey: ["duels"] });

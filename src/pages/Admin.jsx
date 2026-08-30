@@ -5,7 +5,7 @@ import {
   Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CalendarClock, CheckCircle2, CircleAlert,
   ClipboardCheck, Database, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
   Award, Copy, ImageIcon, LockKeyhole, Newspaper, Pause, Pencil, Play, Plus, RefreshCw,
-  Save, Search, Send, Settings2, ShieldAlert, ShieldCheck, SlidersHorizontal, Trash2,
+  Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Trash2,
   Trophy, Undo2, Upload, UserCheck, Users, X,
 } from "lucide-react";
 import { api, uploadFile } from "@/api/mlArenaApi";
@@ -1094,7 +1094,6 @@ export default function Admin() {
       <header className="border-b border-border bg-card/70 px-4 py-7 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase text-primary"><ShieldCheck size={15} /> Защищённая зона</div>
             <h1 className="mt-2 font-heading text-3xl font-extrabold sm:text-4xl">Управление ML-Ареной</h1>
             <p className="mt-2 text-sm text-muted-foreground">{access.data.email} · {access.data.roles?.join(", ") || "администратор"}</p>
           </div>
@@ -1121,10 +1120,6 @@ export default function Admin() {
                 );
               })}
             </nav>
-            <div className="mt-4 hidden shrink-0 border-t border-border bg-card/70 px-1 pt-4 text-xs leading-5 text-muted-foreground lg:block">
-              <LockKeyhole size={16} className="mb-2 text-primary" />
-              Все изменения повторно проверяются сервером и фиксируются в аудите.
-            </div>
           </div>
         </aside>
 

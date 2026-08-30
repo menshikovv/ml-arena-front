@@ -707,7 +707,7 @@ function ResultView({ duel }) {
 export default function DuelLobby() {
   const { id } = useParams();
   const { user } = useAuth();
-  const canPlay = user?.role === "user";
+  const canPlay = ["user", "admin"].includes(user?.role);
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
