@@ -26,11 +26,10 @@ export const METRIC_LABELS = {
 };
 
 export const TASK_TYPE_LABELS = {
-  regression: "Регрессия",
   classification: "Классификация",
+  regression: "Регрессия",
   nlp: "NLP",
   cv: "Компьютерное зрение",
-  tabular: "Табличные данные",
   time_series: "Временные ряды",
   ranking: "Ранжирование",
   clustering: "Кластеризация",

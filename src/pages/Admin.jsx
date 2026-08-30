@@ -810,8 +810,9 @@ function ContentSection({ permissions, requestAction }) {
 }
 
 const TASK_TYPE_OPTIONS = [
-  ["regression", "Регрессия"], ["classification", "Классификация"], ["nlp", "NLP"],
-  ["cv", "Компьютерное зрение"], ["tabular", "Табличные данные"], ["time_series", "Временные ряды"],
+  ["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"],
+  ["cv", "Компьютерное зрение"], ["time_series", "Временные ряды"], ["ranking", "Ранжирование"],
+  ["clustering", "Кластеризация"], ["recsys", "RecSys"],
 ];
 
 function jsonValue(value, fallback) {
