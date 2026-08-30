@@ -739,7 +739,11 @@ export function getBlogCategory(slug) {
 }
 
 export function formatBlogDate(value) {
+  if (!value) return "Дата не указана";
+  const source = String(value).trim();
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(source) ? `${source}T12:00:00` : source);
+  if (Number.isNaN(date.getTime())) return "Дата не указана";
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" })
-    .format(new Date(value + "T12:00:00"))
+    .format(date)
     .replace(/\s?г\.$/, "");
 }
