@@ -7,6 +7,7 @@ import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/api/mlArenaApi";
+import { API_URL } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
 import { formatBlogDate, getBlogCategory } from "@/lib/blog-data";
 
@@ -128,6 +129,7 @@ export default function BlogPost() {
   const shareVk = `https://vk.com/share.php?url=${encodeURIComponent(currentUrl)}&title=${encodeURIComponent(post.title)}`;
   const cta = post.cta || { title: "Продолжить знакомство с ML-Ареной", text: "Войдите в аккаунт и сохраните результаты своей практики.", label: "Войти", to: "/login", authTo: "/profile" };
   const ctaTarget = isAuthenticated && cta.authTo ? cta.authTo : cta.to;
+  const articleHtml = serverPost?.body_html?.replaceAll('src="/api/', `src="${API_URL}/api/`);
 
   const copyLink = async () => {
     try {
@@ -173,7 +175,7 @@ export default function BlogPost() {
 
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,760px)_230px] lg:items-start lg:justify-between lg:py-16">
           <article className="min-w-0">
-            {serverPost?.body_html ? <div className="prose prose-slate max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: serverPost.body_html }} /> : <div className="space-y-12">
+            {articleHtml ? <div className="blog-article" dangerouslySetInnerHTML={{ __html: articleHtml }} /> : <div className="space-y-12">
               {post.sections.map((section, sectionIndex) => (
                 <Reveal key={section.id} delay={Math.min(sectionIndex * 0.03, 0.12)}>
                   <section id={section.id} className="scroll-mt-24">
