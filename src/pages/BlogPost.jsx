@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/api/mlArenaApi";
 import { useAuth } from "@/lib/AuthContext";
-import { BLOG_POSTS, formatBlogDate, getBlogCategory, getBlogPost } from "@/lib/blog-data";
+import { formatBlogDate, getBlogCategory } from "@/lib/blog-data";
 
 function RelatedCard({ post }) {
   return (
@@ -29,20 +29,18 @@ export default function BlogPost() {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [comment, setComment] = useState("");
-  const localPost = getBlogPost(slug);
   const postQuery = useQuery({ queryKey: ["blog-post", slug], queryFn: () => api.blog.post(slug), retry: false });
   const serverPost = postQuery.data;
   const post = serverPost ? {
-    ...localPost,
     ...serverPost,
-    category: serverPost.category?.slug || serverPost.primary_category?.slug || serverPost.category_slug || localPost?.category || "news",
-    tags: (serverPost.tags || localPost?.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug),
-    publishedAt: serverPost.published_at || serverPost.publishedAt || localPost?.publishedAt,
-    readingTime: serverPost.reading_time_minutes || serverPost.reading_time || serverPost.readingTime || localPost?.readingTime || 5,
-    author: serverPost.author?.display_name || serverPost.author?.name || serverPost.author || localPost?.author || "ML-Арена",
-    visual: localPost?.visual || { type: "grid", title: serverPost.title },
-    sections: localPost?.sections || [],
-  } : localPost;
+    category: serverPost.category?.slug || serverPost.primary_category?.slug || serverPost.category_slug || "news",
+    tags: (serverPost.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug).filter(Boolean),
+    publishedAt: serverPost.published_at || serverPost.publishedAt,
+    readingTime: serverPost.reading_time_minutes || serverPost.reading_time || serverPost.readingTime || 5,
+    author: serverPost.author?.display_name || serverPost.author?.name || serverPost.author || "ML-Арена",
+    visual: { type: "grid", title: serverPost.title },
+    sections: [],
+  } : null;
   const category = post ? getBlogCategory(post.category) : null;
   const commentsQuery = useQuery({ queryKey: ["blog-comments", serverPost?.id], queryFn: () => api.blog.comments(serverPost.id), enabled: Boolean(serverPost?.id) });
   const comments = Array.isArray(commentsQuery.data) ? commentsQuery.data : commentsQuery.data?.items || [];
@@ -60,16 +58,34 @@ export default function BlogPost() {
   });
   const canManageComment = (item) => Boolean(user?.id && (item.author_id === user.id || item.user_id === user.id || item.author?.id === user.id));
 
+  const relatedQuery = useQuery({
+    queryKey: ["blog-related", serverPost?.id],
+    queryFn: () => api.blog.posts({ limit: 10, offset: 0 }),
+    enabled: Boolean(serverPost?.id),
+    staleTime: 30000,
+  });
   const relatedPosts = useMemo(() => {
     if (!post) return [];
-    return BLOG_POSTS
-      .filter((item) => item.slug !== post.slug)
+    const response = relatedQuery.data;
+    const items = response?.data || response?.items || [];
+    return items
+      .filter((item) => item?.slug && item.slug !== post.slug)
+      .map((item) => ({
+        ...item,
+        category: item.category?.slug || item.primary_category?.slug || item.category_slug || "news",
+        visual: { type: "grid", title: item.title },
+      }))
       .sort((a, b) => Number(b.category === post.category) - Number(a.category === post.category))
       .slice(0, 3);
-  }, [post]);
+  }, [post, relatedQuery.data]);
 
   useEffect(() => {
     if (!post) return undefined;
+    const previousTitle = document.title;
+    const descriptionMeta = document.querySelector('meta[name="description"]');
+    const previousDescription = descriptionMeta?.getAttribute("content");
+    document.title = `${post.title} — ML-Арена`;
+    descriptionMeta?.setAttribute("content", post.excerpt || "Материал блога ML-Арены");
     const canonical = document.createElement("link");
     canonical.rel = "canonical";
     canonical.href = `${window.location.origin}/blog/${post.slug}`;
@@ -92,6 +108,8 @@ export default function BlogPost() {
     document.head.appendChild(schema);
 
     return () => {
+      document.title = previousTitle;
+      if (previousDescription) descriptionMeta?.setAttribute("content", previousDescription);
       canonical.remove();
       schema.remove();
     };
@@ -209,7 +227,7 @@ export default function BlogPost() {
           </aside>
         </div>
 
-        <section className="border-t border-border bg-secondary/20">
+        {relatedPosts.length > 0 && <section className="border-t border-border bg-secondary/20">
           <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:py-16">
             <Reveal className="flex items-end justify-between gap-5">
               <div><h2 className="font-heading text-3xl font-extrabold">Читайте дальше</h2><p className="mt-2 text-sm text-muted-foreground">Еще несколько материалов по теме и практике ML.</p></div>
@@ -217,7 +235,7 @@ export default function BlogPost() {
             </Reveal>
             <div className="mt-8 grid gap-5 md:grid-cols-3">{relatedPosts.map((item) => <RelatedCard key={item.slug} post={item} />)}</div>
           </div>
-        </section>
+        </section>}
       </main>
     </div>
   );

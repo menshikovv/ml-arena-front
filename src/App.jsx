@@ -9,7 +9,6 @@ import { Toaster } from "@/components/ui/toaster";
 import UserNotRegisteredError from "@/components/UserNotRegisteredError";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { api } from "@/api/mlArenaApi";
-import { getBlogPost } from "@/lib/blog-data";
 import PageNotFound from "@/lib/PageNotFound";
 import { queryClientInstance } from "@/lib/query-client";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -66,11 +65,8 @@ function PageMetadata() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const blogPost = pathname.startsWith("/blog/") ? getBlogPost(pathname.slice("/blog/".length)) : null;
     const matched = pageMeta.find(([path]) => pathname === path || pathname.startsWith(`${path}/`));
-    const meta = blogPost
-      ? { title: `${blogPost.title} — ML-Арена`, description: blogPost.excerpt }
-      : matched ? { title: matched[1], description: matched[2] } : defaultMeta;
+    const meta = matched ? { title: matched[1], description: matched[2] } : defaultMeta;
     document.title = meta.title;
     document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description);
     document.querySelector('meta[property="og:title"]')?.setAttribute("content", meta.title);

@@ -7,22 +7,20 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/api/mlArenaApi";
-import { BLOG_CATEGORIES, BLOG_POSTS, formatBlogDate, getBlogCategory } from "@/lib/blog-data";
+import { BLOG_CATEGORIES, formatBlogDate, getBlogCategory } from "@/lib/blog-data";
 import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 const PAGE_SIZE = 6;
 
 function adaptPost(post) {
-  const fallback = BLOG_POSTS.find((item) => item.slug === post.slug);
   return {
-    ...fallback,
     ...post,
-    category: post.category?.slug || post.primary_category?.slug || post.category_slug || fallback?.category || "news",
-    tags: (post.tags || fallback?.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug),
-    publishedAt: post.published_at || post.publishedAt || fallback?.publishedAt,
-    readingTime: post.reading_time_minutes || post.reading_time || post.readingTime || fallback?.readingTime || 5,
-    featured: post.is_featured ?? post.featured ?? fallback?.featured,
-    visual: fallback?.visual || { type: "grid", title: post.title },
+    category: post.category?.slug || post.primary_category?.slug || post.category_slug || "news",
+    tags: (post.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug).filter(Boolean),
+    publishedAt: post.published_at || post.publishedAt,
+    readingTime: post.reading_time_minutes || post.reading_time || post.readingTime || 5,
+    featured: post.is_featured ?? post.featured ?? false,
+    visual: { type: "grid", title: post.title },
   };
 }
 
@@ -76,7 +74,7 @@ export default function Blog() {
   const categoriesQuery = useQuery({ queryKey: ["blog-categories"], queryFn: api.blog.categories, staleTime: 300000 });
   const responsePosts = postsQuery.data?.data || postsQuery.data?.items || [];
   const serverPosts = responsePosts.map(adaptPost);
-  const posts = serverPosts.length || postsQuery.isSuccess ? serverPosts : BLOG_POSTS;
+  const posts = serverPosts;
   const serverCategories = Array.isArray(categoriesQuery.data) ? categoriesQuery.data.map((item) => ({ slug: item.slug, name: item.name })) : [];
   const categories = serverCategories.length ? [{ slug: "all", name: "Все" }, ...serverCategories] : BLOG_CATEGORIES;
 
