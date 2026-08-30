@@ -1094,11 +1094,20 @@ export default function Duels() {
     queryFn: () => api.profiles.search({ limit: 50, offset: 0 }),
     enabled: Boolean(user),
   });
+  const ownProfileQuery = useQuery({
+    queryKey: ["profile", "me"],
+    queryFn: () => api.profiles.me(),
+    enabled: Boolean(user),
+  });
   const profiles = profilesQuery.data?.data || profilesQuery.data?.items || [];
   const challengesQuery = useQuery({ queryKey: ["duel-challenges"], queryFn: () => api.duels.challenges({ status: "pending", limit: 50, offset: 0 }), enabled: canReadPersonalDuels });
   const challenges = challengesQuery.data?.data || challengesQuery.data?.items || [];
-  const opponents = useMemo(() => profiles
-    .filter((profile) => profile.user_id && profile.user_id !== user?.id)
+  const opponents = useMemo(() => {
+    const ownProfile = ownProfileQuery.data;
+    const ownIds = new Set([user?.id, user?.user_id, user?.profile_id, ownProfile?.id, ownProfile?.user_id].filter(Boolean));
+    const ownNames = new Set([user?.nickname, user?.user_name, ownProfile?.user_name].filter(Boolean).map((value) => String(value).toLowerCase()));
+    return profiles
+    .filter((profile) => profile.user_id && !ownIds.has(profile.user_id) && !ownIds.has(profile.id) && !ownNames.has(String(profile.user_name || "").toLowerCase()))
     .map((profile) => ({
       id: profile.user_id,
       profileId: profile.id,
@@ -1108,7 +1117,8 @@ export default function Duels() {
       losses: profile.stats?.duels_lost || profile.duels_lost || 0,
       online: true,
       focus: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
-    })), [profiles, user?.id]);
+    }));
+  }, [ownProfileQuery.data, profiles, user?.id, user?.nickname, user?.profile_id, user?.user_id, user?.user_name]);
 
   const createDuelMutation = useMutation({
     mutationFn: ({ opponent, selectedTask }) => api.duels.createChallenge({
@@ -1121,7 +1131,11 @@ export default function Duels() {
       toast.success("Вызов отправлен сопернику");
       navigate("/duels");
     },
-    onError: (error) => toast.error(error.code === "RESOURCE_NOT_FOUND" ? "Соперник сейчас недоступен для дуэли" : error.message || "Не удалось создать дуэль"),
+    onError: (error) => {
+      if (error.code === "NO_DUEL_TASK_AVAILABLE") return toast.error("Для этого направления ещё нет опубликованной задачи для дуэлей");
+      if (error.code === "RESOURCE_CONFLICT" && error.message === "You cannot challenge yourself") return toast.error("Нельзя отправить вызов самому себе");
+      return toast.error(error.code === "RESOURCE_NOT_FOUND" ? "Соперник сейчас недоступен для дуэли" : error.message || "Не удалось создать дуэль");
+    },
   });
 
   const createDuel = (opponent, selectedTask = taskType) => {
