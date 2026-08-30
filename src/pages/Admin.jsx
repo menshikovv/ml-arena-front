@@ -61,6 +61,21 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
+function apiErrorMessage(error) {
+  const validationErrors = Array.isArray(error?.details?.errors) ? error.details.errors : [];
+  if (!validationErrors.length) return error?.message || "Не удалось сохранить данные";
+  return validationErrors.map((item) => {
+    const field = Array.isArray(item.loc) ? item.loc.filter((part) => part !== "body").join(".") : "";
+    return `${field ? `${field}: ` : ""}${item.msg || "Некорректное значение"}`;
+  }).join("; ");
+}
+
+function normalizeWebsite(value) {
+  const website = value.trim();
+  if (!website) return null;
+  return /^https?:\/\//i.test(website) ? website : `https://${website}`;
+}
+
 function displayName(item) {
   if (!item || typeof item !== "object") return "Запись без данных";
   return item.user_name || item.username || item.full_name || item.name || item.title || item.email_masked || item.email || item.id || "Запись без имени";
@@ -199,10 +214,11 @@ function OrganizationEditorDialog({ item, onClose, onSaved }) {
   const save = async () => {
     setPending(true); setError("");
     try {
-      const body = creating ? { ...form, website: form.website || null, description: form.description || null } : { name: form.name, description: form.description || null, website: form.website || null };
+      const website = normalizeWebsite(form.website);
+      const body = creating ? { ...form, website, description: form.description || null } : { name: form.name, description: form.description || null, website };
       await (creating ? api.admin.createOrganization(body) : api.admin.updateOrganization(item.id, body));
       onSaved();
-    } catch (saveError) { setError(saveError.message); } finally { setPending(false); }
+    } catch (saveError) { setError(apiErrorMessage(saveError)); } finally { setPending(false); }
   };
   return <Dialog.Root open onOpenChange={(open) => !open && !pending && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-border bg-card p-6 shadow-2xl focus:outline-none"><div className="flex items-start justify-between"><div><Dialog.Title className="font-heading text-2xl font-extrabold">{creating ? "Создать организацию" : "Редактировать организацию"}</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">{creating ? "Будет создан связанный аккаунт организации." : "Доступны публичные данные организации."}</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div><div className="mt-6 grid gap-5 sm:grid-cols-2">{creating && <><AdminField label="Email"><Input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Пароль"><Input type="password" value={form.password} onChange={(event) => update("password", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Никнейм аккаунта"><Input value={form.username} onChange={(event) => update("username", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Slug"><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase())} className="rounded-none" /></AdminField></>}<AdminField label="Название" wide><Input value={form.name} onChange={(event) => update("name", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Сайт" wide><Input type="url" value={form.website} onChange={(event) => update("website", event.target.value)} placeholder="https://company.ru" className="rounded-none" /></AdminField><AdminField label="Описание" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-28 rounded-none" /></AdminField></div>{error && <div className="mt-5 border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}<div className="mt-6 flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Отмена</Button><Button onClick={save} disabled={pending}>{pending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Сохранить</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
 }
@@ -1051,16 +1067,16 @@ function ResourcesSection({ permissions, requestAction }) {
 }
 
 function RatingSeasonsSection({ requestAction }) {
-  const [form, setForm] = useState({ name: "", slug: "", starts_at: "", ends_at: "" });
+  const [form, setForm] = useState({ name: "", slug: "", start_at: "", end_at: "" });
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons });
   const rows = Array.isArray(query.data) ? query.data : query.data?.items || [];
   const create = useMutation({
-    mutationFn: () => api.admin.createRatingSeason({ ...form, starts_at: new Date(form.starts_at).toISOString(), ends_at: new Date(form.ends_at).toISOString() }),
-    onSuccess: () => { setForm({ name: "", slug: "", starts_at: "", ends_at: "" }); queryClient.invalidateQueries({ queryKey: ["rating-seasons"] }); },
+    mutationFn: () => api.admin.createRatingSeason({ ...form, start_at: new Date(form.start_at).toISOString(), end_at: new Date(form.end_at).toISOString() }),
+    onSuccess: () => { setForm({ name: "", slug: "", start_at: "", end_at: "" }); queryClient.invalidateQueries({ queryKey: ["rating-seasons"] }); },
   });
   const transition = (season, target) => requestAction({ title: `Перевести сезон в статус «${target}»`, description: `${season.name || season.slug}. Переход и снимки рейтинга будут зафиксированы сервером.`, confirm: "Подтвердить переход", reason: true, run: (reason) => api.admin.transitionRatingSeason(season.id, target, { reason }), invalidate: ["rating-seasons"] });
-  return <><SectionHeading title="Сезоны рейтинга" description="Создание сезонов и аудируемые переходы draft → scheduled/active → frozen → archived." count={rows.length} /><div className="mb-6 grid gap-3 border border-border bg-card p-5 md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_auto]"><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Название сезона" /><Input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="slug" /><Input type="datetime-local" value={form.starts_at} onChange={(event) => setForm((current) => ({ ...current, starts_at: event.target.value }))} /><Input type="datetime-local" value={form.ends_at} onChange={(event) => setForm((current) => ({ ...current, ends_at: event.target.value }))} /><Button onClick={() => create.mutate()} disabled={!form.name.trim() || !form.slug.trim() || !form.starts_at || !form.ends_at || create.isPending}><Plus size={15} /> Создать</Button>{create.error && <p className="text-sm text-destructive md:col-span-2 xl:col-span-5">{create.error.message}</p>}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((season) => <div key={season.id} className="grid gap-4 p-5 md:grid-cols-[1fr_auto_auto] md:items-center"><div><p className="font-semibold">{season.name || season.slug}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(season.starts_at)} — {formatDate(season.ends_at)}</p></div><Status value={season.status} /><ActionMenu>{season.status === "draft" && <><ActionButton onClick={() => transition(season, "scheduled")}><CalendarClock size={13} /> Запланировать</ActionButton><ActionButton tone="primary" onClick={() => transition(season, "active")}><Play size={13} /> Активировать</ActionButton></>}{["scheduled", "active"].includes(season.status) && <ActionButton onClick={() => transition(season, "frozen")}><Pause size={13} /> Зафиксировать</ActionButton>}{season.status === "frozen" && <ActionButton tone="danger" onClick={() => transition(season, "archived")}><Archive size={13} /> В архив</ActionButton>}</ActionMenu></div>)}</div></TableShell></>;
+  return <><SectionHeading title="Сезоны рейтинга" description="Создание сезонов и аудируемые переходы draft → scheduled/active → frozen → archived." count={rows.length} /><div className="mb-6 grid gap-3 border border-border bg-card p-5 md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_auto]"><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Название сезона" /><Input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value.toLowerCase() }))} placeholder="slug" /><AdminField label="Начало"><Input type="datetime-local" value={form.start_at} onChange={(event) => setForm((current) => ({ ...current, start_at: event.target.value }))} /></AdminField><AdminField label="Окончание"><Input type="datetime-local" value={form.end_at} onChange={(event) => setForm((current) => ({ ...current, end_at: event.target.value }))} /></AdminField><Button onClick={() => create.mutate()} disabled={!form.name.trim() || !form.slug.trim() || !form.start_at || !form.end_at || create.isPending}><Plus size={15} /> Создать</Button>{create.error && <p className="text-sm text-destructive md:col-span-2 xl:col-span-5">{apiErrorMessage(create.error)}</p>}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((season) => <div key={season.id} className="grid gap-4 p-5 md:grid-cols-[1fr_auto_auto] md:items-center"><div><p className="font-semibold">{season.name || season.slug}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(season.start_at)} — {formatDate(season.end_at)}</p></div><Status value={season.status} /><ActionMenu>{season.status === "draft" && <><ActionButton onClick={() => transition(season, "scheduled")}><CalendarClock size={13} /> Запланировать</ActionButton><ActionButton tone="primary" onClick={() => transition(season, "active")}><Play size={13} /> Активировать</ActionButton></>}{["scheduled", "active"].includes(season.status) && <ActionButton onClick={() => transition(season, "frozen")}><Pause size={13} /> Зафиксировать</ActionButton>}{season.status === "frozen" && <ActionButton tone="danger" onClick={() => transition(season, "archived")}><Archive size={13} /> В архив</ActionButton>}</ActionMenu></div>)}</div></TableShell></>;
 }
 
 function AuditSection() {
