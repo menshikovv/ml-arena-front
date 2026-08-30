@@ -1098,13 +1098,14 @@ export default function Duels() {
   const challengesQuery = useQuery({ queryKey: ["duel-challenges"], queryFn: () => api.duels.challenges({ status: "pending", limit: 50, offset: 0 }), enabled: canReadPersonalDuels });
   const challenges = challengesQuery.data?.data || challengesQuery.data?.items || [];
   const opponents = useMemo(() => profiles
-    .filter((profile) => profile.id && profile.id !== user?.id)
+    .filter((profile) => profile.user_id && profile.user_id !== user?.id)
     .map((profile) => ({
-      id: profile.id,
+      id: profile.user_id,
+      profileId: profile.id,
       name: profile.user_name || profile.nickname,
       rating: profile.rating || 1000,
-      wins: profile.duels_won || 0,
-      losses: profile.duels_lost || 0,
+      wins: profile.stats?.duels_won || profile.duels_won || 0,
+      losses: profile.stats?.duels_lost || profile.duels_lost || 0,
       online: true,
       focus: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
     })), [profiles, user?.id]);
@@ -1120,7 +1121,7 @@ export default function Duels() {
       toast.success("Вызов отправлен сопернику");
       navigate("/duels");
     },
-    onError: (error) => toast.error(error.message || "Не удалось создать дуэль"),
+    onError: (error) => toast.error(error.code === "RESOURCE_NOT_FOUND" ? "Соперник сейчас недоступен для дуэли" : error.message || "Не удалось создать дуэль"),
   });
 
   const createDuel = (opponent, selectedTask = taskType) => {
