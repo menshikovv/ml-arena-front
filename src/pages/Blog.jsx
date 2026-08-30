@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CalendarDays, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
-import BlogCover from "@/components/ml/BlogCover";
+import BlogCover, { blogCoverVisual } from "@/components/ml/BlogCover";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ function adaptPost(post) {
     publishedAt: post.published_at || post.publishedAt,
     readingTime: post.reading_time_minutes || post.reading_time || post.readingTime || 5,
     featured: post.is_featured ?? post.featured ?? false,
-    visual: { type: "grid", title: post.title },
+    visual: blogCoverVisual(post),
   };
 }
 

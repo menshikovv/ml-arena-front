@@ -1,4 +1,5 @@
 import { Brain, CheckSquare2, Code2, Gauge, SearchCheck, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { API_URL } from "@/api/client";
 
 const ICONS = {
   brain: Brain,
@@ -22,7 +23,35 @@ const TONES = {
   green: "bg-[#153b31] text-white [--cover-accent:#6ee7b7]",
 };
 
+function absoluteMediaUrl(value) {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${API_URL}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
+export function blogCoverVisual(post) {
+  const cover = post?.cover;
+  const imageUrl = absoluteMediaUrl(cover?.url)
+    || (cover?.id ? `${API_URL}/api/v1/blog/media/${cover.id}` : null);
+  return imageUrl
+    ? { imageUrl, alt: cover?.alt || post?.title || "Обложка материала ML-Арены" }
+    : { type: "grid", title: post?.title };
+}
+
 export default function BlogCover({ visual, compact = false, className = "" }) {
+  if (visual?.imageUrl) {
+    return (
+      <div className={`relative overflow-hidden bg-secondary ${className}`}>
+        <img
+          src={visual.imageUrl}
+          alt={visual.alt || ""}
+          loading={compact ? "lazy" : "eager"}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+
   const Icon = ICONS[visual.icon] || Code2;
 
   return (

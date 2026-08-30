@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Copy, Pencil, Send, Share2, Trash2, UserRound } from "lucide-react";
-import BlogCover from "@/components/ml/BlogCover";
+import BlogCover, { blogCoverVisual } from "@/components/ml/BlogCover";
 import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +38,7 @@ export default function BlogPost() {
     publishedAt: serverPost.published_at || serverPost.publishedAt,
     readingTime: serverPost.reading_time_minutes || serverPost.reading_time || serverPost.readingTime || 5,
     author: serverPost.author?.display_name || serverPost.author?.name || serverPost.author || "ML-Арена",
-    visual: { type: "grid", title: serverPost.title },
+    visual: blogCoverVisual(serverPost),
     sections: [],
   } : null;
   const category = post ? getBlogCategory(post.category) : null;
@@ -73,7 +73,7 @@ export default function BlogPost() {
       .map((item) => ({
         ...item,
         category: item.category?.slug || item.primary_category?.slug || item.category_slug || "news",
-        visual: { type: "grid", title: item.title },
+        visual: blogCoverVisual(item),
       }))
       .sort((a, b) => Number(b.category === post.category) - Number(a.category === post.category))
       .slice(0, 3);
