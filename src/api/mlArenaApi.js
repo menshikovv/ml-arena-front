@@ -404,7 +404,7 @@ export async function sha256Hex(file) {
 export async function uploadFile(file, purpose, context = {}) {
   const checksum = await sha256Hex(file);
   const extension = file.name.split(".").pop()?.toLowerCase();
-  const contentType = file.type || {
+  const contentType = extension === "zip" ? "application/zip" : file.type || {
     csv: "text/csv",
     json: "application/json",
     ipynb: "application/x-ipynb+json",
@@ -413,6 +413,7 @@ export async function uploadFile(file, purpose, context = {}) {
     jpeg: "image/jpeg",
     webp: "image/webp",
     pdf: "application/pdf",
+    zip: "application/zip",
   }[extension] || "application/octet-stream";
   const intent = await apiData("/api/v1/files/upload-intents", {
     method: "POST",
