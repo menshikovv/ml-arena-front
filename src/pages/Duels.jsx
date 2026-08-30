@@ -147,7 +147,7 @@ function getDuelDate(duel) {
   return value ? new Date(value).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) : "Сегодня";
 }
 
-function DuelNav({ view }) {
+function DuelNav({ view, className }) {
   const items = [
     { id: "overview", label: "Обзор", icon: Swords, to: "/duels" },
     { id: "history", label: "История", icon: History, to: "/duels/history" },
@@ -155,7 +155,7 @@ function DuelNav({ view }) {
   ];
 
   return (
-    <div className="mb-7 flex items-center gap-1 overflow-x-auto border-b border-border">
+    <div className={cn("mb-7 flex items-center gap-1 overflow-x-auto border-b border-border", className)}>
       {items.map((item) => {
         const Icon = item.icon;
         return (
@@ -482,7 +482,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
     <>
       <Reveal>
         <section>
-          <PageHeader title="Дуэли по машинному обучению" description="Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат.">
+          <PageHeader className="border-b-0 pb-0" title="Дуэли по машинному обучению" description="Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат.">
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-11 px-6">
                   <Link to="/duels/matchmaking">
@@ -505,6 +505,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 </Button>
               </div>
           </PageHeader>
+          <DuelNav view="overview" className="mt-6" />
           <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary /></div>
         </section>
       </Reveal>
@@ -1046,8 +1047,9 @@ function HistoryView({ duels, isLoading }) {
           </select>
         </div>
       </div>
+      <DuelNav view="history" className="mt-6" />
 
-      <div className="mt-7">
+      <div>
         {isLoading ? (
           <div className="flex min-h-52 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>
         ) : filtered.length ? (
@@ -1150,7 +1152,6 @@ export default function Duels() {
 
   return (
     <PageFrame>
-      {!['matchmaking', 'challenge'].includes(view) && <DuelNav view={view} />}
       {view === "overview" && (
         <OverviewView
           duels={duels}
