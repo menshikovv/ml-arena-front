@@ -306,9 +306,9 @@ function ChallengeChooser({ open, onClose, taskType, onTaskTypeChange, onStart }
   );
 }
 
-function OpponentCard({ opponent, onChallenge, pending }) {
-  const ratingGap = Math.abs(CURRENT_USER.rating - opponent.rating);
-  const canChallenge = ratingGap <= 200;
+function OpponentCard({ opponent, onChallenge, pending, currentRating }) {
+  const ratingGap = Math.abs(currentRating - opponent.rating);
+  const withinRatingRange = ratingGap <= 200;
 
   return (
     <Card className="group h-full border-border bg-card p-4 transition-colors hover:border-primary/40">
@@ -332,13 +332,13 @@ function OpponentCard({ opponent, onChallenge, pending }) {
         <span className="text-xs font-medium text-muted-foreground">{getWinRate(opponent)}%</span>
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-        <span className={cn("text-xs", canChallenge ? "text-muted-foreground" : "text-destructive")}>
+        <span className={cn("text-xs", withinRatingRange ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400")}>
           Разница {ratingGap} Elo
         </span>
         <Button
           size="sm"
-          variant={canChallenge ? "outline" : "ghost"}
-          disabled={!canChallenge || pending}
+          variant="outline"
+          disabled={pending}
           onClick={() => onChallenge(opponent)}
           aria-label={`Вызвать ${opponent.name}`}
         >
@@ -470,7 +470,7 @@ function DuelGuideDialog({ open, onClose }) {
   );
 }
 
-function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId }) {
+function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId, currentRating }) {
   const [searchNick, setSearchNick] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const matchedOpponent = useMemo(() => {
@@ -567,7 +567,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 exit={{ opacity: 0, y: -4 }}
                 className="mt-3"
               >
-                <OpponentCard opponent={matchedOpponent} onChallenge={(opponent) => createDuel(opponent, taskType)} pending={isCreating} />
+                <OpponentCard opponent={matchedOpponent} onChallenge={(opponent) => createDuel(opponent, taskType)} pending={isCreating} currentRating={currentRating} />
               </motion.div>
             ) : searchNick.trim().length > 1 ? (
               <motion.div
@@ -601,6 +601,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 opponent={opponent}
                 onChallenge={(item) => createDuel(item, taskType)}
                 pending={isCreating}
+                currentRating={currentRating}
               />
             ))}
           </div>
@@ -1123,10 +1124,6 @@ export default function Duels() {
   });
 
   const createDuel = (opponent, selectedTask = taskType) => {
-    if (!canReadPersonalDuels) {
-      toast("Создавать и просматривать личные матчи может только аккаунт участника.");
-      return;
-    }
     createDuelMutation.mutate({ opponent, selectedTask });
   };
   const challengeAction = useMutation({
@@ -1171,6 +1168,7 @@ export default function Duels() {
           }}
           challengePending={challengeAction.isPending}
           currentUserId={user?.id}
+          currentRating={Number(user?.rating) || 1000}
         />
       )}
       {view === "matchmaking" && (

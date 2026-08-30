@@ -205,9 +205,6 @@ export default function Pricing() {
       <Reveal>
         <section className="grid items-center gap-10 border-b border-border pb-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:gap-16 lg:pb-16">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary">
-              <Sparkles size={15} /> ML-Арена Premium
-            </div>
             <h1 className="mt-6 font-heading text-4xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">
               Разбирайте результаты глубже. Развивайтесь точнее.
             </h1>
