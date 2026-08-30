@@ -310,7 +310,7 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" delay={0.1}>
+      <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="grid gap-8 border-y border-border bg-secondary/30 px-0 py-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-8">
           <div className="px-4 sm:px-6 lg:px-0">
             <span className="flex h-12 w-12 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><BrainCircuit size={23} /></span>
@@ -330,7 +330,7 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" delay={0.12}>
+      <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
           <div>
             <SectionTitle title="План, который меняется вместе с результатами" description="Не бесконечная лента рекомендаций, а несколько приоритетных действий, пересчитанных после значимых новых подтверждений." />
@@ -360,7 +360,7 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" delay={0.14}>
+      <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="grid gap-4 lg:grid-cols-3">
           <article className="border border-border bg-card p-6 lg:col-span-2">
             <FlaskConical size={24} className="text-primary" />
@@ -377,7 +377,7 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" delay={0.16}>
+      <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="border border-primary/25 bg-primary/[0.055] p-6 sm:p-8">
           <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
             <div><ShieldCheck size={28} className="text-primary" /><h2 className="mt-5 font-heading text-3xl font-extrabold">Premium не покупает результат</h2></div>
@@ -386,7 +386,7 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" delay={0.18}>
+      <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="grid gap-8 lg:grid-cols-[0.58fr_1.42fr]">
           <SectionTitle title="Вопросы о Premium" description="Оплата не должна менять доказательную ценность рейтинга и ML-паспорта." />
           <div className="border-t border-border">
@@ -408,7 +408,7 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" delay={0.2}>
+      <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="flex flex-col gap-7 border-t border-border bg-foreground px-6 py-9 text-background sm:px-8 lg:flex-row lg:items-center lg:justify-between dark:bg-card dark:text-foreground">
           <div><p className="flex items-center gap-2 text-sm font-bold text-accent"><Sparkles size={17} /> ML-Арена Premium</p><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">От 790 ₽ в месяц на этапе Founder Season.</p></div>
           <Button size="lg" variant="secondary" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
