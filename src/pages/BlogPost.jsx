@@ -24,6 +24,60 @@ function RelatedCard({ post }) {
   );
 }
 
+function enhanceArticleHtml(source) {
+  if (!source || typeof DOMParser === "undefined") return source;
+  const documentNode = new DOMParser().parseFromString(`<div id="article-root">${source}</div>`, "text/html");
+  const root = documentNode.getElementById("article-root");
+  if (!root) return source;
+
+  root.querySelectorAll("p").forEach((paragraph) => {
+    if (!/^>\s?/.test(paragraph.textContent.trimStart())) return;
+    const quote = documentNode.createElement("blockquote");
+    const content = documentNode.createElement("p");
+    content.textContent = paragraph.textContent.trimStart().replace(/^>\s?/, "");
+    quote.appendChild(content);
+    paragraph.replaceWith(quote);
+  });
+
+  const walker = documentNode.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+  const tokenPattern = /(\|\|[^|\n]+\|\||~~[^~\n]+~~|(?<!\*)\*[^*\n]+\*(?!\*))/g;
+  textNodes.forEach((textNode) => {
+    if (textNode.parentElement?.closest("code, pre, .blog-spoiler")) return;
+    const text = textNode.nodeValue || "";
+    const matches = [...text.matchAll(tokenPattern)];
+    if (!matches.length) return;
+    const fragment = documentNode.createDocumentFragment();
+    let cursor = 0;
+    matches.forEach((match) => {
+      fragment.append(text.slice(cursor, match.index));
+      const token = match[0];
+      let element;
+      if (token.startsWith("||")) {
+        element = documentNode.createElement("span");
+        element.className = "blog-spoiler";
+        element.tabIndex = 0;
+        element.setAttribute("role", "button");
+        element.setAttribute("aria-expanded", "false");
+        element.textContent = token.slice(2, -2);
+      } else if (token.startsWith("~~")) {
+        element = documentNode.createElement("del");
+        element.textContent = token.slice(2, -2);
+      } else {
+        element = documentNode.createElement("em");
+        element.textContent = token.slice(1, -1);
+      }
+      fragment.appendChild(element);
+      cursor = match.index + token.length;
+    });
+    fragment.append(text.slice(cursor));
+    textNode.replaceWith(fragment);
+  });
+
+  return root.innerHTML;
+}
+
 export default function BlogPost() {
   const { slug } = useParams();
   const { isAuthenticated, user } = useAuth();
@@ -127,9 +181,15 @@ export default function BlogPost() {
   const currentUrl = typeof window === "undefined" ? "" : window.location.href;
   const shareTelegram = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.title)}`;
   const shareVk = `https://vk.com/share.php?url=${encodeURIComponent(currentUrl)}&title=${encodeURIComponent(post.title)}`;
-  const cta = post.cta || { title: "Продолжить знакомство с ML-Ареной", text: "Войдите в аккаунт и сохраните результаты своей практики.", label: "Войти", to: "/login", authTo: "/profile" };
-  const ctaTarget = isAuthenticated && cta.authTo ? cta.authTo : cta.to;
-  const articleHtml = serverPost?.body_html?.replaceAll('src="/api/', `src="${API_URL}/api/`);
+  const guestCta = post.cta || { title: "Продолжить знакомство с ML-Ареной", text: "Войдите в аккаунт и сохраните результаты своей практики.", label: "Войти", to: "/login", authTo: "/profile" };
+  const cta = isAuthenticated ? {
+    title: "Продолжите практику на ML-Арене",
+    text: "Откройте профиль, участвуйте в активностях и сохраняйте подтверждённые результаты.",
+    label: "Открыть профиль",
+    to: guestCta.authTo || "/profile",
+  } : guestCta;
+  const ctaTarget = cta.to;
+  const articleHtml = enhanceArticleHtml(serverPost?.body_html?.replaceAll('src="/api/', `src="${API_URL}/api/`));
 
   const copyLink = async () => {
     try {
