@@ -173,19 +173,20 @@ export default function BlogPost() {
           <BlogCover visual={post.visual} className="aspect-video max-h-[620px] min-h-72 w-full" />
         </Reveal>
 
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,760px)_230px] lg:items-start lg:justify-between lg:py-16">
+        <div className="mx-auto grid max-w-[1380px] gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[230px_minmax(0,800px)_230px] lg:items-start lg:justify-center lg:py-16">
+          <div className="hidden lg:block" aria-hidden="true" />
           <article className="min-w-0">
             {articleHtml ? <div className="blog-article" dangerouslySetInnerHTML={{ __html: articleHtml }} /> : <div className="space-y-12">
               {post.sections.map((section, sectionIndex) => (
                 <Reveal key={section.id} delay={Math.min(sectionIndex * 0.03, 0.12)}>
                   <section id={section.id} className="scroll-mt-24">
                     <h2 className="font-heading text-3xl font-extrabold leading-tight">{section.title}</h2>
-                    <div className="mt-5 space-y-4 text-base leading-8 text-muted-foreground">
+                    <div className="mt-5 space-y-5 text-lg leading-9 text-muted-foreground">
                       {section.paragraphs?.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
                     </div>
                     {section.bullets && (
                       <ul className="mt-5 space-y-3">
-                        {section.bullets.map((item) => <li key={item} className="grid grid-cols-[18px_1fr] gap-3 text-base leading-7 text-muted-foreground"><Check className="mt-1 text-primary" size={17} /><span>{item}</span></li>)}
+                        {section.bullets.map((item) => <li key={item} className="grid grid-cols-[18px_1fr] gap-3 text-lg leading-8 text-muted-foreground"><Check className="mt-1 text-primary" size={17} /><span>{item}</span></li>)}
                       </ul>
                     )}
                     {section.code && <pre className="scrollbar-thin mt-6 overflow-x-auto border border-border bg-[#08111f] p-5 text-sm leading-7 text-slate-200"><code>{section.code}</code></pre>}

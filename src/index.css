@@ -88,8 +88,8 @@
 @layer components {
   .blog-article {
     color: hsl(var(--foreground));
-    font-size: 1rem;
-    line-height: 1.85;
+    font-size: 1.125rem;
+    line-height: 1.9;
   }
 
   .blog-article > :first-child {
@@ -204,7 +204,7 @@
   }
 
   @media (min-width: 640px) {
-    .blog-article { font-size: 1.0625rem; }
+    .blog-article { font-size: 1.1875rem; }
   }
 }
 
