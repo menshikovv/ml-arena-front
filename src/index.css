@@ -149,11 +149,21 @@
   }
 
   .blog-article blockquote {
-    margin: 1.75rem 0;
+    margin: 1.8rem 0;
     border-left: 4px solid hsl(var(--primary));
-    background: hsl(var(--secondary) / 0.55);
-    padding: 1rem 1.25rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: hsl(var(--primary) / 0.075);
+    padding: 0.9rem 1.15rem;
     color: hsl(var(--foreground));
+  }
+
+  .blog-article blockquote p {
+    margin: 0;
+    color: hsl(var(--foreground));
+  }
+
+  .blog-article blockquote p + p {
+    margin-top: 0.55rem;
   }
 
   .blog-article pre {
@@ -234,19 +244,31 @@
   }
 
   .blog-article .blog-spoiler {
+    position: relative;
+    display: inline;
     border-radius: 0.2rem;
-    background: hsl(var(--foreground));
+    background-color: hsl(var(--muted-foreground) / 0.28);
+    background-image: radial-gradient(circle, hsl(var(--foreground) / 0.42) 0 1px, transparent 1.4px);
+    background-size: 5px 5px;
     color: transparent;
     cursor: pointer;
     padding: 0.08rem 0.25rem;
-    transition: background-color 180ms ease, color 180ms ease;
+    text-shadow: none;
+    transition: background-color 180ms ease, color 180ms ease, opacity 180ms ease;
+    user-select: none;
   }
 
-  .blog-article .blog-spoiler:hover,
-  .blog-article .blog-spoiler:focus {
-    background: hsl(var(--secondary));
+  .blog-article .blog-spoiler:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  .blog-article .blog-spoiler.is-revealed {
+    background-color: hsl(var(--secondary));
+    background-image: none;
     color: hsl(var(--foreground));
-    outline: none;
+    cursor: text;
+    user-select: text;
   }
 
   .blog-article table {

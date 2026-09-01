@@ -146,6 +146,15 @@ export default function BlogPost() {
     window.setTimeout(() => setCopied(false), 1800);
   };
 
+  const toggleSpoiler = (event) => {
+    const spoiler = event.target.closest?.(".blog-spoiler");
+    if (!spoiler) return;
+    if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+    event.preventDefault();
+    const revealed = spoiler.classList.toggle("is-revealed");
+    spoiler.setAttribute("aria-expanded", String(revealed));
+  };
+
   return (
     <div className="min-h-full bg-background text-foreground">
       <main>
@@ -175,7 +184,7 @@ export default function BlogPost() {
 
         <div className="mx-auto max-w-[900px] px-4 py-12 sm:px-6 lg:py-16">
           <article className="min-w-0">
-            {articleHtml ? <div className="blog-article" dangerouslySetInnerHTML={{ __html: articleHtml }} /> : <div className="space-y-12">
+            {articleHtml ? <div className="blog-article" onClick={toggleSpoiler} onKeyDown={toggleSpoiler} dangerouslySetInnerHTML={{ __html: articleHtml }} /> : <div className="space-y-12">
               {post.sections.map((section, sectionIndex) => (
                 <Reveal key={section.id} delay={Math.min(sectionIndex * 0.03, 0.12)}>
                   <section id={section.id} className="scroll-mt-24">
