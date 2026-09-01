@@ -245,17 +245,35 @@
 
   .blog-article .blog-spoiler {
     position: relative;
-    display: inline;
-    border-radius: 0.2rem;
-    background-color: hsl(var(--muted-foreground) / 0.28);
-    background-image: radial-gradient(circle, hsl(var(--foreground) / 0.42) 0 1px, transparent 1.4px);
-    background-size: 5px 5px;
+    display: inline-block;
+    overflow: hidden;
+    border-radius: 0.35rem;
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    background-image:
+      radial-gradient(circle, hsl(var(--foreground) / 0.58) 0 0.8px, transparent 1.2px),
+      radial-gradient(circle, hsl(var(--foreground) / 0.34) 0 1px, transparent 1.45px),
+      radial-gradient(circle, hsl(var(--background) / 0.45) 0 0.7px, transparent 1.1px);
+    background-position: 0 0, 3px 5px, 7px 2px;
+    background-size: 7px 7px, 11px 11px, 13px 13px;
     color: transparent;
     cursor: pointer;
-    padding: 0.08rem 0.25rem;
+    padding: 0.04rem 0.3rem;
     text-shadow: none;
     transition: background-color 180ms ease, color 180ms ease, opacity 180ms ease;
     user-select: none;
+    vertical-align: text-bottom;
+    animation: blog-spoiler-particles 1.35s steps(8, end) infinite;
+  }
+
+  .blog-article .blog-spoiler::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 15%, hsl(var(--foreground) / 0.13) 45%, transparent 72%);
+    content: "";
+    transform: translateX(-120%);
+    animation: blog-spoiler-shimmer 2.4s ease-in-out infinite;
+    pointer-events: none;
   }
 
   .blog-article .blog-spoiler:focus-visible {
@@ -264,11 +282,42 @@
   }
 
   .blog-article .blog-spoiler.is-revealed {
+    overflow: visible;
     background-color: hsl(var(--secondary));
     background-image: none;
     color: hsl(var(--foreground));
     cursor: text;
     user-select: text;
+    animation: blog-spoiler-reveal 220ms ease-out both;
+  }
+
+  .blog-article .blog-spoiler.is-revealed::after {
+    display: none;
+  }
+
+  @keyframes blog-spoiler-particles {
+    0% { background-position: 0 0, 3px 5px, 7px 2px; }
+    25% { background-position: 3px -2px, 0 8px, 10px 5px; }
+    50% { background-position: 6px 1px, -3px 4px, 5px -1px; }
+    75% { background-position: 2px 4px, 5px 1px, 12px 3px; }
+    100% { background-position: 7px 0, 3px 5px, 7px 2px; }
+  }
+
+  @keyframes blog-spoiler-shimmer {
+    0%, 45% { transform: translateX(-120%); }
+    75%, 100% { transform: translateX(120%); }
+  }
+
+  @keyframes blog-spoiler-reveal {
+    from { opacity: 0.45; filter: blur(2px); }
+    to { opacity: 1; filter: blur(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blog-article .blog-spoiler,
+    .blog-article .blog-spoiler::after {
+      animation: none;
+    }
   }
 
   .blog-article table {
