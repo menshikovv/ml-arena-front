@@ -42,11 +42,12 @@ export default function BlogCover({ visual, compact = false, className = "" }) {
   if (visual?.imageUrl) {
     return (
       <div className={`relative overflow-hidden bg-secondary ${className}`}>
+        {!compact && <img src={visual.imageUrl} alt="" aria-hidden="true" className="absolute -inset-8 h-[calc(100%+4rem)] w-[calc(100%+4rem)] scale-110 object-cover opacity-40 blur-3xl saturate-75" />}
         <img
           src={visual.imageUrl}
           alt={visual.alt || ""}
           loading={compact ? "lazy" : "eager"}
-          className="h-full w-full object-cover"
+          className={compact ? "h-full w-full object-cover" : "relative z-[1] h-full w-full object-contain"}
         />
       </div>
     );

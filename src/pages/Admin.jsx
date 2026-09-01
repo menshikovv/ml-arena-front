@@ -1,11 +1,11 @@
-import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CalendarClock, CheckCircle2, CircleAlert,
   ClipboardCheck, Database, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
-  Award, Copy, ImageIcon, LockKeyhole, Newspaper, Pause, Pencil, Play, Plus, RefreshCw,
-  Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Trash2,
+  Award, Bold, Copy, EyeOff, Heading1, Heading2, Heading3, ImageIcon, Italic, Link2, List, ListOrdered, LockKeyhole, Newspaper, Pause, Pencil, Play, Plus, Quote, RefreshCw,
+  Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Strikethrough, Trash2,
   Trophy, Undo2, Upload, UserCheck, Users, X,
 } from "lucide-react";
 import { api, uploadFile } from "@/api/mlArenaApi";
@@ -491,10 +491,72 @@ function ValidationNotice({ issues }) {
   );
 }
 
+function MarkdownEditor({ value, onChange, media = [], minHeight = "min-h-80" }) {
+  const textareaRef = useRef(null);
+  const apply = (before, after = before, placeholder = "текст", linePrefix = false) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = value.slice(start, end) || placeholder;
+    let next;
+    let selectionStart;
+    let selectionEnd;
+    if (linePrefix) {
+      const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+      const lineEndIndex = value.indexOf("\n", end);
+      const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+      const block = value.slice(lineStart, lineEnd).split("\n").map((line) => `${before}${line || placeholder}`).join("\n");
+      next = value.slice(0, lineStart) + block + value.slice(lineEnd);
+      selectionStart = lineStart + before.length;
+      selectionEnd = lineStart + block.length;
+    } else {
+      next = value.slice(0, start) + before + selected + after + value.slice(end);
+      selectionStart = start + before.length;
+      selectionEnd = selectionStart + selected.length;
+    }
+    onChange(next);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(selectionStart, selectionEnd);
+    });
+  };
+  const addLink = () => {
+    const url = window.prompt("Адрес ссылки", "https://");
+    if (url) apply("[", `](${url})`, "текст ссылки");
+  };
+  const insertMedia = (item) => {
+    const path = String(item.url || "").match(/\/api\/v1\/blog\/media\/[^?\s]+/)?.[0];
+    if (path) apply("", "", `![${item.alt || "Изображение"}](${path})`);
+  };
+  const tools = [
+    [Heading1, "Заголовок 1", () => apply("# ", "", "Заголовок", true)],
+    [Heading2, "Заголовок 2", () => apply("## ", "", "Заголовок", true)],
+    [Heading3, "Заголовок 3", () => apply("### ", "", "Заголовок", true)],
+    [Bold, "Жирный", () => apply("**", "**")],
+    [Italic, "Курсив", () => apply("*", "*")],
+    [Strikethrough, "Зачёркнутый", () => apply("~~", "~~")],
+    [EyeOff, "Скрытый спойлер", () => apply("||", "||", "скрытый текст")],
+    [Quote, "Цитата", () => apply("> ", "", "Цитата", true)],
+    [List, "Маркированный список", () => apply("- ", "", "Пункт", true)],
+    [ListOrdered, "Нумерованный список", () => apply("1. ", "", "Пункт", true)],
+    [Link2, "Ссылка", addLink],
+  ];
+  return <div className="border border-border bg-background">
+    <div className="flex flex-wrap gap-1 border-b border-border bg-secondary/35 p-2">
+      {tools.map(([Icon, label, action]) => <button key={label} type="button" onClick={action} title={label} aria-label={label} className="flex h-9 w-9 items-center justify-center border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground"><Icon size={17} /></button>)}
+    </div>
+    <Textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} className={cn(minHeight, "resize-y rounded-none border-0 font-mono text-sm focus-visible:ring-0")} />
+    {media.length > 0 && <div className="border-t border-border p-3"><p className="mb-2 text-xs font-semibold text-muted-foreground">Вставить изображение из медиатеки</p><div className="flex gap-2 overflow-x-auto pb-1">{media.map((item) => <button key={item.id} type="button" onClick={() => insertMedia(item)} className="group relative h-16 w-24 shrink-0 overflow-hidden border border-border bg-secondary" title={item.alt || "Вставить изображение"}><img src={item.url} alt="" className="h-full w-full object-cover" /><span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-white opacity-0 transition-all group-hover:bg-slate-950/55 group-hover:opacity-100"><ImageIcon size={18} /></span></button>)}</div></div>}
+  </div>;
+}
+
 function BlogCreateDialog({ open, onClose, categories, onSubmit, pending }) {
   const [form, setForm] = useState({ title: "", slug: "", excerpt: "", body_markdown: "", author_name: "Редакция ML-Арены", primary_category_id: "", internal_goal: "other", cta_type: "none", tag_ids: [] });
   const [attempted, setAttempted] = useState(false);
+  const mediaQuery = useQuery({ queryKey: ["admin", "blog-media"], queryFn: () => api.admin.blogMedia({ limit: 50, offset: 0 }), enabled: open });
   const categoryRows = listRows(categories);
+  const mediaRows = listRows(mediaQuery.data);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const issues = blogValidationIssues(form);
   const submit = () => {
@@ -526,7 +588,7 @@ function BlogCreateDialog({ open, onClose, categories, onSubmit, pending }) {
               <label><span className="mb-2 block text-sm font-semibold">Основная категория</span><select value={form.primary_category_id} onChange={(event) => update("primary_category_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите категорию</option>{categoryRows.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
             </div>
             <label><span className="mb-2 block text-sm font-semibold">Краткое описание</span><Textarea value={form.excerpt} maxLength={300} onChange={(event) => update("excerpt", event.target.value)} className="min-h-24 rounded-none" /><span className={cn("mt-1 block text-right text-xs", form.excerpt.length > 0 && form.excerpt.trim().length < 50 ? "text-destructive" : "text-muted-foreground")}>{form.excerpt.length}/300 · минимум 50</span></label>
-            <label><span className="mb-2 block text-sm font-semibold">Текст Markdown</span><Textarea value={form.body_markdown} onChange={(event) => update("body_markdown", event.target.value)} className="min-h-80 rounded-none font-mono text-sm" /></label>
+            <div><span className="mb-2 block text-sm font-semibold">Текст статьи</span><MarkdownEditor value={form.body_markdown} onChange={(value) => update("body_markdown", value)} media={mediaRows} /></div>
             <label><span className="mb-2 block text-sm font-semibold">Автор</span><Input value={form.author_name} onChange={(event) => update("author_name", event.target.value)} className="rounded-none" /></label>
           </div>
           <div className="mt-7 flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={pending}>Отмена</Button><Button onClick={submit} disabled={pending}>{pending && <Loader2 size={16} className="animate-spin" />} Создать черновик</Button></div>
@@ -633,7 +695,7 @@ function BlogEditDialog({ postId, onClose, categories, tags, onSaved }) {
                   <label><span className="mb-2 block text-sm font-semibold">Основная категория</span><select value={form.primary_category_id} onChange={(event) => update("primary_category_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите категорию</option>{categoryRows.filter((item) => item.is_active !== false).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
                 </div>
                 <label><span className="mb-2 block text-sm font-semibold">Краткое описание</span><Textarea value={form.excerpt} maxLength={300} onChange={(event) => update("excerpt", event.target.value)} className="min-h-24 rounded-none" /><span className="mt-1 block text-right text-xs text-muted-foreground">{form.excerpt.length}/300 · минимум 50</span></label>
-                <label><span className="mb-2 block text-sm font-semibold">Текст Markdown</span><Textarea value={form.body_markdown} onChange={(event) => update("body_markdown", event.target.value)} className="min-h-[360px] rounded-none font-mono text-sm" /></label>
+                <div><span className="mb-2 block text-sm font-semibold">Текст статьи</span><MarkdownEditor value={form.body_markdown} onChange={(value) => update("body_markdown", value)} media={mediaRows} minHeight="min-h-[420px]" /></div>
               </section>
 
               <section className="border-t border-border pt-7">

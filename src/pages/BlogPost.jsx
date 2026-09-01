@@ -169,8 +169,8 @@ export default function BlogPost() {
           </Reveal>
         </section>
 
-        <Reveal className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 md:pt-12">
-          <BlogCover visual={post.visual} className="aspect-video max-h-[620px] min-h-72 w-full" />
+        <Reveal className="mx-auto max-w-[1040px] px-4 pt-8 sm:px-6 md:pt-12">
+          <BlogCover visual={post.visual} className="aspect-video max-h-[540px] min-h-64 w-full" />
         </Reveal>
 
         <div className="mx-auto max-w-[900px] px-4 py-12 sm:px-6 lg:py-16">
