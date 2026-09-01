@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Copy, Pencil, Send, Share2, Trash2, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, Clock3, Copy, Pencil, Send, Trash2, UserRound } from "lucide-react";
 import BlogCover, { blogCoverVisual } from "@/components/ml/BlogCover";
 import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
@@ -173,8 +173,7 @@ export default function BlogPost() {
           <BlogCover visual={post.visual} className="aspect-video max-h-[620px] min-h-72 w-full" />
         </Reveal>
 
-        <div className="mx-auto grid max-w-[1380px] gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[230px_minmax(0,800px)_230px] lg:items-start lg:justify-center lg:py-16">
-          <div className="hidden lg:block" aria-hidden="true" />
+        <div className="mx-auto max-w-[900px] px-4 py-12 sm:px-6 lg:py-16">
           <article className="min-w-0">
             {articleHtml ? <div className="blog-article" dangerouslySetInnerHTML={{ __html: articleHtml }} /> : <div className="space-y-12">
               {post.sections.map((section, sectionIndex) => (
@@ -219,15 +218,6 @@ export default function BlogPost() {
             </Reveal>
           </article>
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-6 border-l border-border pl-6">
-              <div className="flex items-center gap-2 text-sm font-extrabold"><Share2 className="text-primary" size={16} /> В этой статье</div>
-              <nav className="mt-5 space-y-1">
-                {post.sections.map((section) => <a key={section.id} href={`#${section.id}`} className="block border-l-2 border-transparent py-2 pl-3 text-sm leading-5 text-muted-foreground transition-colors hover:border-primary hover:text-primary">{section.title}</a>)}
-              </nav>
-              <Button asChild variant="ghost" className="mt-6 -ml-3"><Link to="/blog"><ArrowLeft size={15} /> Все материалы</Link></Button>
-            </div>
-          </aside>
         </div>
 
         {relatedPosts.length > 0 && <section className="border-t border-border bg-secondary/20">
