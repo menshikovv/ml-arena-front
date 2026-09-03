@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
-  BrainCircuit,
   BriefcaseBusiness,
-  CalendarDays,
   Camera,
   Check,
   CircleAlert,
@@ -15,7 +13,6 @@ import {
   MapPin,
   Save,
   ShieldCheck,
-  Sparkles,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -36,20 +33,7 @@ const SECTIONS = [
   { id: "profile-location", label: "Личные данные", icon: MapPin },
   { id: "profile-education", label: "Образование", icon: GraduationCap },
   { id: "profile-work", label: "Работа", icon: BriefcaseBusiness },
-  { id: "profile-experience", label: "Опыт в ML", icon: BrainCircuit },
-  { id: "profile-interests", label: "Интересы", icon: Sparkles },
   { id: "profile-visibility", label: "Видимость", icon: ShieldCheck },
-];
-
-const ML_INTERESTS = [
-  ["classification", "Классификация"],
-  ["regression", "Регрессия"],
-  ["nlp", "NLP"],
-  ["cv", "Компьютерное зрение"],
-  ["time_series", "Временные ряды"],
-  ["ranking", "Ранжирование"],
-  ["clustering", "Кластеризация"],
-  ["recsys", "RecSys"],
 ];
 
 const splitFullName = (fullName = "") => {
@@ -68,17 +52,15 @@ export default function ProfileEdit() {
       first_name: user?.first_name ?? fallbackName.first_name,
       last_name: user?.last_name ?? fallbackName.last_name,
       city: user?.city || "",
-      birth_date: user?.birth_date || "",
       education_status: user?.education_status || "",
       organization: user?.organization || "",
-      ml_experience_years: user?.ml_experience_years ?? "",
-      ml_experience: user?.ml_experience || "",
-      ml_interests: Array.isArray(user?.ml_interests) ? user.ml_interests : [],
       github_url: user?.github_url || "",
       kaggle_url: user?.kaggle_url || "",
       bio: user?.bio || "",
       visible_to_employers: Boolean(user?.visible_to_employers),
       public_profile: user?.public_profile ?? true,
+      show_real_name: user?.show_real_name ?? true,
+      show_career_details: user?.show_career_details ?? true,
     };
   }, [user]);
   const [form, setForm] = useState(initial);
@@ -90,7 +72,7 @@ export default function ProfileEdit() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(initial) || Boolean(avatarFile) || removeAvatar;
-  const completionFields = [form.first_name, form.last_name, form.city, form.birth_date, form.education_status, form.organization, form.ml_experience, form.github_url, form.bio, form.ml_interests.length];
+  const completionFields = [form.first_name, form.last_name, form.city, form.education_status, form.organization, form.github_url, form.bio];
   const completion = Math.round((completionFields.filter(Boolean).length / completionFields.length) * 100);
 
   useEffect(() => {
@@ -119,12 +101,6 @@ export default function ProfileEdit() {
   }, []);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const toggleInterest = (interest) => setForm((current) => ({
-    ...current,
-    ml_interests: current.ml_interests.includes(interest)
-      ? current.ml_interests.filter((item) => item !== interest)
-      : [...current.ml_interests, interest],
-  }));
   const goBack = () => {
     if (!dirty || window.confirm("Уйти без сохранения изменений?")) navigate("/profile");
   };
@@ -168,7 +144,7 @@ export default function ProfileEdit() {
     }
     setLoading(true);
     try {
-      await updateProfile({ ...form, full_name: [form.first_name, form.last_name].filter(Boolean).join(" ") });
+      await updateProfile(form);
       if (avatarFile) await updateAvatar(avatarFile);
       else if (removeAvatar) await deleteAvatar();
       toast({ title: "Профиль сохранён" });
@@ -291,14 +267,9 @@ export default function ProfileEdit() {
                 </FormSection>
 
                 <FormSection id="profile-location" icon={MapPin} title="Личные данные">
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="Город" icon={MapPin}>
-                      <Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} />
-                    </Field>
-                    <Field label="Дата рождения" icon={CalendarDays}>
-                      <Input type="date" value={form.birth_date} onChange={(event) => update("birth_date", event.target.value)} autoComplete="bday" max={new Date().toISOString().slice(0, 10)} className={INPUT_CLASS} />
-                    </Field>
-                  </div>
+                  <Field label="Город" icon={MapPin}>
+                    <Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} />
+                  </Field>
                 </FormSection>
 
                 <FormSection id="profile-education" icon={GraduationCap} title="Образование">
@@ -313,38 +284,12 @@ export default function ProfileEdit() {
                   </Field>
                 </FormSection>
 
-                <FormSection id="profile-experience" icon={BrainCircuit} title="Опыт в ML">
-                  <div className="grid gap-5 sm:grid-cols-[180px_minmax(0,1fr)]">
-                    <Field label="Лет опыта">
-                      <Input type="number" min="0" max="60" step="0.5" value={form.ml_experience_years} onChange={(event) => update("ml_experience_years", event.target.value)} inputMode="decimal" placeholder="Например, 2" className={INPUT_CLASS} />
-                    </Field>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="ml-experience">Практический опыт</Label>
-                        <span className="text-[11px] tabular-nums text-muted-foreground">{form.ml_experience.length}/1000</span>
-                      </div>
-                      <Textarea id="ml-experience" value={form.ml_experience} onChange={(event) => update("ml_experience", event.target.value)} maxLength={1000} rows={4} placeholder="Проекты, специализация, технологии и задачи, с которыми вы работали" className="resize-none rounded-md bg-secondary/20 px-3.5 py-3 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15" />
-                    </div>
-                  </div>
-                </FormSection>
-
-                <FormSection id="profile-interests" icon={Sparkles} title="Интересы в ML">
-                  <div className="flex flex-wrap gap-2">
-                    {ML_INTERESTS.map(([value, label]) => {
-                      const selected = form.ml_interests.includes(value);
-                      return (
-                        <button key={value} type="button" onClick={() => toggleInterest(value)} aria-pressed={selected} className={`min-h-10 border px-3.5 py-2 text-sm font-semibold transition-[border-color,background-color,color,transform] hover:-translate-y-0.5 ${selected ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-secondary/20 text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}>
-                          {selected && <Check size={14} className="mr-1.5 inline" />}{label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </FormSection>
-
                 <FormSection id="profile-visibility" icon={ShieldCheck} title="Видимость">
                   <div className="divide-y divide-border border-y border-border">
                     <Toggle icon={Globe2} checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль доступен по ссылке и отображается в поиске." />
                     <Toggle icon={BriefcaseBusiness} checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Показывать компаниям" text="Компании смогут находить ваш профиль среди участников." />
+                    <Toggle icon={UserRound} checked={form.show_real_name} onChange={(value) => update("show_real_name", value)} title="Показывать имя и фамилию" text="Имя и фамилия видны посетителям публичного профиля." />
+                    <Toggle icon={BriefcaseBusiness} checked={form.show_career_details} onChange={(value) => update("show_career_details", value)} title="Показывать карьерные данные" text="Город, университет, компания и внешние профили видны посетителям." />
                   </div>
                 </FormSection>
 

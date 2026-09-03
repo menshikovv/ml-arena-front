@@ -168,7 +168,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
               )}
             >
               <span className="inline-flex items-center gap-2"><Target size={15} /> {METRIC_LABELS[competition.metric]}</span>
-              <span className="inline-flex items-center gap-2"><Users size={15} /> {competition.participants_count || 0} участников</span>
+              <span className="inline-flex items-center gap-2"><Users size={15} /> {competition.participants_count ?? "—"} участников</span>
               <span className="inline-flex items-center gap-2"><CalendarClock size={15} /> {getTimeLabel(competition, status)}</span>
               <span className="inline-flex items-center gap-2"><Building2 size={15} /> {competition.company_name || "ML-Арена"}</span>
             </div>

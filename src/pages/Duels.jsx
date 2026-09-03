@@ -36,15 +36,6 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 
-const CURRENT_USER = {
-  name: "Ты",
-  rating: 1246,
-  rank: 184,
-  wins: 18,
-  losses: 11,
-  streak: 3,
-};
-
 const TASKS = {
   classification: {
     label: "Классификация",
@@ -98,7 +89,7 @@ const TASKS = {
 
 const RULES = [
   { icon: Clock3, title: "60 минут", text: "Одинаковое основное время для обоих участников." },
-  { icon: Upload, title: "10 отправок", text: "Невалидный файл не расходует попытку, но проверяется с ограничением частоты." },
+  { icon: Upload, title: "Одна отправка", text: "Каждый участник отправляет один финальный CSV." },
   { icon: Trophy, title: "Лучший результат", text: "Побеждает лучший результат на одной скрытой выборке." },
   { icon: ShieldCheck, title: "Равные правила", text: "Результат соперника скрыт до завершения матча." },
 ];
@@ -106,24 +97,15 @@ const RULES = [
 const CHALLENGE_LEVELS = {
   easy: {
     label: "Лёгкий",
-    range: "60–75%",
-    reward: "до +4",
     description: "Для разминки и первого подтверждения навыка.",
-    benchmark: 0.7814,
   },
   medium: {
     label: "Средний",
-    range: "35–55%",
-    reward: "до +7",
     description: "Потребуется уверенная ML-работа, одного базового решения обычно недостаточно.",
-    benchmark: 0.8564,
   },
   advanced: {
     label: "Продвинутый",
-    range: "15–35%",
-    reward: "до +10",
     description: "Сильный короткий результат против сложного эталонного решения.",
-    benchmark: 0.9028,
   },
 };
 
@@ -139,12 +121,35 @@ function TimerDisplay({ seconds, compact = false }) {
 }
 
 function getWinRate(opponent) {
-  return Math.round((opponent.wins / (opponent.wins + opponent.losses)) * 100);
+  const matches = Number(opponent.wins || 0) + Number(opponent.losses || 0);
+  return matches ? Math.round((Number(opponent.wins || 0) / matches) * 100) : null;
 }
 
 function getDuelDate(duel) {
   const value = duel.created_date || duel.started_at;
-  return value ? new Date(value).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) : "Сегодня";
+  return value ? new Date(value).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) : "—";
+}
+
+function adaptDuel(duel, currentUserId) {
+  const player1 = duel.player1 || {};
+  const player2 = duel.player2 || {};
+  const meIsPlayer1 = player1.user_id === currentUserId;
+  const opponent = meIsPlayer1 ? player2 : player1;
+  const won = Boolean(currentUserId && duel.winner_id === currentUserId);
+  const rawRatingDelta = duel.rating_change?.[currentUserId];
+  const ratingDelta = rawRatingDelta == null ? null : Number(rawRatingDelta);
+  return {
+    ...duel,
+    player1_name: meIsPlayer1 ? "Ты" : player1.user_name,
+    player2_name: meIsPlayer1 ? player2.user_name : "Ты",
+    player1_rating: player1.rating,
+    player2_rating: player2.rating,
+    winner_name: duel.winner_id ? (won ? "Ты" : opponent.user_name) : null,
+    rating_change: ratingDelta == null ? null : Math.abs(ratingDelta),
+    rating_delta: ratingDelta,
+    opponent_avatar_url: opponent.avatar_url,
+    created_date: duel.created_at,
+  };
 }
 
 function DuelNav({ view, className }) {
@@ -179,25 +184,27 @@ function DuelNav({ view, className }) {
   );
 }
 
-function RatingSummary() {
+function RatingSummary({ rating, isLoading }) {
+  const duelRating = rating?.duel_rating ?? null;
+  const duelRank = rating?.duel_rank ?? rating?.rank ?? null;
   return (
     <div className="grid min-w-0 grid-cols-2 md:grid-cols-4">
       <div className="flex min-h-28 flex-col justify-between border-b border-r border-border/80 p-5 md:border-b-0">
         <span className="text-xs font-medium text-muted-foreground">Рейтинг сезона</span>
-        <span className="font-heading text-3xl font-bold tabular-nums">{CURRENT_USER.rating}</span>
+        <span className="font-heading text-3xl font-bold tabular-nums">{isLoading ? "…" : duelRating ?? "—"}</span>
       </div>
       <div className="flex min-h-28 flex-col justify-between border-b border-border/80 p-5 md:border-b-0 md:border-r">
         <span className="text-xs font-medium text-muted-foreground">Место</span>
-        <span className="font-heading text-3xl font-bold tabular-nums">#{CURRENT_USER.rank}</span>
+        <span className="font-heading text-3xl font-bold tabular-nums">{isLoading ? "…" : duelRank ? `#${duelRank}` : "—"}</span>
       </div>
       <div className="flex min-h-28 flex-col justify-between border-r border-border/80 p-5">
         <span className="text-xs font-medium text-muted-foreground">Лига</span>
-        <LeagueBadge rating={CURRENT_USER.rating} size="sm" />
+        {duelRating === null ? <span className="text-sm text-muted-foreground">Не определена</span> : <LeagueBadge rating={duelRating} size="sm" />}
       </div>
       <div className="flex min-h-28 flex-col justify-between p-5">
-        <span className="text-xs font-medium text-muted-foreground">Текущая форма</span>
-        <p className="text-sm font-semibold text-accent">Серия {CURRENT_USER.streak}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{CURRENT_USER.wins} побед · {CURRENT_USER.losses} поражений</p>
+        <span className="text-xs font-medium text-muted-foreground">Матчи сезона</span>
+        <p className="text-sm font-semibold text-accent">{rating?.calibration_status === "calibrated" ? "Рейтинг открыт" : "Калибровка"}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{rating ? `${rating.wins} побед · ${rating.losses} поражений` : "Пока нет результатов"}</p>
       </div>
     </div>
   );
@@ -279,12 +286,8 @@ function ChallengeChooser({ open, onClose, taskType, onTaskTypeChange, onStart }
                       level === key ? "border-primary bg-primary/7 shadow-sm" : "border-border bg-background hover:border-primary/40",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-heading text-lg font-bold">{item.label}</span>
-                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">{item.reward} очков</span>
-                    </div>
+                    <span className="font-heading text-lg font-bold">{item.label}</span>
                     <p className="mt-4 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                    <p className="mt-4 text-xs text-muted-foreground">Ориентир прохождения: {item.range}</p>
                   </button>
                 ))}
               </div>
@@ -307,33 +310,28 @@ function ChallengeChooser({ open, onClose, taskType, onTaskTypeChange, onStart }
 }
 
 function OpponentCard({ opponent, onChallenge, pending, currentRating }) {
-  const ratingGap = Math.abs(currentRating - opponent.rating);
-  const withinRatingRange = ratingGap <= 200;
+  const hasRatings = Number.isFinite(currentRating) && Number.isFinite(opponent.rating);
+  const ratingGap = hasRatings ? Math.abs(currentRating - opponent.rating) : null;
+  const withinRatingRange = ratingGap === null || ratingGap <= 200;
+  const winRate = getWinRate(opponent);
 
   return (
     <Card className="group h-full border-border bg-card p-4 transition-colors hover:border-primary/40">
       <div className="flex items-start gap-3">
         <div className="relative">
-          <Avatar name={opponent.name} size={42} />
-          <span
-            className={cn(
-              "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card",
-              opponent.online ? "bg-accent" : "bg-muted-foreground",
-            )}
-          />
+          <Avatar name={opponent.name} src={opponent.avatar} size={42} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{opponent.name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <LeagueBadge rating={opponent.rating} size="sm" />
-            <span className="text-xs text-muted-foreground">{opponent.rating} Elo</span>
+            {opponent.rating === null ? <span className="text-xs text-muted-foreground">Нет калибровки</span> : <><LeagueBadge rating={opponent.rating} size="sm" /><span className="text-xs text-muted-foreground">{opponent.rating} Elo</span></>}
           </div>
         </div>
-        <span className="text-xs font-medium text-muted-foreground">{getWinRate(opponent)}%</span>
+        <span className="text-xs font-medium text-muted-foreground">{winRate === null ? "—" : `${winRate}%`}</span>
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
         <span className={cn("text-xs", withinRatingRange ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400")}>
-          Разница {ratingGap} Elo
+          {ratingGap === null ? "Рейтинг определит сервер" : `Разница ${ratingGap} Elo`}
         </span>
         <Button
           size="sm"
@@ -354,11 +352,15 @@ function RecentDuels({ duels, isLoading }) {
   if (isLoading) {
     return <div className="flex min-h-36 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
   }
+  if (!duels.length) {
+    return <div className="border-y border-dashed border-border py-12 text-center"><Swords className="mx-auto text-muted-foreground" size={24} /><p className="mt-3 text-sm font-medium">Завершённых дуэлей пока нет</p><p className="mt-1 text-xs text-muted-foreground">После первого матча здесь появится его результат.</p></div>;
+  }
 
   return (
     <div className="divide-y divide-border border-y border-border">
       {duels.slice(0, 5).map((duel) => {
         const won = duel.winner_name === "Ты";
+        const draw = duel.is_draw;
         const opponent = duel.player1_name === "Ты" ? duel.player2_name : duel.player1_name;
         const opponentRating = duel.player1_name === "Ты" ? duel.player2_rating : duel.player1_rating;
         return (
@@ -379,10 +381,10 @@ function RecentDuels({ duels, isLoading }) {
             <span
               className={cn(
                 "justify-self-end text-xs font-semibold",
-                duel.status !== "completed" ? "text-primary" : won ? "text-accent" : "text-destructive",
+                duel.status !== "completed" ? "text-primary" : draw ? "text-muted-foreground" : won ? "text-accent" : "text-destructive",
               )}
             >
-              {duel.status !== "completed" ? "Идёт сейчас" : won ? `Победа +${duel.rating_change}` : `Поражение −${duel.rating_change}`}
+              {duel.status !== "completed" ? "Идёт сейчас" : draw ? "Ничья" : duel.rating_change == null ? (won ? "Победа" : "Поражение") : won ? `Победа +${duel.rating_change}` : `Поражение −${duel.rating_change}`}
             </span>
             <ChevronRight size={16} className="text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -470,7 +472,7 @@ function DuelGuideDialog({ open, onClose }) {
   );
 }
 
-function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId, currentRating }) {
+function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId, currentRating, currentRatingRow, ratingLoading }) {
   const [searchNick, setSearchNick] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const matchedOpponent = useMemo(() => {
@@ -506,7 +508,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
               </div>
           </PageHeader>
           <DuelNav view="overview" className="mt-6" />
-          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary /></div>
+          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary rating={currentRatingRow} isLoading={ratingLoading} /></div>
         </section>
       </Reveal>
 
@@ -611,7 +613,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
       <section className="border-t border-border py-9">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="font-heading text-xl font-bold md:text-2xl">Твоя форма</h2>
+            <h2 className="font-heading text-xl font-bold md:text-2xl">Последние дуэли</h2>
           </div>
           <Button asChild variant="ghost" size="sm">
             <Link to="/duels/history">Вся история <ArrowRight size={14} /></Link>
@@ -638,12 +640,10 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
   );
 }
 
-function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge, canPlay }) {
+function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge, canPlay, currentRating }) {
   const [status, setStatus] = useState("idle");
-  const [seconds, setSeconds] = useState(0);
   const [opponent, setOpponent] = useState(null);
   const [ticket, setTicket] = useState(null);
-  const timerRef = useRef(null);
   const navigate = useNavigate();
   const ticketQuery = useQuery({
     queryKey: ["duel-matchmaking", ticket?.id],
@@ -652,13 +652,9 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
     refetchInterval: 1500,
   });
 
-  useEffect(() => () => {
-    window.clearInterval(timerRef.current);
-  }, []);
-
   const startMutation = useMutation({
     mutationFn: () => api.matchmaking.search({ task_type: taskType, mode: "rated" }),
-    onSuccess: (nextTicket) => { setTicket(nextTicket); setStatus("searching"); setSeconds(0); setOpponent(null); timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000); },
+    onSuccess: (nextTicket) => { setTicket(nextTicket); setStatus(nextTicket.status || "searching"); setOpponent(null); },
     onError: (error) => toast.error(error.message || "Не удалось начать поиск"),
   });
 
@@ -668,7 +664,6 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
       return;
     }
     setStatus("searching");
-    setSeconds(0);
     setOpponent(null);
     startMutation.mutate();
   };
@@ -677,29 +672,20 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
     const current = ticketQuery.data;
     if (!current) return;
     if (current.duel_id || current.status === "matched") {
-      window.clearInterval(timerRef.current);
       if (current.duel_id) navigate(`/duels/${current.duel_id}`);
-      else {
-        const found = current.opponent || opponents.find((item) => item.id === current.opponent_user_id);
-        setOpponent(found || null);
-        setStatus("found");
-      }
+      else setStatus("found");
     }
-    if (["expired", "no_opponent"].includes(current.status)) { window.clearInterval(timerRef.current); setStatus("empty"); }
+    if (current.status === "fallback_available") setStatus("empty");
+    if (current.status === "cancelled") setStatus("cancelled");
+    if (current.status === "challenge_started") {
+      const challengeId = current.challenge_instance_id || current.arena_challenge_id;
+      if (challengeId) navigate(`/duels/challenges/${challengeId}`);
+    }
   }, [navigate, opponents, ticketQuery.data]);
-
-  useEffect(() => {
-    if (status === "searching" && seconds >= 120) {
-      setStatus("empty");
-      window.clearInterval(timerRef.current);
-    }
-  }, [seconds, status]);
-
-  const ratingWindow = seconds < 30 ? 100 : seconds < 60 ? 150 : 200;
+  const secondsUntilFallback = ticketQuery.data?.seconds_until_fallback;
 
   const cancel = async () => {
     if (!canPlay) return;
-    window.clearInterval(timerRef.current);
     if (ticket?.id) await api.matchmaking.cancel(ticket.id).catch((error) => toast.error(error.message));
     setStatus("cancelled");
   };
@@ -709,9 +695,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
     try {
       const nextTicket = await api.matchmaking.continue(ticket.id);
       setTicket(nextTicket);
-      setSeconds(0);
-      setStatus("searching");
-      timerRef.current = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+      setStatus(nextTicket.status || "searching");
     } catch (error) {
       toast.error(error.message || "Не удалось продолжить поиск");
     }
@@ -742,7 +726,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
             {status === "searching"
-              ? `Диапазон ${CURRENT_USER.rating - ratingWindow}–${CURRENT_USER.rating + ratingWindow} очков · ${seconds} сек.`
+              ? `${currentRating === null ? "Сервер подбирает доступного участника" : "Сервер учитывает текущий рейтинг"}${secondsUntilFallback == null ? "" : ` · вариант вызова через ${secondsUntilFallback} сек.`}`
               : status === "empty"
                 ? "Можно оставить поиск активным или сразу получить новую задачу против эталонного результата ML-Арены."
               : "Выбери направление. Условия, таймер и лимиты одинаковы для обоих участников."}
@@ -779,8 +763,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{opponent.name}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      <LeagueBadge rating={opponent.rating} size="sm" />
-                      <span className="text-xs text-muted-foreground">{opponent.rating} очков · {getWinRate(opponent)}% побед</span>
+                      {opponent.rating === null ? <span className="text-xs text-muted-foreground">Рейтинг ещё не откалиброван</span> : <><LeagueBadge rating={opponent.rating} size="sm" /><span className="text-xs text-muted-foreground">{opponent.rating} очков{getWinRate(opponent) === null ? "" : ` · ${getWinRate(opponent)}% побед`}</span></>}
                     </div>
                   </div>
                 </div>
@@ -811,9 +794,9 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
         </div>
         <div className="grid grid-cols-3 border-b border-border">
           {[
-            ["±100 → ±200", "диапазон рейтинга"],
-            ["60 мин", "основное время"],
-            ["10", "валидных отправок"],
+            ["Сервер", "подбор соперника"],
+            ["ZIP", "данные задачи"],
+            ["Одна", "финальная отправка"],
           ].map(([value, label], index) => (
             <div key={value} className={cn("p-4 text-center", index > 0 && "border-l border-border")}>
               <p className="font-heading text-lg font-bold">{value}</p>
@@ -827,59 +810,44 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
 }
 
 function ArenaChallengeView() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { attemptId } = useParams();
   const { user } = useAuth();
   const canPlay = ["user", "admin"].includes(user?.role);
-  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const directionKey = params.get("direction") || "classification";
-  const levelKey = params.get("level") || "medium";
   const challengeQuery = useQuery({ queryKey: ["arena-challenge", attemptId], queryFn: () => api.arenaChallenges.get(attemptId), enabled: canPlay && Boolean(attemptId && attemptId !== "new"), refetchInterval: (query) => ["active", "scoring"].includes(query.state.data?.status) ? 2000 : false });
   const challenge = challengeQuery.data;
-  const fallbackTask = TASKS[directionKey] || TASKS.classification;
-  const task = { ...fallbackTask, ...(challenge?.task || {}), label: challenge?.task?.label || fallbackTask.label, metric: challenge?.metric || challenge?.task?.metric || fallbackTask.metric };
-  const fallbackLevel = CHALLENGE_LEVELS[levelKey] || CHALLENGE_LEVELS.medium;
-  const level = { ...fallbackLevel, label: challenge?.difficulty_label || fallbackLevel.label, benchmark: Number(challenge?.benchmark_score ?? fallbackLevel.benchmark), reward: String(challenge?.benchmark_rating ?? fallbackLevel.reward) };
-  const [seconds, setSeconds] = useState(3600);
-  const [attempts, setAttempts] = useState(0);
-  const [bestScore, setBestScore] = useState(null);
-  const [status, setStatus] = useState("active");
+  const directionKey = challenge?.task_type;
+  const task = { label: TASKS[directionKey]?.label || directionKey, title: challenge?.task_title, description: challenge?.task_description, metric: challenge?.metric };
+  const levelKey = challenge?.difficulty || challenge?.challenge_difficulty;
+  const level = { label: CHALLENGE_LEVELS[levelKey]?.label || challenge?.difficulty_label || levelKey, benchmark: Number(challenge?.benchmark_score), reward: challenge?.benchmark_rating };
+  const [seconds, setSeconds] = useState(0);
   const [uploadState, setUploadState] = useState("idle");
-  const won = bestScore !== null && bestScore > level.benchmark;
+  const bestScore = challenge?.best_score == null ? null : Number(challenge.best_score);
+  const finished = ["won", "lost", "expired", "cancelled"].includes(challenge?.status);
+  const won = Boolean(challenge?.benchmark_beaten ?? challenge?.result?.benchmark_beaten);
 
   useEffect(() => {
     if (!challenge) return;
-    setAttempts(challenge.attempts_count ?? challenge.submissions_count ?? 0);
-    if (challenge.best_score !== undefined && challenge.best_score !== null) setBestScore(Number(challenge.best_score));
     if (challenge.seconds_remaining !== undefined) setSeconds(challenge.seconds_remaining);
-    if (["completed", "finished", "expired"].includes(challenge.status)) setStatus("result");
+    else if (challenge.ends_at) setSeconds(Math.max(0, Math.ceil((new Date(challenge.ends_at).getTime() - Date.now()) / 1000)));
   }, [challenge]);
 
   useEffect(() => {
-    if (status !== "active") return undefined;
+    if (finished) return undefined;
     const interval = window.setInterval(() => setSeconds((value) => Math.max(0, value - 1)), 1000);
     return () => window.clearInterval(interval);
-  }, [status]);
-
-  useEffect(() => {
-    if (seconds === 0 && status === "active") setStatus("result");
-  }, [seconds, status]);
+  }, [finished]);
 
   const submitResult = async (file) => {
     if (!canPlay) {
       toast("Отправка решения требует аккаунт участника.");
       return;
     }
-    if (!file || !challenge?.id || attempts >= 5 || uploadState === "validating") return;
+    if (!file || !challenge?.id || challenge.attempts_remaining === 0 || uploadState === "validating") return;
     setUploadState("validating");
     try {
-      const upload = await uploadFile(file, "duel_submission", { arena_challenge_id: challenge.id });
+      const upload = await uploadFile(file, "arena_challenge_submission", { challenge_instance_id: challenge.id });
       const result = await api.arenaChallenges.submit(challenge.id, upload.id);
-      const nextAttempt = attempts + 1;
-      const score = Number(result.score ?? result.public_score ?? result.best_score);
-      setAttempts(nextAttempt);
-      if (Number.isFinite(score)) setBestScore((current) => current === null ? score : Math.max(current, score));
       setUploadState("scored");
       toast.success(result.benchmark_beaten ? "Эталон превзойдён" : "Результат проверен");
       challengeQuery.refetch();
@@ -894,12 +862,17 @@ function ArenaChallengeView() {
       toast("Завершение вызова требует аккаунт участника.");
       return;
     }
-    try { await api.arenaChallenges.finish(challenge.id); setStatus("result"); challengeQuery.refetch(); }
+    try { await api.arenaChallenges.finish(challenge.id); await challengeQuery.refetch(); }
     catch (error) { toast.error(error.message || "Не удалось завершить вызов"); }
   };
 
-  if (status === "result") {
-    const bonus = won ? Number(level.reward.replace(/\D/g, "")) || 0 : 0;
+  if (!canPlay || attemptId === "new") return <div className="py-16 text-center"><Target className="mx-auto text-primary" /><h2 className="mt-4 font-heading text-2xl font-bold">Сначала запустите поиск</h2><p className="mt-2 text-sm text-muted-foreground">Вызов ML-Арены создаётся сервером после ожидания соперника.</p><Button asChild className="mt-5"><Link to="/duels">Перейти к дуэлям</Link></Button></div>;
+  if (challengeQuery.isLoading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
+  if (challengeQuery.error || !challenge) return <div className="py-16 text-center"><Target className="mx-auto text-primary" /><h2 className="mt-4 font-heading text-2xl font-bold">Вызов не найден</h2><p className="mt-2 text-sm text-muted-foreground">{challengeQuery.error?.message || "Сервер не вернул данные вызова."}</p><Button asChild variant="outline" className="mt-5"><Link to="/duels">Вернуться к дуэлям</Link></Button></div>;
+
+  if (finished) {
+    const rawBonus = challenge.rating_bonus ?? challenge.bonus_awarded;
+    const bonus = won && rawBonus != null ? Number(rawBonus) : won ? null : 0;
     return (
       <Reveal>
         <div className="mx-auto max-w-5xl py-4 md:py-8">
@@ -917,9 +890,9 @@ function ArenaChallengeView() {
             <div className="grid border-t border-border sm:grid-cols-4">
               {[
                 [bestScore?.toFixed(4) || "—", "ваш результат"],
-                [level.benchmark.toFixed(4), "эталон"],
+                [Number.isFinite(level.benchmark) ? level.benchmark.toFixed(4) : "—", "эталон"],
                 [level.label, "уровень"],
-                [won ? `+${bonus}` : "+0", "бонус к рейтингу"],
+                [bonus == null ? "—" : bonus > 0 ? `+${bonus}` : "0", "бонус к рейтингу"],
               ].map(([value, label], index) => (
                 <div key={label} className={cn("p-5 text-center", index > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
                   <p className="font-heading text-2xl font-bold tabular-nums">{value}</p>
@@ -928,7 +901,7 @@ function ArenaChallengeView() {
               ))}
             </div>
             <div className="flex flex-col gap-3 border-t border-border p-5 sm:flex-row sm:justify-center md:p-7">
-              <Button onClick={() => navigate(`/duels/challenges/new?direction=${directionKey}&level=${levelKey}`)}><RefreshCw size={16} /> Следующий вызов</Button>
+              <Button onClick={() => navigate("/duels")}><RefreshCw size={16} /> Новый поиск</Button>
               <Button asChild variant="outline"><Link to="/profile">Посмотреть ML-паспорт</Link></Button>
               <Button asChild variant="ghost"><Link to="/duels">Вернуться к дуэлям</Link></Button>
             </div>
@@ -960,22 +933,21 @@ function ArenaChallengeView() {
               <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{task.description}</p>
               <div className="mt-6 grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
                 <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Метрика</p><p className="mt-2 text-sm font-semibold">{task.metric.toUpperCase()}</p></div>
-                <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Нужно превзойти</p><p className="mt-2 text-sm font-semibold tabular-nums">{level.benchmark.toFixed(4)}</p></div>
+                <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Нужно превзойти</p><p className="mt-2 text-sm font-semibold tabular-nums">{Number.isFinite(level.benchmark) ? level.benchmark.toFixed(4) : "—"}</p></div>
                 <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Направление</p><p className="mt-2 text-sm font-semibold">{task.label}</p></div>
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => toast.success("Данные подготовлены к скачиванию")}><Upload size={14} /> Скачать данные</Button>
-                <Button variant="outline" size="sm" onClick={() => toast.success("Пример решения скачан")}><ArrowRight size={14} /> Пример файла</Button>
+                {challenge.dataset_bundle_url && <Button asChild variant="outline" size="sm"><a href={challenge.dataset_bundle_url}><Upload size={14} /> Скачать данные</a></Button>}
               </div>
             </section>
 
             <section className="rounded-lg border border-border bg-card p-5 md:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div><h2 className="font-heading text-xl font-bold">Отправка результата</h2><p className="mt-2 text-sm text-muted-foreground">Загрузите CSV с колонками `id` и `prediction`.</p></div>
-                <span className="text-xs font-semibold text-muted-foreground">{attempts} из 5</span>
+                <span className="text-xs font-semibold text-muted-foreground">Осталось: {challenge.attempts_remaining ?? "—"}</span>
               </div>
-              <label className={cn("mt-5 flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/25 px-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5", (attempts >= 5 || uploadState === "validating") && "cursor-not-allowed opacity-60")}>
-                <input type="file" accept=".csv,text/csv" className="sr-only" disabled={attempts >= 5 || uploadState === "validating"} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; submitResult(file); }} />
+              <label className={cn("mt-5 flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/25 px-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5", (challenge.attempts_remaining === 0 || uploadState === "validating") && "cursor-not-allowed opacity-60")}>
+                <input type="file" accept=".csv,text/csv" className="sr-only" disabled={challenge.attempts_remaining === 0 || uploadState === "validating"} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; submitResult(file); }} />
                 {uploadState === "validating" ? <Loader2 className="animate-spin text-primary" size={24} /> : <Upload className="text-primary" size={24} />}
                 <span className="mt-3 text-sm font-semibold">{uploadState === "validating" ? "Проверяем формат и результат…" : "Выбрать CSV-файл"}</span>
                 <span className="mt-1 text-xs text-muted-foreground">Невалидный файл не расходует попытку</span>
@@ -990,7 +962,7 @@ function ArenaChallengeView() {
               <div className="mt-5 border-t border-border pt-5">
                 <p className="text-xs text-muted-foreground">Лучший результат</p>
                 <p className="mt-2 font-heading text-3xl font-bold tabular-nums">{bestScore?.toFixed(4) || "—"}</p>
-                {bestScore !== null && <p className={cn("mt-2 text-xs font-semibold", won ? "text-accent" : "text-muted-foreground")}>{won ? "Эталон превзойдён" : `${(level.benchmark - bestScore).toFixed(4)} до эталона`}</p>}
+                {bestScore !== null && <p className={cn("mt-2 text-xs font-semibold", won ? "text-accent" : "text-muted-foreground")}>{won ? "Эталон превзойдён" : "Эталон пока не превзойдён"}</p>}
               </div>
             </section>
             <section className="rounded-lg border border-border bg-secondary/35 p-5">
@@ -1006,14 +978,14 @@ function ArenaChallengeView() {
   );
 }
 
-function HistoryView({ duels, isLoading }) {
+function HistoryView({ duels, isLoading, rating }) {
   const [resultFilter, setResultFilter] = useState("all");
   const [taskFilter, setTaskFilter] = useState("all");
   const filtered = useMemo(() => duels.filter((duel) => {
     const resultMatches =
       resultFilter === "all"
       || (resultFilter === "wins" && duel.winner_name === "Ты")
-      || (resultFilter === "losses" && duel.status === "completed" && duel.winner_name !== "Ты")
+      || (resultFilter === "losses" && duel.status === "completed" && !duel.is_draw && duel.winner_name !== "Ты")
       || (resultFilter === "active" && duel.status !== "completed");
     return resultMatches && (taskFilter === "all" || duel.task_type === taskFilter);
   }), [duels, resultFilter, taskFilter]);
@@ -1023,7 +995,7 @@ function HistoryView({ duels, isLoading }) {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="font-heading text-3xl font-bold">История дуэлей</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{CURRENT_USER.wins + CURRENT_USER.losses} матчей · {CURRENT_USER.wins} побед</p>
+          <p className="mt-2 text-sm text-muted-foreground">{rating ? `${rating.human_duels_count} матчей · ${rating.wins} побед` : "Пока нет рейтинговых матчей"}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select
@@ -1088,7 +1060,20 @@ export default function Duels() {
     queryFn: () => api.duels.list({ limit: 50, offset: 0 }),
     enabled: canReadPersonalDuels,
   });
-  const duels = Array.isArray(duelsQuery.data) ? duelsQuery.data : duelsQuery.data?.data || duelsQuery.data?.items || [];
+  const rawDuels = Array.isArray(duelsQuery.data) ? duelsQuery.data : duelsQuery.data?.data || duelsQuery.data?.items || [];
+  const duels = useMemo(() => rawDuels.map((duel) => adaptDuel(duel, user?.id)), [rawDuels, user?.id]);
+  const seasonsQuery = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons, enabled: canReadPersonalDuels, staleTime: 60000 });
+  const seasons = Array.isArray(seasonsQuery.data) ? seasonsQuery.data : seasonsQuery.data?.items || [];
+  const activeSeason = seasons.find((season) => season.status === "active")?.slug || "";
+  const duelRatingQuery = useQuery({
+    queryKey: ["duel-rating-summary", activeSeason],
+    queryFn: () => api.rating.get({ tab: "duels", season: activeSeason, limit: 100, offset: 0 }),
+    enabled: canReadPersonalDuels && Boolean(activeSeason),
+    retry: false,
+  });
+  const currentRatingRow = duelRatingQuery.data?.current_user || null;
+  const currentRating = currentRatingRow?.duel_rating ?? null;
+  const duelRatingsByUser = useMemo(() => new Map((duelRatingQuery.data?.items || []).map((row) => [row.user_id, row])), [duelRatingQuery.data?.items]);
   const profilesQuery = useQuery({
     queryKey: ["duel-opponents"],
     queryFn: () => api.profiles.search({ limit: 50, offset: 0 }),
@@ -1108,17 +1093,20 @@ export default function Duels() {
     const ownNames = new Set([user?.nickname, user?.user_name, ownProfile?.user_name].filter(Boolean).map((value) => String(value).toLowerCase()));
     return profiles
     .filter((profile) => profile.user_id && !ownIds.has(profile.user_id) && !ownIds.has(profile.id) && !ownNames.has(String(profile.user_name || "").toLowerCase()))
-    .map((profile) => ({
-      id: profile.user_id,
-      profileId: profile.id,
-      name: profile.user_name || profile.nickname,
-      rating: profile.rating || 1000,
-      wins: profile.stats?.duels_won || profile.duels_won || 0,
-      losses: profile.stats?.duels_lost || profile.duels_lost || 0,
-      online: true,
-      focus: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
-    }));
-  }, [ownProfileQuery.data, profiles, user?.id, user?.nickname, user?.profile_id, user?.user_id, user?.user_name]);
+    .map((profile) => {
+      const rating = duelRatingsByUser.get(profile.user_id);
+      return {
+        id: profile.user_id,
+        profileId: profile.id,
+        name: profile.user_name || profile.nickname,
+        avatar: profile.avatar_url,
+        rating: rating?.duel_rating ?? null,
+        wins: rating?.wins ?? 0,
+        losses: rating?.losses ?? 0,
+        focus: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
+      };
+    });
+  }, [duelRatingsByUser, ownProfileQuery.data, profiles, user?.id, user?.nickname, user?.profile_id, user?.user_id, user?.user_name]);
 
   const createDuelMutation = useMutation({
     mutationFn: ({ opponent, selectedTask }) => api.duels.createChallenge({
@@ -1183,7 +1171,9 @@ export default function Duels() {
           }}
           challengePending={challengeAction.isPending}
           currentUserId={user?.id}
-          currentRating={Number(user?.rating) || 1000}
+          currentRating={currentRating}
+          currentRatingRow={currentRatingRow}
+          ratingLoading={seasonsQuery.isLoading || duelRatingQuery.isLoading}
         />
       )}
       {view === "matchmaking" && (
@@ -1195,9 +1185,10 @@ export default function Duels() {
           setTaskType={setTaskType}
           openChallenge={(ticket) => { setChallengeTicket(ticket); setChallengeOpen(true); }}
           canPlay={canReadPersonalDuels}
+          currentRating={currentRating}
         />
       )}
-      {view === "history" && <HistoryView duels={duels} isLoading={duelsQuery.isLoading} />}
+      {view === "history" && <HistoryView duels={duels} isLoading={duelsQuery.isLoading} rating={currentRatingRow} />}
       {view === "challenge" && <ArenaChallengeView />}
       <ChallengeChooser
         open={challengeOpen}

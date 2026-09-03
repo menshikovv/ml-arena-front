@@ -419,6 +419,27 @@
 
 }
 
+@media (min-width: 640px) {
+  [class~="sm:grid-cols-[130px_1fr_120px_auto]"] {
+    grid-template-columns:
+      minmax(160px, 0.9fr)
+      minmax(0, 1.35fr)
+      minmax(140px, 0.8fr)
+      auto;
+  }
+
+  [class~="sm:grid-cols-[130px_1fr_120px_auto]"] > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  [class~="sm:grid-cols-[130px_1fr_120px_auto]"] > span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 
 
 @layer base {

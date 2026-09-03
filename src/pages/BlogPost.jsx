@@ -91,8 +91,8 @@ export default function BlogPost() {
     category: serverPost.category?.slug || serverPost.primary_category?.slug || serverPost.category_slug || "news",
     tags: (serverPost.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug).filter(Boolean),
     publishedAt: serverPost.published_at || serverPost.publishedAt,
-    readingTime: serverPost.reading_time_minutes || serverPost.reading_time || serverPost.readingTime || 5,
-    author: serverPost.author?.display_name || serverPost.author?.name || serverPost.author || "ML-Арена",
+    readingTime: serverPost.reading_time_minutes ?? serverPost.reading_time ?? serverPost.readingTime ?? null,
+    author: serverPost.author?.display_name || serverPost.author?.name || serverPost.author || null,
     visual: blogCoverVisual(serverPost),
     sections: [],
   } : null;
@@ -231,8 +231,8 @@ export default function BlogPost() {
               <p className="mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">{post.excerpt}</p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-2"><CalendarDays size={16} /> {formatBlogDate(post.publishedAt)}</span>
-                <span className="flex items-center gap-2"><Clock3 size={16} /> {post.readingTime} мин</span>
-                <span className="flex items-center gap-2"><UserRound size={16} /> {post.author}</span>
+                {post.readingTime != null && <span className="flex items-center gap-2"><Clock3 size={16} /> {post.readingTime} мин</span>}
+                {post.author && <span className="flex items-center gap-2"><UserRound size={16} /> {post.author}</span>}
               </div>
             </div>
           </Reveal>

@@ -154,7 +154,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "Почему годовой тариф дешевле?",
-    answer: "Годовая оплата снижает стандартную стоимость до 990 ₽ в месяц и экономит 3 600 ₽ относительно 12 платежей по основной цене 1 290 ₽.",
+    answer: "Если для годового плана предусмотрена скидка, актуальная стоимость отображается в карточке тарифа и приходит с сервера.",
   },
   {
     question: "Есть ли денежные призы для Premium?",
@@ -189,9 +189,13 @@ export default function Pricing() {
   const annual = period === "year";
   const plansQuery = useQuery({ queryKey: ["billing-plans"], queryFn: api.billing.plans, staleTime: 60000 });
   const plans = Array.isArray(plansQuery.data) ? plansQuery.data : [];
-  const premiumPlan = plans.find((plan) => String(plan.code || plan.name).toLowerCase().includes("premium"));
-  const monthlyPrice = premiumPlan ? Math.round(Number(premiumPlan.amount) / 100) : 790;
-  const annualAmount = premiumPlan?.annual_amount ? Math.round(Number(premiumPlan.annual_amount) / 100) : monthlyPrice * 12;
+  const premiumPlans = plans.filter((plan) => String(plan.code || plan.name).toLowerCase().includes("premium"));
+  const monthlyPlan = premiumPlans.find((plan) => plan.billing_period === "month");
+  const annualPlan = premiumPlans.find((plan) => ["year", "annual"].includes(plan.billing_period));
+  const premiumPlan = annual ? annualPlan : monthlyPlan;
+  const price = Number.isFinite(Number(premiumPlan?.amount)) ? Math.round(Number(premiumPlan.amount) / 100) : null;
+  const comparePrice = Number.isFinite(Number(premiumPlan?.compare_at_amount)) ? Math.round(Number(premiumPlan.compare_at_amount) / 100) : null;
+  const currency = premiumPlan?.currency === "RUB" ? "₽" : premiumPlan?.currency || "";
 
   const requestPremium = () => {
     toast({
@@ -244,22 +248,23 @@ export default function Pricing() {
               <motion.div key={period} initial={reduceMotion ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? undefined : { opacity: 0, y: -4 }} transition={{ duration: 0.18 }}>
                 {annual ? (
                   <>
-                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{annualAmount.toLocaleString("ru-RU")} ₽</span><span className="pb-1 text-sm text-muted-foreground">в год</span></div>
-                    <p className="mt-2 text-sm font-semibold text-primary">{Math.round(annualAmount / 12).toLocaleString("ru-RU")} ₽ в месяц</p>
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{price == null ? "—" : `${price.toLocaleString("ru-RU")} ${currency}`}</span><span className="pb-1 text-sm text-muted-foreground">в год</span></div>
+                    {price != null && <p className="mt-2 text-sm font-semibold text-primary">{Math.round(price / 12).toLocaleString("ru-RU")} {currency} в месяц</p>}
                   </>
                 ) : (
                   <>
-                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{monthlyPrice.toLocaleString("ru-RU")} ₽</span><span className="pb-1 text-sm text-muted-foreground">в месяц</span></div>
-                    <p className="mt-2 text-sm"><span className="text-muted-foreground line-through">1 290 ₽</span><span className="ml-2 font-semibold text-primary">временная Founder-цена</span></p>
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{price == null ? "—" : `${price.toLocaleString("ru-RU")} ${currency}`}</span><span className="pb-1 text-sm text-muted-foreground">в месяц</span></div>
+                    {comparePrice != null && <p className="mt-2 text-sm"><span className="text-muted-foreground line-through">{comparePrice.toLocaleString("ru-RU")} {currency}</span></p>}
                   </>
                 )}
               </motion.div>
             </AnimatePresence>
 
             <div className="my-6 space-y-3 border-y border-border py-5 text-sm">
-              {["ML Coach и персональный план", "Лаборатория нерейтинговой практики", "1 экспертный разбор в месяц", "Расширенная аналитика и вебинары"].map((item) => (
+              {(premiumPlan?.features || []).map((item) => (
                 <div key={item} className="flex items-center gap-2.5"><CheckCircle2 size={17} className="shrink-0 text-accent" />{item}</div>
               ))}
+              {!premiumPlan?.features?.length && <p className="text-muted-foreground">Состав тарифа пока не опубликован.</p>}
             </div>
             <Button size="lg" onClick={requestPremium} className="h-12 w-full">Оформить Premium <ArrowRight size={17} /></Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">Автопродление можно отключить в личном кабинете.</p>
@@ -410,7 +415,7 @@ export default function Pricing() {
 
       <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="flex flex-col gap-7 border-t border-border bg-foreground px-6 py-9 text-background sm:px-8 lg:flex-row lg:items-center lg:justify-between dark:bg-card dark:text-foreground">
-          <div><p className="flex items-center gap-2 text-sm font-bold text-accent"><Sparkles size={17} /> ML-Арена Premium</p><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">От 790 ₽ в месяц на этапе Founder Season.</p></div>
+          <div><p className="flex items-center gap-2 text-sm font-bold text-accent"><Sparkles size={17} /> ML-Арена Premium</p><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">{monthlyPlan ? `От ${Math.round(Number(monthlyPlan.amount) / 100).toLocaleString("ru-RU")} ${monthlyPlan.currency === "RUB" ? "₽" : monthlyPlan.currency} в месяц.` : "Стоимость пока не опубликована."}</p></div>
           <Button size="lg" variant="secondary" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
         </section>
       </Reveal>

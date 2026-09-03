@@ -8,10 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import StatCard from "@/components/ml/StatCard";
-import { Trophy, Users, Send, Plus, Eye,
-  Filter, Briefcase
-} from "lucide-react";
-import { TASK_TYPE_LABELS, METRIC_LABELS } from "@/lib/ml-arena";
+import { Trophy, Users, Send, Plus, Eye, Filter } from "lucide-react";
+import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
@@ -19,7 +17,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 export default function CompanyDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
-    title: "", description: "", task_type: "classification", metric: "accuracy",
+    task_version_id: "", title: "", description: "",
     prize_fund: 0, deadline: "", rules: "",
   });
   const [skillFilter, setSkillFilter] = useState("all");
@@ -39,7 +37,7 @@ export default function CompanyDashboard() {
 
   const profilesQuery = useQuery({
     queryKey: ["visible-profiles"],
-    queryFn: () => api.profiles.search({ visible_to_employers: true, limit: 50, offset: 0 }),
+    queryFn: () => api.profiles.search({ limit: 50, offset: 0, sort: "-rating" }),
   });
   const profiles = profilesQuery.data?.data || profilesQuery.data?.items || [];
 
@@ -53,31 +51,29 @@ export default function CompanyDashboard() {
         if (leagueFilter === "platinum" && p.rating < 1500) return false;
       }
       if (skillFilter !== "all") {
-        const skillMap = { nlp: "skill_nlp", cv: "skill_cv", tabular: "skill_tabular" };
-        if ((p[skillMap[skillFilter]] || 0) < 30) return false;
+        if (!(Number(p.skills?.[skillFilter]) > 0)) return false;
       }
       return true;
     });
   }, [profiles, skillFilter, leagueFilter]);
 
   const handleCreate = async () => {
-    if (!form.title || !form.description) {
-      toast.error("Заполните название и описание");
+    if (!form.task_version_id || !form.title || !form.description || !form.deadline) {
+      toast.error("Заполните версию задачи, название, описание и дедлайн");
       return;
     }
     try {
       await api.organizations.createCompetition(organization.id, {
-        ...form,
+        task_version_id: form.task_version_id.trim(),
+        title: form.title.trim(),
+        description: form.description.trim(),
         submission_deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
         prize_amount: Math.round((Number(form.prize_fund) || 0) * 100),
-        prize_currency: "RUB",
-        daily_submission_limit: 5,
-        public_split_percent: 30,
-        banner_color: "#7C3AED",
+        rules: form.rules.trim() || null,
       });
       toast.success("Соревнование создано!");
       setShowCreate(false);
-      setForm({ title: "", description: "", task_type: "classification", metric: "accuracy", prize_fund: 0, deadline: "", rules: "" });
+      setForm({ task_version_id: "", title: "", description: "", prize_fund: 0, deadline: "", rules: "" });
       queryClient.invalidateQueries({ queryKey: ["company-competitions"] });
     } catch (err) {
       toast.error("Ошибка: " + (err.message || "неизвестная"));
@@ -109,10 +105,9 @@ export default function CompanyDashboard() {
       </Reveal>
 
       {/* Stats */}
-      <Stagger className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        <StaggerItem><StatCard icon={Trophy} label="Соревнования" value={competitions?.length || 0} color="#7C3AED" /></StaggerItem>
-        <StaggerItem><StatCard icon={Users} label="Кандидатов видно" value={profiles?.length || 0} color="#06B6D4" /></StaggerItem>
-        <StaggerItem><StatCard icon={Briefcase} label="Приглашений отправлено" value={0} color="#F59E0B" /></StaggerItem>
+      <Stagger className="grid grid-cols-2 gap-3 mb-6">
+        <StaggerItem><StatCard icon={Trophy} label="Соревнования" value={competitionsQuery.data?.meta?.total ?? "—"} color="#7C3AED" /></StaggerItem>
+        <StaggerItem><StatCard icon={Users} label="Публичных профилей" value={profilesQuery.data?.meta?.total ?? "—"} color="#06B6D4" /></StaggerItem>
       </Stagger>
 
       {/* Create form */}
@@ -121,16 +116,9 @@ export default function CompanyDashboard() {
           <Card className="p-5 bg-card/60 border-primary/30">
             <h3 className="font-heading font-semibold mb-4">Новое соревнование</h3>
             <div className="space-y-3">
+            <Input placeholder="ID приватной версии задачи" value={form.task_version_id} onChange={(e) => setForm({ ...form, task_version_id: e.target.value })} />
             <Input placeholder="Название" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <Textarea placeholder="Описание задачи" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            <div className="grid sm:grid-cols-2 gap-3">
-              <select value={form.task_type} onChange={(e) => setForm({ ...form, task_type: e.target.value })} className="px-3 py-2 rounded-lg bg-card border border-border text-sm">
-                {Object.entries(TASK_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              <select value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })} className="px-3 py-2 rounded-lg bg-card border border-border text-sm">
-                {Object.entries(METRIC_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <Input type="number" placeholder="Призовой фонд (₽)" value={form.prize_fund} onChange={(e) => setForm({ ...form, prize_fund: e.target.value })} />
               <Input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
@@ -163,7 +151,7 @@ export default function CompanyDashboard() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{c.title}</p>
-                    <p className="text-xs text-muted-foreground">{TASK_TYPE_LABELS[c.task_type]} · {c.participants_count || 0} участников</p>
+                    <p className="text-xs text-muted-foreground">{TASK_TYPE_LABELS[c.task_type] || c.task_type} · {c.participants_count ?? "—"} участников</p>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${c.status === "active" ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"}`}>
                     {c.status === "active" ? "Активно" : c.status}
@@ -241,7 +229,7 @@ export default function CompanyDashboard() {
         >
           <Card className="p-5 bg-card border-border max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-heading font-semibold mb-1">Приглашение для {inviteModal.user_name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Сообщение будет отправлено на email и в платформу</p>
+            <p className="text-xs text-muted-foreground mb-4">Подготовьте текст и скопируйте его для отправки через публичные контакты кандидата.</p>
             <Textarea
               placeholder="Текст приглашения..."
               rows={4}
@@ -250,7 +238,7 @@ export default function CompanyDashboard() {
               className="mb-3"
             />
             <div className="flex gap-2">
-              <Button onClick={handleSendInvite} disabled={!inviteMsg}><Send size={14} className="mr-1.5" /> Отправить</Button>
+              <Button onClick={handleSendInvite} disabled={!inviteMsg}><Send size={14} className="mr-1.5" /> Скопировать</Button>
               <Button variant="outline" onClick={() => setInviteModal(null)}>Отмена</Button>
             </div>
           </Card>

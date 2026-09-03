@@ -48,13 +48,6 @@ const FEATURES = [
   { icon: Zap, title: "Автопроверка", desc: "Отправка CSV, расчет результата, обновление рейтинга и понятная обратная связь по решению.", color: "text-primary bg-primary/10" },
 ];
 
-const LEAGUES = [
-  { name: "Бронза", range: "0-1099", rating: 1000 },
-  { name: "Серебро", range: "1100-1299", rating: 1200 },
-  { name: "Золото", range: "1300-1499", rating: 1400 },
-  { name: "Платина", range: "1500+", rating: 1600 },
-];
-
 const PROBLEMS = [
   "Курсы дают знания, но не всегда дают доказательство навыка.",
   "Резюме новичка часто выглядит пусто.",
@@ -79,13 +72,6 @@ const AUDIENCES = [
   { icon: Building2, title: "Компании", desc: "Находите людей, которые уже доказали результат на практических задачах." },
 ];
 
-const STATS = [
-  { value: "Founder Season", label: "предсезон до запуска", icon: Sparkles },
-  { value: "Призы", label: "денежный фонд", icon: Trophy },
-  { value: "1x1", label: "дуэли и сезоны", icon: Swords },
-  { value: "4", label: "лиги роста", icon: Medal },
-];
-
 const FOUNDER_STEPS = [
   { icon: Target, title: "Мини-задачи", desc: "короткий вход в практику" },
   { icon: Code2, title: "Разборы", desc: "понятная обратная связь" },
@@ -103,7 +89,7 @@ function SectionTitle({ title, desc, align = "center" }) {
   );
 }
 
-function HeroCompanion({ reduceMotion }) {
+function HeroCompanion({ reduceMotion, profile }) {
   const videoRef = React.useRef(null);
   const float = (x, y) => reduceMotion
     ? undefined
@@ -229,7 +215,7 @@ function HeroCompanion({ reduceMotion }) {
             </span>
             <span>
               <span className="block text-[13px] font-bold text-neutral-900 dark:text-white">ML-паспорт</span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">рейтинг 1420</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">рейтинг {profile?.rating ?? "—"}</span>
             </span>
           </div>
         </motion.div>
@@ -239,12 +225,7 @@ function HeroCompanion({ reduceMotion }) {
 }
 
 function ArenaPreview({ entries = [] }) {
-  const fallbackRows = [
-    { rank: "01", name: "datawizard", task: "Кредитный скоринг", score: "0.9412", change: "+24" },
-    { rank: "02", name: "ml_ninja", task: "Тональность отзывов", score: "0.9368", change: "+18" },
-    { rank: "03", name: "Ты", task: "Цены на жильё", score: "0.9214", change: "+31", active: true },
-  ];
-  const rows = entries.length ? entries.slice(0, 3).map((entry, index) => ({ rank: String(entry.rank || index + 1).padStart(2, "0"), name: entry.nickname || entry.user_name || entry.name, task: entry.task_title || "Общий рейтинг", score: String(entry.rating ?? entry.score ?? "—"), change: entry.change ? `${entry.change > 0 ? "+" : ""}${entry.change}` : "", active: entry.is_current_user })) : fallbackRows;
+  const rows = entries.slice(0, 3).map((entry) => ({ rank: entry.rank == null ? "—" : String(entry.rank).padStart(2, "0"), name: entry.user_name || "Участник", task: entry.city || "ML-Арена", score: String(entry.rating ?? "—"), active: entry.is_current_user }));
 
   return (
     <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
@@ -253,7 +234,7 @@ function ArenaPreview({ entries = [] }) {
           <span className="h-2 w-2 rounded-full bg-accent" />
           Онлайн-рейтинг
         </span>
-        <span>Сезон 01</span>
+        <span>Текущий рейтинг</span>
       </div>
       <div className="divide-y divide-border/70">
         {rows.map((row, index) => (
@@ -274,11 +255,10 @@ function ArenaPreview({ entries = [] }) {
             </div>
             <span className="hidden text-sm text-muted-foreground md:block">{row.task}</span>
             <span className="font-mono text-sm font-semibold">{row.score}</span>
-            <span className="hidden rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300 md:block">
-              {row.change}
-            </span>
+            <span className="hidden md:block" />
           </motion.div>
         ))}
+        {!rows.length && <p className="py-10 text-center text-sm text-muted-foreground">Рейтинг пока пуст.</p>}
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
         <span>Рейтинг обновляется после каждого результата</span>
@@ -288,17 +268,17 @@ function ArenaPreview({ entries = [] }) {
   );
 }
 
-function PassportPreview() {
+function PassportPreview({ profile }) {
   const reduceMotion = useReducedMotion();
-  const skills = [
-    { label: "Табличные данные", value: "92%", progress: 92 },
-    { label: "Классификация", value: "88%", progress: 88 },
-    { label: "Инженерия признаков", value: "81%", progress: 81 },
-  ];
+  const skills = [["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"]].map(([key, label]) => {
+    const score = Number(profile?.skills?.[key]);
+    return { label, value: Number.isFinite(score) ? `${score}%` : "—", progress: Number.isFinite(score) ? score : 0 };
+  });
+  const profileStats = profile?.stats || {};
   const stats = [
-    ["12", "отправок"],
-    ["4", "задачи"],
-    ["86%", "перцентиль"],
+    [profileStats.competitions_participated ?? "—", "соревнований"],
+    [(profileStats.duels_won ?? null) === null || (profileStats.duels_lost ?? null) === null ? "—" : profileStats.duels_won + profileStats.duels_lost, "дуэлей"],
+    [profile?.rating ?? "—", "рейтинг"],
   ];
 
   return (
@@ -327,7 +307,7 @@ function PassportPreview() {
             <div className="text-sm text-muted-foreground">Младший ML-инженер</div>
           </div>
         </div>
-        <LeagueBadge rating={1420} />
+        {Number.isFinite(Number(profile?.rating)) ? <LeagueBadge rating={Number(profile.rating)} /> : <span className="text-sm text-muted-foreground">Нет данных</span>}
       </div>
       <div className="relative grid grid-cols-3 gap-3 mb-5">
         {stats.map(([value, label], index) => (
@@ -393,10 +373,16 @@ export default function Landing() {
   const reduceMotion = useReducedMotion();
   const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
   const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
+  const profileQuery = useQuery({ queryKey: ["profile", "me"], queryFn: api.profiles.me, enabled: isAuthenticated, staleTime: 30000 });
   useQuery({ queryKey: ["public-config"], queryFn: api.public.config, staleTime: 300000 });
   useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
   const previewEntries = leaderboardPreview.data?.items || leaderboardPreview.data?.rows || (Array.isArray(leaderboardPreview.data) ? leaderboardPreview.data : []);
-  const landingStats = STATS.map((item, index) => index === 1 && publicStats.data?.prize_amount ? { ...item, value: `${Math.round(publicStats.data.prize_amount / 100).toLocaleString("ru-RU")} ₽` } : item);
+  const landingStats = [
+    { value: publicStats.data?.users ?? "—", label: "участников", icon: Users },
+    { value: publicStats.data?.active_competitions ?? "—", label: "активных соревнований", icon: Trophy },
+    { value: publicStats.data?.completed_duels ?? "—", label: "завершённых дуэлей", icon: Swords },
+    { value: publicStats.data?.submissions ?? "—", label: "отправок решений", icon: Upload },
+  ];
   const reveal = {
     hidden: reduceMotion ? {} : { opacity: 0, y: 22 },
     visible: { opacity: 1, y: 0 },
@@ -586,7 +572,7 @@ export default function Landing() {
               </motion.div>
 
               <div className="lg:col-span-6">
-                <HeroCompanion reduceMotion={reduceMotion} />
+                <HeroCompanion reduceMotion={reduceMotion} profile={profileQuery.data} />
               </div>
             </div>
 
@@ -756,40 +742,10 @@ export default function Landing() {
         <section className="bg-card">
           <div className="max-w-7xl mx-auto px-4 py-20 lg:py-24">
             <SectionTitle
-              title={<>Четыре лиги.<br />Один понятный маршрут.</>}
-              desc="Каждый результат меняет позицию в рейтинге и приближает к следующей лиге."
+              title={<>Рейтинг по результатам.<br />Без ручных оценок.</>}
+              desc="Позиции участников и значения рейтинга приходят из текущего серверного сезона."
             />
-            <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-stretch">
-              <div className="grid grid-cols-2 border-l border-t border-border">
-                {LEAGUES.map((league, index) => (
-                  <motion.div
-                    key={league.name}
-                    initial="hidden"
-                    whileInView="visible"
-                    whileHover={reduceMotion ? undefined : { y: -5, scale: 1.015 }}
-                    viewport={{ once: true, amount: 0.4 }}
-                    variants={reveal}
-                    transition={{ ...transition, delay: index * 0.08 }}
-                    className="group relative border-b border-r border-border bg-background p-5 text-center transition-shadow hover:z-10 hover:shadow-lg md:p-7"
-                  >
-                    <motion.div
-                      className="absolute left-0 right-0 top-0 h-1 bg-primary"
-                      style={{ opacity: 0.35 + index * 0.2 }}
-                      animate={reduceMotion ? undefined : { scaleX: [0.75, 1, 0.75] }}
-                      transition={{ duration: 2.8 + index * 0.25, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    <motion.div
-                      className="mb-4 inline-block"
-                      animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
-                      transition={{ duration: 3.2 + index * 0.2, delay: index * 0.15, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                      <LeagueBadge rating={league.rating} size="lg" />
-                    </motion.div>
-                    <div className="font-heading font-semibold">{league.name}</div>
-                    <div className="font-mono text-xs text-muted-foreground">{league.range}</div>
-                  </motion.div>
-                ))}
-              </div>
+            <div>
               <ArenaPreview entries={previewEntries} />
             </div>
           </div>
@@ -844,7 +800,7 @@ export default function Landing() {
                 Подтверждено результатами на платформе
               </div>
             </div>
-            <PassportPreview />
+            <PassportPreview profile={profileQuery.data} />
           </motion.div>
         </section>
 

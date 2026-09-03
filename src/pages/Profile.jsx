@@ -54,8 +54,8 @@ function EmptyState({ title, text }) {
 }
 
 function DirectionCard({ title, score }) {
-  const value = Number(score || 0);
-  const hasData = value > 0;
+  const value = Number(score);
+  const hasData = Number.isFinite(value);
   return <article className="flex min-h-44 flex-col border border-border bg-card p-5 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"><div className="flex items-start justify-between gap-3"><span className="flex h-10 w-10 items-center justify-center bg-primary/10 text-primary"><Target size={18} /></span><span className={cn("border px-2 py-1 text-[10px] font-semibold", hasData ? "border-primary/20 bg-primary/5 text-primary" : "border-border text-muted-foreground")}>{hasData ? "Подтверждено" : "Пока нет результатов"}</span></div><h3 className="mt-5 font-heading text-xl font-extrabold">{title}</h3><div className="mt-auto pt-6"><div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">Уровень</span><strong>{hasData ? `${value}%` : "—"}</strong></div><div className="mt-2 h-2 overflow-hidden bg-secondary"><div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></div></div></article>;
 }
 
@@ -81,11 +81,13 @@ function BadgeCard({ grant }) {
 
 function RatingHistory({ history }) {
   if (!history.length) return <EmptyState title="История рейтинга пока пуста" text="Изменения появятся после первого рейтингового результата." />;
-  const values = history.map((item) => Number(item.rating || 0));
+  const validHistory = history.filter((item) => Number.isFinite(Number(item.rating)));
+  if (!validHistory.length) return <EmptyState title="История рейтинга пока пуста" text="Изменения появятся после первого рейтингового результата." />;
+  const values = validHistory.map((item) => Number(item.rating));
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const range = Math.max(1, max - min);
-  return <div className="border border-border bg-card p-5"><div className="flex h-44 items-end gap-2">{history.map((item) => { const height = 20 + ((Number(item.rating || 0) - min) / range) * 80; return <div key={`${item.date}-${item.rating}`} className="group flex min-w-0 flex-1 flex-col items-center justify-end"><span className="mb-2 hidden text-[10px] font-semibold group-hover:block">{item.rating}</span><div className="w-full bg-primary/75" style={{ height: `${height}%` }} /><span className="mt-2 max-w-full truncate text-[9px] text-muted-foreground">{item.date}</span></div>; })}</div></div>;
+  return <div className="border border-border bg-card p-5"><div className="flex h-44 items-end gap-2">{validHistory.map((item) => { const height = 20 + ((Number(item.rating) - min) / range) * 80; return <div key={`${item.date}-${item.rating}`} className="group flex min-w-0 flex-1 flex-col items-center justify-end"><span className="mb-2 hidden text-[10px] font-semibold group-hover:block">{item.rating}</span><div className="w-full bg-primary/75" style={{ height: `${height}%` }} /><span className="mt-2 max-w-full truncate text-[9px] text-muted-foreground">{item.date}</span></div>; })}</div></div>;
 }
 
 export default function Profile() {
@@ -109,7 +111,7 @@ export default function Profile() {
   const overall = currentRating(overallQuery.data);
   const competitionRating = currentRating(competitionsQuery.data);
   const duelRating = currentRating(duelsQuery.data);
-  const humanDuels = duelRating?.human_duel_count ?? ((stats.duels_won ?? 0) + (stats.duels_lost ?? 0));
+  const humanDuels = duelRating?.human_duel_count ?? stats.duels_count ?? null;
   const duelWins = duelRating?.wins ?? stats.duels_won;
   const duelLosses = duelRating?.losses ?? stats.duels_lost;
   const challengeBonus = duelRating?.challenge_bonus;
@@ -137,14 +139,14 @@ export default function Profile() {
       </header>
     </Reveal>
 
-    <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.score ?? overall?.rating ?? profile.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status || "Завершённые матчи"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
+    <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.score ?? overall?.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status || "Завершённые матчи"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
 
     <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="mt-8">
       <Tabs.List className="flex overflow-x-auto border border-border bg-card p-1" aria-label="Разделы ML-паспорта">{[["directions", "Направления", Target], ["rating", "Рейтинг", Trophy], ["practice", "Практика", Swords], ["badges", "Бейджи", Award], ["career", "Профиль", UserRoundSearch]].map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="flex min-h-11 min-w-36 flex-1 items-center justify-center gap-2 px-4 text-sm font-semibold text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Icon size={16} />{label}</Tabs.Trigger>)}</Tabs.List>
 
       <Tabs.Content value="directions" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Направления</h2><p className="mt-2 text-sm text-muted-foreground">Подтверждённые результаты по основным областям машинного обучения.</p><div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
 
-      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={overall?.score ?? overall?.rating ?? profile.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /><SummaryMetric icon={Target} label="Соревнования" value={competitionRating?.score ?? competitionRating?.rating} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Недостаточно результатов"} /><SummaryMetric icon={Swords} label="Дуэли" value={duelRating?.score ?? duelRating?.rating} detail={duelRating?.rank ? `Место #${duelRating.rank}` : "Место появится после калибровки"} /></div><div className="mt-6"><h2 className="mb-4 font-heading text-2xl font-extrabold">История рейтинга</h2><RatingHistory history={profile.rating_history || []} /></div></>}</Reveal></Tabs.Content>
+      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={overall?.score ?? overall?.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /><SummaryMetric icon={Target} label="Соревнования" value={competitionRating?.score ?? competitionRating?.rating} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Недостаточно результатов"} /><SummaryMetric icon={Swords} label="Дуэли" value={duelRating?.score ?? duelRating?.rating} detail={duelRating?.rank ? `Место #${duelRating.rank}` : "Место появится после калибровки"} /></div><div className="mt-6"><h2 className="mb-4 font-heading text-2xl font-extrabold">История рейтинга</h2><RatingHistory history={profile.rating_history || []} /></div></>}</Reveal></Tabs.Content>
 
       <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Практика</h2><p className="mt-2 text-sm text-muted-foreground">История рейтинговых дуэлей и результатов против заданий ML-Арены.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="В дуэлях с участниками" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="В дуэлях с участниками" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="За задания ML-Арены" /></div>{humanDuels === 0 && challengeBonus == null && <div className="mt-6"><EmptyState title="Практики пока нет" text="Завершите первую дуэль или вызов ML-Арены, чтобы здесь появилась статистика." /></div>}</Reveal></Tabs.Content>
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import html2canvas from "html2canvas";
@@ -11,8 +11,6 @@ import {
   CircleDot,
   Download,
   FileCheck2,
-  FileText,
-  Flag,
   Gauge,
   Loader2,
   Lock,
@@ -28,7 +26,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
+import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
@@ -76,14 +74,33 @@ function TimerDisplay({ seconds, compact = false }) {
   );
 }
 
-function downloadTextFile(filename, content) {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
-  const href = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = href;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(href);
+function adaptDuel(duel, currentUserId) {
+  if (!duel) return duel;
+  const first = duel.player1 || {};
+  const second = duel.player2 || {};
+  const currentIsSecond = second.user_id === currentUserId;
+  const me = currentIsSecond ? second : first;
+  const opponent = currentIsSecond ? first : second;
+  const ratingChange = duel.rating_change && currentUserId ? duel.rating_change[currentUserId] : null;
+  return {
+    ...duel,
+    player1_name: me.user_name,
+    player1_rating: me.rating,
+    player1_avatar: me.avatar_url,
+    player1_score: me.score,
+    player1_file_url: me.file_url,
+    player1_submitted_at: me.submitted_at,
+    player1_ready: me.ready,
+    player2_name: opponent.user_name,
+    player2_rating: opponent.rating,
+    player2_avatar: opponent.avatar_url,
+    player2_score: opponent.score,
+    player2_file_url: opponent.file_url,
+    player2_submitted_at: opponent.submitted_at,
+    player2_ready: opponent.ready,
+    winner_name: duel.winner_id ? (duel.winner_id === currentUserId ? "Ты" : opponent.user_name) : null,
+    current_user_rating_change: ratingChange == null ? null : Number(ratingChange),
+  };
 }
 
 function DuelPlayers({ duel, compact = false }) {
@@ -113,15 +130,7 @@ function DuelPlayers({ duel, compact = false }) {
   );
 }
 
-function RulesDialog({ open, onClose }) {
-  const rules = [
-    "Основное время — 60 минут для обоих участников.",
-    "Разрешён CSV с колонками id и prediction, размером до 5 МБ.",
-    "Победитель определяется по лучшему результату на скрытом тесте.",
-    "При равном результате побеждает более ранняя валидная отправка.",
-    "После основного времени можно только завершить загрузку, начатую заранее.",
-  ];
-
+function RulesDialog({ open, onClose, rules }) {
   return (
     <AnimatePresence>
       {open && (
@@ -146,12 +155,7 @@ function RulesDialog({ open, onClose }) {
               <Button variant="ghost" size="icon" onClick={onClose} aria-label="Закрыть правила"><X /></Button>
             </div>
             <div className="mt-5 divide-y divide-border border-y border-border">
-              {rules.map((rule, index) => (
-                <div key={rule} className="grid grid-cols-[28px_1fr] gap-3 py-3 text-sm">
-                  <span className="font-mono text-xs text-primary">{String(index + 1).padStart(2, "0")}</span>
-                  <p className="leading-5 text-muted-foreground">{rule}</p>
-                </div>
-              ))}
+              <p className="whitespace-pre-wrap py-4 text-sm leading-6 text-muted-foreground">{rules}</p>
             </div>
             <Button className="mt-5 w-full" onClick={onClose}><Check size={16} /> Понятно</Button>
           </motion.div>
@@ -162,19 +166,6 @@ function RulesDialog({ open, onClose }) {
 }
 
 function LobbyView({ duel, onStart, onLeave, starting, leaving }) {
-  const [ready, setReady] = useState(false);
-  const [countdown, setCountdown] = useState(10);
-
-  useEffect(() => {
-    if (!ready || countdown <= 0) return undefined;
-    const interval = window.setInterval(() => setCountdown((value) => Math.max(0, value - 1)), 1000);
-    return () => window.clearInterval(interval);
-  }, [ready, countdown]);
-
-  useEffect(() => {
-    if (ready && countdown === 0) onStart();
-  }, [countdown, onStart, ready]);
-
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-4xl">
       <Link to="/duels" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary">
@@ -188,16 +179,16 @@ function LobbyView({ duel, onStart, onLeave, starting, leaving }) {
         </div>
         <h1 className="mt-3 text-center font-heading text-2xl font-bold md:text-3xl">Дуэль принята. Приготовься.</h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          {ready ? `Задача откроется через ${countdown} секунд` : "Подтверди готовность, чтобы запустить обратный отсчёт."}
+          {duel.player1_ready ? "Готовность подтверждена. Ожидаем соперника." : "Подтверди готовность к началу матча."}
         </p>
         <div className="my-8"><DuelPlayers duel={duel} /></div>
 
         <div className="grid border-y border-border sm:grid-cols-4">
           {[
-            ["60 минут", "основное время"],
+            [duel.duration_minutes != null ? `${duel.duration_minutes} минут` : "—", "основное время"],
             ["CSV", "формат решения"],
             [METRIC_LABELS[duel.metric] || duel.metric, "метрика"],
-            ["По времени", "tie-break"],
+            [duel.mode === "rated" ? "Рейтинговая" : "Нерейтинговая", "режим"],
           ].map(([value, label], index) => (
             <div key={label} className={cn("p-4 text-center", index > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
               <p className="text-sm font-semibold">{value}</p>
@@ -208,37 +199,29 @@ function LobbyView({ duel, onStart, onLeave, starting, leaving }) {
         <Button variant="ghost" className="mx-auto mt-4 flex" onClick={onLeave} disabled={leaving}>{leaving ? <Loader2 size={15} className="animate-spin" /> : null}Покинуть лобби</Button>
 
         <div className="mt-7 flex flex-col items-center">
-          {ready && <TimerDisplay seconds={countdown} />}
           <Button
             size="lg"
             className="mt-4 min-w-48"
-            onClick={() => setReady(true)}
-            disabled={ready || starting}
+            onClick={onStart}
+            disabled={duel.player1_ready || starting}
           >
-            {starting ? <Loader2 className="animate-spin" /> : ready ? <CheckCircle2 /> : <ShieldCheck />}
-            {ready ? "Готовность подтверждена" : "Я готов"}
+            {starting ? <Loader2 className="animate-spin" /> : duel.player1_ready ? <CheckCircle2 /> : <ShieldCheck />}
+            {duel.player1_ready ? "Готовность подтверждена" : "Я готов"}
           </Button>
-          <p className="mt-3 text-xs text-muted-foreground">Таймер матча синхронизируется после старта.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Старт и таймер синхронизируются сервером.</p>
         </div>
       </div>
     </motion.div>
   );
 }
 
-function SubmissionUploader({ duel, locked, overtime, onFinished }) {
+function SubmissionUploader({ duel, currentUserId, locked, onFinished }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [state, setState] = useState(duel.player1_file_url ? "scored" : "empty");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [score, setScore] = useState(duel.player1_score);
-  const [submissions, setSubmissions] = useState(() => duel.player1_file_url ? [{
-    id: "initial",
-    time: duel.player1_submitted_at,
-    status: "scored",
-    score: duel.player1_score,
-    best: true,
-  }] : []);
 
   const chooseFile = (selectedFile) => {
     if (!selectedFile) return;
@@ -248,10 +231,10 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
       setError("Нужен CSV-файл. Скачай sample_submission и проверь расширение.");
       return;
     }
-    if (selectedFile.size > 5 * 1024 * 1024) {
+    if (selectedFile.size > 10 * 1024 * 1024) {
       setFile(null);
       setState("invalid");
-      setError("Файл больше 5 МБ. Уменьши размер и попробуй снова.");
+      setError("Файл больше 10 МБ. Уменьши размер и попробуй снова.");
       return;
     }
     setFile(selectedFile);
@@ -269,27 +252,15 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
       setProgress(100);
       setState("validating");
       setState("scoring");
-      const created = await api.duels.submit(duel.id, upload.id);
-      const checked = created.id ? await waitForSubmission(created.id) : created;
-      const submittedAt = checked.created_at || new Date().toISOString();
-      const userScore = Number(checked.score ?? checked.public_score);
+      const checked = adaptDuel(await api.duels.submit(duel.id, upload.id), currentUserId);
+      const userScore = Number(checked.player1_score);
       if (!Number.isFinite(userScore)) throw new Error("Проверка завершилась без результата");
 
       setScore(userScore);
-      setSubmissions((items) => [
-        {
-          id: `${Date.now()}`,
-          time: submittedAt,
-          status: "scored",
-          score: userScore,
-          best: true,
-        },
-        ...items.map((item) => ({ ...item, best: false })),
-      ].slice(0, 10));
       setState("scored");
       setFile(null);
       toast.success(`Решение проверено: ${safeScore(userScore, duel.metric)}`);
-      await onFinished(checked.duel_status === "completed");
+      await onFinished(checked.status === "completed");
     } catch (uploadError) {
       setState("failed");
       setError(uploadError.message || "Проверка временно недоступна. Попробуй отправить файл ещё раз.");
@@ -298,7 +269,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
 
   const statusContent = {
     uploading: ["Загружаем файл", `${progress}%`],
-    validating: ["Проверяем формат CSV", "id и prediction"],
+    validating: ["Проверяем формат CSV", "Структура из sample_submission"],
     scoring: ["Считаем результат", "скрытый тест"],
     scored: ["Лучший результат", safeScore(score, duel.metric)],
     invalid: ["CSV не принят", error],
@@ -311,7 +282,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
         <div>
           <h2 className="font-heading text-xl font-bold">{overtime ? "Дозагрузить решение" : "Загрузить решение"}</h2>
         </div>
-        <span className="text-xs text-muted-foreground">CSV · до 5 МБ</span>
+        <span className="text-xs text-muted-foreground">CSV · до 10 МБ</span>
       </div>
 
       {locked ? (
@@ -344,7 +315,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
             <Upload className="mx-auto text-primary" size={24} />
             <p className="mt-3 text-sm font-semibold">{file ? file.name : "Перетащи CSV сюда или выбери файл"}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {file ? `${(file.size / 1024).toFixed(1)} КБ · готов к проверке` : "Структура: id, prediction"}
+              {file ? `${(file.size / 1024).toFixed(1)} КБ · готов к проверке` : "Структура из sample_submission в ZIP"}
             </p>
           </div>
         </button>
@@ -375,30 +346,7 @@ function SubmissionUploader({ duel, locked, overtime, onFinished }) {
         </motion.div>
       )}
 
-      <div className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Последние попытки</h3>
-          <span className="text-xs text-muted-foreground">{submissions.length}/10</span>
-        </div>
-        {submissions.length ? (
-          <div className="divide-y divide-border border-y border-border">
-            {submissions.map((submission, index) => (
-              <div key={submission.id} className="grid grid-cols-[28px_1fr_auto_auto] items-center gap-3 py-3 text-xs">
-                <span className="font-mono text-muted-foreground">#{submissions.length - index}</span>
-                <span className="text-muted-foreground">
-                  {new Date(submission.time).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                <span className="font-semibold">{safeScore(submission.score, duel.metric)}</span>
-                {submission.best && <span className="text-[10px] font-medium text-accent">Лучший</span>}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="border-y border-dashed border-border py-5 text-center text-xs text-muted-foreground">
-            Здесь появятся принятые и отклонённые отправки.
-          </p>
-        )}
-      </div>
+      <p className="mt-5 border-y border-border py-4 text-xs text-muted-foreground">В дуэли сервер принимает одну финальную отправку от каждого участника.</p>
     </section>
   );
 }
@@ -432,28 +380,15 @@ function OpponentPanel({ duel }) {
   );
 }
 
-function LiveView({ duel, overtime, onFinished }) {
-  const navigate = useNavigate();
+function LiveView({ duel, currentUserId, onFinished }) {
   const [rulesOpen, setRulesOpen] = useState(false);
-  const overtimeEndRef = useRef(Date.now() + 3 * 60 * 1000);
-  const startTime = duel.started_at ? new Date(duel.started_at).getTime() : Date.now();
-  const endTime = useMemo(
-    () => new Date(overtime ? overtimeEndRef.current : startTime + (duel.duration_minutes || 60) * 60 * 1000).toISOString(),
-    [duel.duration_minutes, overtime, startTime],
-  );
-  const remaining = useRemainingSeconds(endTime);
-  const warning = !overtime && remaining !== null && remaining > 0 && remaining <= 10 * 60;
-  const critical = !overtime && remaining !== null && remaining > 0 && remaining <= 3 * 60;
-
-  useEffect(() => {
-    if (!overtime && remaining !== null && remaining === 0 && duel.status === "active") {
-      navigate(`/duels/${duel.id}/overtime`, { replace: true });
-    }
-  }, [duel.id, duel.status, navigate, overtime, remaining]);
+  const remaining = useRemainingSeconds(duel.ends_at);
+  const warning = remaining !== null && remaining > 0 && remaining <= 10 * 60;
+  const critical = remaining !== null && remaining > 0 && remaining <= 3 * 60;
 
   return (
     <>
-      <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} rules={duel.rules} />
       <div className="border-y border-border bg-card">
         <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto_1fr] md:items-center md:px-6">
           <div className="min-w-0">
@@ -465,28 +400,16 @@ function LiveView({ duel, overtime, onFinished }) {
           </div>
           <div className={cn("text-center", warning && "text-destructive")}>
             <p className="mb-1 text-[10px] font-medium uppercase">
-              {overtime ? "Окно дозагрузки" : critical ? "Последние минуты" : warning ? "Меньше 10 минут" : "Осталось"}
+              {critical ? "Последние минуты" : warning ? "Меньше 10 минут" : "Осталось"}
             </p>
             <TimerDisplay seconds={remaining} compact />
           </div>
           <div className="flex items-center justify-between gap-3 md:justify-end">
             <span className="inline-flex items-center gap-2 text-xs font-medium text-accent"><Wifi size={14} /> На связи</span>
-            <Button variant="outline" size="sm" onClick={() => setRulesOpen(true)}><ShieldCheck size={14} /> Правила</Button>
+            {duel.rules && <Button variant="outline" size="sm" onClick={() => setRulesOpen(true)}><ShieldCheck size={14} /> Правила</Button>}
           </div>
         </div>
       </div>
-
-      {overtime && (
-        <div className="mt-4 border border-destructive/30 bg-destructive/5 p-4">
-          <div className="flex gap-3">
-            <AlertCircle className="mt-0.5 shrink-0 text-destructive" size={19} />
-            <div>
-              <p className="text-sm font-semibold">Основное время завершено. Осталось 3 минуты на дозагрузку решения.</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">Задача доступна только для чтения. Можно отправить уже подготовленный CSV.</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="mt-5 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <main className="min-w-0">
@@ -502,27 +425,16 @@ function LiveView({ duel, overtime, onFinished }) {
             <h2 className="mt-4 font-heading text-2xl font-bold">{duel.task_title}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{duel.task_description}</p>
             <div className="mt-5 border-y border-border py-4">
-              <p className="text-xs font-semibold">Формат решения</p>
-              <div className="mt-2 overflow-x-auto bg-secondary/40 px-3 py-2 font-mono text-xs text-muted-foreground">
-                id,prediction<br />10001,0.7342<br />10002,0.1258
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => downloadTextFile("train.csv", "id,feature_1,feature_2,target\n1,0.41,12.8,1\n2,0.19,9.4,0")}>
-                <Download size={14} /> train.csv
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => downloadTextFile("test.csv", "id,feature_1,feature_2\n10001,0.52,11.1\n10002,0.24,8.9")}>
-                <Download size={14} /> test.csv
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => downloadTextFile("sample_submission.csv", "id,prediction\n10001,0.5\n10002,0.5")}>
-                <FileText size={14} /> sample_submission
-              </Button>
+              <p className="text-xs font-semibold">Данные задачи</p>
+              {duel.dataset_bundle_url
+                ? <Button asChild variant="outline" size="sm" className="mt-3"><a href={duel.dataset_bundle_url}><Download size={14} /> Скачать ZIP</a></Button>
+                : <p className="mt-2 text-xs text-muted-foreground">Сервер не вернул доступный ZIP для этой дуэли.</p>}
             </div>
           </section>
 
           <SubmissionUploader
             duel={duel}
-            overtime={overtime}
+            currentUserId={currentUserId}
             locked={remaining !== null && remaining === 0}
             onFinished={onFinished}
           />
@@ -549,14 +461,6 @@ function LiveView({ duel, overtime, onFinished }) {
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => toast.success("Жалоба отправлена модераторам")}
-            className="flex w-full items-center gap-2 px-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
-          >
-            <Flag size={14} />
-            Пожаловаться на дуэль
-          </button>
         </aside>
       </div>
     </>
@@ -567,8 +471,8 @@ function ResultView({ duel }) {
   const resultRef = useRef(null);
   const navigate = useNavigate();
   const userWon = duel.winner_name === "Ты";
-  const isDraw = duel.player1_score === duel.player2_score;
-  const ratingDelta = duel.rating_change || 0;
+  const isDraw = Boolean(duel.is_draw);
+  const ratingDelta = duel.current_user_rating_change;
 
   const exportCard = async () => {
     if (!resultRef.current) return;
@@ -596,7 +500,7 @@ function ResultView({ duel }) {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
           {isDraw
-            ? "Результаты одинаковы. Победитель определён по более раннему времени загрузки."
+            ? "Сервер зафиксировал ничью."
             : userWon
               ? "Твой лучший результат оказался выше результата соперника."
               : "Посмотри итоговое сравнение и попробуй ещё раз."}
@@ -646,19 +550,15 @@ function ResultView({ duel }) {
         <div>
           <h2 className="font-heading text-xl font-bold">Изменение рейтинга</h2>
           <div className="mt-3 flex items-end gap-3">
-            <span className={cn("font-heading text-5xl font-bold", userWon ? "text-accent" : "text-destructive")}>
-              {userWon ? "+" : "−"}{ratingDelta}
+            <span className={cn("font-heading text-5xl font-bold", ratingDelta > 0 ? "text-accent" : ratingDelta < 0 ? "text-destructive" : "text-foreground")}>
+              {ratingDelta == null ? "—" : `${ratingDelta > 0 ? "+" : ""}${ratingDelta}`}
             </span>
             <span className="mb-1 text-sm text-muted-foreground">очков</span>
           </div>
-          <div className="mt-5 h-1.5 max-w-sm overflow-hidden rounded-full bg-secondary">
-            <div className="h-full w-[76%] rounded-full bg-primary" />
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">{userWon ? "До следующей лиги осталось 36 очков" : "Позиция в текущей лиге сохранена"}</p>
         </div>
         <div className="border-l-0 border-border lg:border-l lg:pl-8">
           <h2 className="font-heading text-xl font-bold">
-            {isDraw ? "Решило время загрузки" : "Победитель определён по лучшему результату"}
+            {isDraw ? "Ничья" : "Победитель определён сервером"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Метрика матча: {METRIC_LABELS[duel.metric] || duel.metric}. Оба решения прошли проверку формата и оценку на одной скрытой выборке.
@@ -715,8 +615,9 @@ export default function DuelLobby() {
   const [leaving, setLeaving] = useState(false);
 
   const { data: duel, isLoading, isError, refetch } = useQuery({
-    queryKey: ["duel", id],
+    queryKey: ["duel", id, user?.id],
     queryFn: () => api.duels.get(id),
+    select: (data) => adaptDuel(data, user?.id),
     enabled: canPlay && Boolean(id),
     refetchInterval: 5000,
     retry: false,
@@ -731,8 +632,9 @@ export default function DuelLobby() {
         ? "lobby"
         : "live";
   const resultQuery = useQuery({
-    queryKey: ["duel-result", id],
+    queryKey: ["duel-result", id, user?.id],
     queryFn: () => api.duels.result(id),
+    select: (data) => adaptDuel(data, user?.id),
     enabled: canPlay && Boolean(id && stage === "result"),
     retry: false,
   });
@@ -799,8 +701,8 @@ export default function DuelLobby() {
   return (
     <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
       {stage === "lobby" && <LobbyView duel={duel} onStart={startDuel} onLeave={leaveDuel} starting={starting} leaving={leaving} />}
-      {stage === "live" && <LiveView duel={duel} overtime={false} onFinished={finishScoring} />}
-      {stage === "overtime" && <LiveView duel={duel} overtime onFinished={finishScoring} />}
+      {stage === "live" && <LiveView duel={duel} currentUserId={user?.id} onFinished={finishScoring} />}
+      {stage === "overtime" && <LiveView duel={duel} currentUserId={user?.id} onFinished={finishScoring} />}
       {stage === "result" && <ResultView duel={{ ...duel, ...(resultQuery.data || {}) }} />}
     </div>
   );

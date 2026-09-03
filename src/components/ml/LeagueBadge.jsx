@@ -3,7 +3,9 @@ import { getLeague } from "@/lib/ml-arena";
 import { Shield } from "lucide-react";
 
 export default function LeagueBadge({ rating, size = "md", showName = true }) {
-  const league = getLeague(rating || 1000);
+  const numericRating = Number(rating);
+  if (!Number.isFinite(numericRating)) return null;
+  const league = getLeague(numericRating);
   const sizes = {
     sm: { box: "px-2 py-0.5 text-[10px] gap-1", icon: 10 },
     md: { box: "px-2.5 py-1 text-xs gap-1.5", icon: 12 },

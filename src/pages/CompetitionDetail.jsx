@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -10,7 +10,6 @@ import {
   CalendarClock,
   Check,
   CheckCircle2,
-  ChevronDown,
   CircleUserRound,
   Clock3,
   Database,
@@ -33,10 +32,9 @@ import {
 import { toast } from "react-hot-toast";
 import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
-import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/AuthContext";
 import {
   METRIC_LABELS,
   TASK_TYPE_LABELS,
@@ -54,26 +52,6 @@ const TABS = [
   { id: "discussion", label: "Обсуждение", icon: MessageSquare },
 ];
 
-const META = {
-  c1: { difficulty: "Средняя", domain: "Финтех", dataVersion: "1.2", dataSize: "48 МБ", baseline: "RMSE 2.5000" },
-  c2: { difficulty: "Лёгкая", domain: "NLP", dataVersion: "1.0", dataSize: "22 МБ", baseline: "F1 0.7810" },
-  c3: { difficulty: "Высокая", domain: "Финтех", dataVersion: "2.1", dataSize: "76 МБ", baseline: "ROC-AUC 0.8420" },
-  c4: { difficulty: "Высокая", domain: "Ритейл", dataVersion: "1.1", dataSize: "1.4 ГБ", baseline: "Dice 0.7100" },
-  c5: { difficulty: "Средняя", domain: "Транспорт", dataVersion: "0.9", dataSize: "18 МБ", baseline: "MAE 32.4000" },
-  c6: { difficulty: "Начальная", domain: "Синтетика", dataVersion: "1.0", dataSize: "34 МБ", baseline: "Accuracy 0.9700" },
-};
-
-const RULE_SECTIONS = [
-  ["Формат участия", "Соревнование индивидуальное. Один участник может использовать только один аккаунт."],
-  ["Формат решения", "CSV с колонками id и prediction. Идентификаторы должны полностью совпадать с test.csv."],
-  ["Лимиты", "Лимит попыток одинаков для всех участников рейтингового соревнования."],
-  ["Внешние данные", "Использование внешних данных допускается только при явном разрешении организатора."],
-  ["Предобученные модели", "Открытые предобученные модели разрешены, если в условии не указано обратное."],
-  ["Рейтинг", "Во время турнира виден текущий результат. Итоговые места определяются после финальной проверки."],
-  ["Дисквалификация", "Утечки, мультиаккаунты и атаки на платформу приводят к исключению результата."],
-  ["Финальная проверка", "Участники top-10 могут получить запрос на воспроизводимый код решения."],
-];
-
 function pluralize(value, one, few, many) {
   const mod10 = value % 10;
   const mod100 = value % 100;
@@ -83,10 +61,10 @@ function pluralize(value, one, few, many) {
 }
 
 function getStatus(competition) {
-  if (competition.status === "completed") return "finished";
-  if (competition.status === "draft") return "upcoming";
-  if (competition.deadline && new Date(competition.deadline).getTime() < Date.now()) return "finalizing";
-  return "active";
+  if (["completed", "finished", "archived"].includes(competition.status)) return "finished";
+  if (["scheduled", "approved_scheduled", "draft", "moderation", "submitted_for_review", "changes_requested"].includes(competition.status)) return "upcoming";
+  if (competition.status === "finalizing") return "finalizing";
+  return competition.status === "active" ? "active" : competition.status;
 }
 
 function getDeadlineLabel(competition) {
@@ -100,14 +78,10 @@ function safeScore(score, metric) {
   return typeof score === "number" ? formatScore(score, metric) : "—";
 }
 
-function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
-  const href = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = href;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(href);
+function formatPrize(competition) {
+  const amount = Number(competition.prize_amount);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return `${Math.round(amount / 100).toLocaleString("ru-RU")} ${competition.prize_currency || ""}`.trim();
 }
 
 function CompetitionTabs({ competitionId, activeTab }) {
@@ -134,9 +108,10 @@ function CompetitionTabs({ competitionId, activeTab }) {
   );
 }
 
-function OverviewTab({ competition, meta }) {
+function OverviewTab({ competition }) {
   const higher = isHigherBetter(competition.metric);
   const isCommunity = competition.origin === "community";
+  const prize = formatPrize(competition);
   return (
     <div>
       <section className="border-b border-border pb-7">
@@ -148,8 +123,8 @@ function OverviewTab({ competition, meta }) {
         {[
           ["Тип задачи", TASK_TYPE_LABELS[competition.task_type] || competition.task_type, Target],
           ["Метрика", METRIC_LABELS[competition.metric] || competition.metric, Gauge],
-          ["Формат", "CSV · id + prediction", FileText],
-          ["Сложность", meta.difficulty, BarChart3],
+          ["Формат", competition.prediction_column ? `CSV · ${competition.prediction_column}` : "CSV по шаблону", FileText],
+          ["Сложность", competition.difficulty || "Не указана", BarChart3],
         ].map(([label, value, Icon], index) => (
           <div key={label} className={cn("p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}>
             <Icon className="text-primary" size={19} />
@@ -175,20 +150,20 @@ function OverviewTab({ competition, meta }) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-heading text-xl font-bold">
-              {isCommunity ? "Практика и история активности" : competition.prize_fund ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}
+              {isCommunity ? "Практика и история активности" : prize ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
               {isCommunity
                 ? "Результат сохраняется в отдельной истории сообщества. Он не меняет сезонный рейтинг, лигу и подтверждённую часть ML-паспорта."
-                : competition.prize_fund
+                : prize
                 ? "Лучшие участники получают денежные призы, а сильные решения могут стать поводом для знакомства с компаниями-партнёрами."
                 : "Результат влияет на рейтинг, лигу и видимость ML-паспорта для компаний-партнёров."}
             </p>
           </div>
           <Trophy className="hidden text-primary sm:block" size={24} />
         </div>
-        {competition.prize_fund > 0 && (
-          <p className="mt-5 font-heading text-3xl font-bold text-primary">{competition.prize_fund.toLocaleString("ru-RU")} ₽</p>
+        {prize && (
+          <p className="mt-5 font-heading text-3xl font-bold text-primary">{prize}</p>
         )}
       </section>
 
@@ -218,27 +193,12 @@ function OverviewTab({ competition, meta }) {
         </div>
       </section>
 
-      <section className="grid gap-4 border-t border-border py-7 md:grid-cols-2">
+      <section className="border-t border-border py-7">
         <motion.article
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="group rounded-lg border border-border bg-card p-5 md:p-6"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:-translate-y-0.5"><FileCode2 size={21} /></span>
-          <h3 className="mt-5 font-heading text-lg font-bold">Начать с baseline</h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Базовое решение даёт {meta.baseline} и показывает полный путь от данных до submit.</p>
-          <Button variant="outline" className="mt-4" onClick={() => downloadCsv("baseline.py", "# Baseline ML Arena\n# Load train.csv, fit model, save submission.csv")}>
-            <Download size={15} />
-            Скачать baseline
-          </Button>
-        </motion.article>
-        <motion.article
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.3, delay: 0.08, ease: "easeOut" }}
           className="group rounded-lg border border-border bg-card p-5 md:p-6"
         >
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent-foreground transition-transform duration-200 group-hover:-translate-y-0.5"><ShieldCheck size={21} /></span>
@@ -337,7 +297,9 @@ function DataTab({ competition, locked }) {
           <div>
             <p className="text-sm font-semibold">Формат решения</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Колонки id и prediction, без пропусков и NaN. Количество строк и id должны совпадать с test.csv.
+              {competition.prediction_column
+                ? `Колонка прогноза: ${competition.prediction_column}${competition.group_column ? `. Колонка группировки: ${competition.group_column}` : ""}. Используйте структуру sample_submission.`
+                : "Используйте структуру и названия колонок из sample_submission."}
             </p>
           </div>
         </div>
@@ -346,15 +308,16 @@ function DataTab({ competition, locked }) {
   );
 }
 
-function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJoin }) {
+function SubmitTab({ competition, participation, submissions, onSubmitted, locked, joined, onJoin }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
-  const mySubmissions = submissions.filter((submission) => submission.user_name === "Ты");
-  const attemptsUsed = Math.min(mySubmissions.length, competition.max_submits_free || 5);
-  const attemptsLeft = Math.max(0, (competition.max_submits_free || 5) - attemptsUsed);
+  const mySubmissions = submissions;
+  const dailyLimit = competition.daily_submission_limit;
+  const attemptsUsed = participation?.attempts_used_today;
+  const attemptsLeft = participation?.attempts_left_today;
 
   const selectFile = (selected) => {
     if (!selected) return;
@@ -400,7 +363,7 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
   const statusMeta = {
     uploading: ["Загружаем файл", `${progress}%`],
     validating: ["Проверяем CSV", "Колонки, id, пропуски и типы значений"],
-    queued: ["Решение принято", "Позиция в очереди: 1"],
+    queued: ["Решение принято", "Ожидает обработки сервером"],
     scoring: ["Считаем public score", "Обычно это занимает меньше минуты"],
     scored: ["Score рассчитан", "Leaderboard обновлён"],
     invalid: ["Файл не принят", error],
@@ -426,11 +389,11 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
         <div>
           <h2 className="font-heading text-2xl font-bold">Загрузить решение</h2>
         </div>
-        <div className="text-sm font-semibold">{attemptsUsed} из {competition.max_submits_free || 5} попыток сегодня</div>
+        <div className="text-sm font-semibold">{attemptsUsed ?? "—"} из {dailyLimit ?? "—"} попыток сегодня</div>
       </div>
 
       <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-secondary">
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(attemptsUsed / (competition.max_submits_free || 5)) * 100}%` }} />
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${dailyLimit > 0 && attemptsUsed != null ? Math.min(100, (attemptsUsed / dailyLimit) * 100) : 0}%` }} />
       </div>
       <p className="mt-2 text-xs text-muted-foreground">Лимит одинаков для всех участников рейтингового соревнования.</p>
 
@@ -463,7 +426,7 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
           <div>
             <Upload className="mx-auto text-primary" size={28} />
             <p className="mt-4 text-sm font-semibold">{file ? file.name : "Перетащите CSV или выберите файл"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{file ? `${(file.size / 1024).toFixed(1)} КБ · готов к отправке` : "id + prediction · без пропусков · до 10 МБ"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{file ? `${(file.size / 1024).toFixed(1)} КБ · готов к отправке` : competition.prediction_column ? `CSV · колонка ${competition.prediction_column} · до 10 МБ` : "CSV по шаблону · до 10 МБ"}</p>
           </div>
         </button>
       )}
@@ -501,11 +464,11 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
               {mySubmissions.map((submission, index) => (
                 <div key={submission.id} className="grid min-h-14 grid-cols-[52px_120px_100px_110px_1fr_90px] items-center border-b border-border text-xs">
                   <span className="font-mono">{submission.attempt_number || mySubmissions.length - index}</span>
-                  <span className="text-muted-foreground">{new Date(submission.created_date).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-                  <span className="font-semibold text-accent">Scored</span>
-                  <span className="font-semibold">{safeScore(submission.score, competition.metric)}</span>
-                  <span className="text-muted-foreground">После финала</span>
-                  <span>{index === 0 ? "Лучший" : "—"}</span>
+                  <span className="text-muted-foreground">{submission.created_at ? new Date(submission.created_at).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
+                  <span className="font-semibold text-accent">{submission.status}</span>
+                  <span className="font-semibold">{safeScore(Number(submission.public_score ?? submission.score), competition.metric)}</span>
+                  <span className="text-muted-foreground">{submission.private_score == null ? "После финала" : safeScore(Number(submission.private_score), competition.metric)}</span>
+                  <span>{participation?.best_public_score != null && Number(submission.public_score ?? submission.score) === Number(participation.best_public_score) ? "Лучший" : "—"}</span>
                 </div>
               ))}
             </div>
@@ -518,12 +481,20 @@ function SubmitTab({ competition, submissions, onSubmitted, locked, joined, onJo
   );
 }
 
-function LeaderboardTab({ competition, leaderboard, submissions }) {
+function LeaderboardTab({ competition }) {
   const [mode, setMode] = useState("public");
   const [search, setSearch] = useState("");
-  const lockedPrivate = getStatus(competition) !== "finished";
-  const filtered = leaderboard.filter((submission) => submission.user_name.toLowerCase().includes(search.trim().toLowerCase()));
-  const currentUser = leaderboard.find((submission) => submission.user_name === "Ты");
+  const leaderboardQuery = useQuery({
+    queryKey: ["competition-leaderboard", competition.id, mode, search.trim()],
+    queryFn: () => api.competitions.leaderboard(competition.id, { kind: mode, ...(search.trim() ? { q: search.trim() } : {}), limit: 100, offset: 0 }),
+  });
+  const response = leaderboardQuery.data || {};
+  const current = response.current_user;
+  const rows = response.items || [];
+  const leaderboard = current && !rows.some((row) => row.user_id === current.user_id) ? [...rows, current] : rows;
+  const normalized = leaderboard.map((row) => ({ ...row, id: row.user_id, score: Number(row.best_score), is_current_user: current?.user_id === row.user_id }));
+  const lockedPrivate = Boolean(response.private_locked) || (mode === "private" && getStatus(competition) !== "finished");
+  const currentUser = normalized.find((submission) => submission.is_current_user);
 
   return (
     <div>
@@ -559,7 +530,7 @@ function LeaderboardTab({ competition, leaderboard, submissions }) {
 
       {currentUser && (
         <div className="mt-4 grid grid-cols-[48px_1fr_auto] items-center gap-3 border border-primary/35 bg-primary/5 p-3">
-          <span className="font-heading text-lg font-bold">#{leaderboard.indexOf(currentUser) + 1}</span>
+          <span className="font-heading text-lg font-bold">#{currentUser.rank}</span>
           <div className="flex items-center gap-3">
             <Avatar name="Ты" size={32} />
             <div><p className="text-sm font-semibold">Ты</p><p className="text-xs text-muted-foreground">Закреплённая позиция</p></div>
@@ -573,31 +544,30 @@ function LeaderboardTab({ competition, leaderboard, submissions }) {
           <div className="grid grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] border-b border-border py-3 text-xs text-muted-foreground">
             <span>Rank</span><span>Участник</span><span>Score</span><span>Submits</span><span>Лучший submit</span>
           </div>
-          {filtered.map((submission) => {
-            const rank = leaderboard.indexOf(submission) + 1;
-            const submitCount = submissions.filter((item) => item.user_name === submission.user_name).length;
+          {normalized.map((submission) => {
             return (
               <Link
                 key={submission.id}
-                to={submission.user_name === "Ты" ? "/profile/me" : "/profile/p1"}
+                to={submission.is_current_user ? "/profile" : `/profile/${submission.user_id}`}
                 className={cn(
                   "grid min-h-16 grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] items-center border-b border-border text-sm transition-colors hover:bg-secondary/40",
-                  submission.user_name === "Ты" && "bg-primary/5",
+                  submission.is_current_user && "bg-primary/5",
                 )}
               >
-                <span className="font-heading font-bold">#{rank}</span>
+                <span className="font-heading font-bold">#{submission.rank}</span>
                 <div className="flex items-center gap-3">
                   <Avatar name={submission.user_name} src={submission.user_avatar} size={32} />
                   <span className="font-semibold">{submission.user_name}</span>
-                  <LeagueBadge rating={1580 - rank * 35} size="sm" />
                 </div>
                 <span className="font-heading font-bold text-primary">{safeScore(submission.score, competition.metric)}</span>
-                <span className="text-muted-foreground">{submitCount || 1}</span>
-                <span className="text-xs text-muted-foreground">{new Date(submission.created_date).toLocaleDateString("ru-RU")}</span>
+                <span className="text-muted-foreground">{submission.attempts ?? "—"}</span>
+                <span className="text-xs text-muted-foreground">{submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString("ru-RU") : "—"}</span>
               </Link>
             );
           })}
-          {!filtered.length && <div className="py-12 text-center text-sm text-muted-foreground">Участник не найден.</div>}
+          {leaderboardQuery.isLoading && <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="animate-spin" size={16} /> Загружаем рейтинг</div>}
+          {leaderboardQuery.error && <div className="py-12 text-center text-sm text-destructive">{leaderboardQuery.error.message}</div>}
+          {!leaderboardQuery.isLoading && !leaderboardQuery.error && !normalized.length && <div className="py-12 text-center text-sm text-muted-foreground">Участники не найдены.</div>}
         </div>
       </div>
     </div>
@@ -605,45 +575,20 @@ function LeaderboardTab({ competition, leaderboard, submissions }) {
 }
 
 function RulesTab({ competition }) {
-  const [open, setOpen] = useState(0);
   return (
     <div>
       <h2 className="font-heading text-2xl font-bold">Правила соревнования</h2>
-      <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.rules}</p>
-      <div className="mt-6 border-y border-border">
-        {RULE_SECTIONS.map(([title, text], index) => (
-          <div key={title} className="border-b border-border last:border-b-0">
-            <button type="button" onClick={() => setOpen(open === index ? -1 : index)} className="flex min-h-14 w-full items-center gap-3 text-left">
-              <span className="font-mono text-[10px] text-primary">{String(index + 1).padStart(2, "0")}</span>
-              <span className="flex-1 text-sm font-semibold">{title}</span>
-              <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", open === index && "rotate-180")} />
-            </button>
-            <AnimatePresence initial={false}>
-              {open === index && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                  <p className="pb-5 pl-9 pr-5 text-sm leading-6 text-muted-foreground">{text}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ))}
-      </div>
+      {competition.rules
+        ? <p className="mt-5 max-w-4xl whitespace-pre-wrap border-y border-border py-6 text-sm leading-7 text-muted-foreground">{competition.rules}</p>
+        : <p className="mt-5 border-y border-dashed border-border py-10 text-center text-sm text-muted-foreground">Правила ещё не опубликованы.</p>}
     </div>
   );
 }
 
-function DiscussionTab({ discussions, newThread, setNewThread, onCreate }) {
+function DiscussionTab({ discussions }) {
   return (
     <div>
       <h2 className="font-heading text-2xl font-bold">Обсуждение</h2>
-      <div className="mt-6 border-y border-border py-5">
-        <h3 className="text-sm font-semibold">Задать вопрос</h3>
-        <div className="mt-3 space-y-3">
-          <Input value={newThread.title} onChange={(event) => setNewThread({ ...newThread, title: event.target.value })} placeholder="Короткий заголовок" />
-          <Textarea value={newThread.content} onChange={(event) => setNewThread({ ...newThread, content: event.target.value })} placeholder="Опиши вопрос или проблему" rows={4} />
-          <Button onClick={onCreate} disabled={!newThread.title.trim() || !newThread.content.trim()}><Send size={15} /> Опубликовать</Button>
-        </div>
-      </div>
       <div className="divide-y divide-border">
         {discussions.map((discussion) => (
           <article key={discussion.id} className="flex gap-3 py-5">
@@ -664,16 +609,10 @@ function DiscussionTab({ discussions, newThread, setNewThread, onCreate }) {
   );
 }
 
-function ParticipationPanel({ competition, status, joined, submissions, leaderboard, onJoin, onLeave, onSubmit, leaving }) {
-  const mySubmissions = submissions.filter((submission) => submission.user_name === "Ты");
-  const best = mySubmissions.reduce((current, item) => {
-    if (!current) return item;
-    return isHigherBetter(competition.metric)
-      ? (item.score > current.score ? item : current)
-      : (item.score < current.score ? item : current);
-  }, null);
-  const rank = best ? leaderboard.findIndex((item) => item.id === best.id) + 1 : null;
-  const attemptsLeft = Math.max(0, (competition.max_submits_free || 5) - mySubmissions.length);
+function ParticipationPanel({ competition, participation, status, joined, onJoin, onLeave, onSubmit, leaving }) {
+  const bestScore = participation?.best_public_score;
+  const rank = participation?.public_rank;
+  const attemptsLeft = participation?.attempts_left_today;
   const isCommunity = competition.origin === "community";
   const restricted = competition.is_private || competition.access_type === "invite_only" || competition.access_type === "application";
   const joinLabel = competition.access_type === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться";
@@ -686,15 +625,15 @@ function ParticipationPanel({ competition, status, joined, submissions, leaderbo
           {joined ? <Check size={19} /> : <Trophy size={19} />}
         </div>
         <div>
-          <p className="text-sm font-semibold">{status === "finished" ? "Соревнование завершено" : joined ? (best ? "Есть валидный submit" : "Вы участвуете") : "Вы ещё не участвуете"}</p>
+          <p className="text-sm font-semibold">{status === "finished" ? "Соревнование завершено" : joined ? (bestScore != null ? "Есть валидный submit" : "Вы участвуете") : "Вы ещё не участвуете"}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{status === "active" ? getDeadlineLabel(competition) : "Статус результатов доступен"}</p>
         </div>
       </div>
 
       <div className="mt-5 divide-y divide-border border-y border-border">
-        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Лучший public score</span><span className="font-semibold">{safeScore(best?.score, competition.metric)}</span></div>
+        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Лучший public score</span><span className="font-semibold">{safeScore(bestScore == null ? null : Number(bestScore), competition.metric)}</span></div>
         <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Место</span><span className="font-semibold">{rank ? `#${rank}` : "—"}</span></div>
-        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Попыток осталось</span><span className="font-semibold">{status === "active" ? `${attemptsLeft}/${competition.max_submits_free || 5}` : "Закрыто"}</span></div>
+        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Попыток осталось</span><span className="font-semibold">{status === "active" ? (attemptsLeft ?? "—") : "Закрыто"}</span></div>
       </div>
 
       {!joined && status === "active" ? (
@@ -718,16 +657,16 @@ export default function CompetitionDetail() {
   const { id, section } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [newThread, setNewThread] = useState({ title: "", content: "" });
   const activeTab = TABS.some((tab) => tab.id === section) ? section : "overview";
 
   const { data: competition, isLoading, isError } = useQuery({
     queryKey: ["competition", id],
     queryFn: () => api.competitions.get(id),
-    enabled: Boolean(id),
+    enabled: Boolean(id && isAuthenticated),
     retry: false,
   });
   const { data: participation } = useQuery({
@@ -746,14 +685,9 @@ export default function CompetitionDetail() {
   const submissionsQuery = useQuery({
     queryKey: ["submissions", id],
     queryFn: () => api.competitions.submissions(id, { limit: 100, offset: 0 }),
-    enabled: Boolean(id),
+    enabled: Boolean(id && isAuthenticated),
   });
   const submissions = submissionsQuery.data?.data || submissionsQuery.data?.items || [];
-  const leaderboardQuery = useQuery({
-    queryKey: ["competition-leaderboard", id],
-    queryFn: () => api.competitions.leaderboard(id, { limit: 100, offset: 0 }),
-    enabled: Boolean(id),
-  });
   const resultCardQuery = useQuery({
     queryKey: ["competition-result-card", id],
     queryFn: () => api.competitions.resultCard(id),
@@ -766,17 +700,6 @@ export default function CompetitionDetail() {
     enabled: Boolean(id),
   });
   const discussions = Array.isArray(discussionsResponse) ? discussionsResponse : discussionsResponse?.items || [];
-
-  const leaderboard = useMemo(() => {
-    const rows = leaderboardQuery.data?.rows || leaderboardQuery.data?.items || leaderboardQuery.data?.data || [];
-    return rows.map((row, index) => ({
-      ...row,
-      id: row.id || row.submission_id || `${row.user_id || row.user_name}-${index}`,
-      user_name: row.user_name || row.nickname || row.user?.nickname || "Участник",
-      score: Number(row.score ?? row.best_score ?? row.public_score),
-      rank: row.rank || index + 1,
-    }));
-  }, [leaderboardQuery.data]);
 
   useEffect(() => {
     setJoined(Boolean(participation));
@@ -798,7 +721,8 @@ export default function CompetitionDetail() {
         }
       }
       const rules = await api.competitions.rules(id);
-      await api.competitions.join(id, rules.version || competition.rules_version || "v1");
+      if (!rules.version) throw new Error("Сервер не вернул актуальную версию правил");
+      await api.competitions.join(id, rules.version);
       setJoined(true);
       await queryClient.invalidateQueries({ queryKey: ["competition-participation", id] });
       toast.success("Вы участвуете в соревновании");
@@ -824,13 +748,6 @@ export default function CompetitionDetail() {
     }
   };
 
-  const createThread = async () => {
-    if (!newThread.title.trim() || !newThread.content.trim()) return;
-    try {
-      toast("Публикация обсуждений пока не поддерживается серверным API");
-    } catch (error) { toast.error(error.message || "Не удалось опубликовать вопрос"); }
-  };
-
   const onSubmitted = async (score) => {
     await queryClient.invalidateQueries({ queryKey: ["submissions", id] });
     toast.success(`Score рассчитан: ${safeScore(score, competition.metric)}`);
@@ -852,7 +769,7 @@ export default function CompetitionDetail() {
 
   const status = getStatus(competition);
   const isCommunity = competition.origin === "community";
-  const meta = META[competition.id] || { difficulty: competition.difficulty || "Средняя", domain: competition.domain || "Другое", dataVersion: "1.0", dataSize: "до 100 МБ", baseline: "доступен" };
+  const prize = formatPrize(competition);
   const restricted = competition.is_private || competition.access_type === "invite_only" || competition.access_type === "application";
   const locked = ["upcoming", "finished", "finalizing"].includes(status) || (restricted && !joined);
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
@@ -880,7 +797,7 @@ export default function CompetitionDetail() {
 
       {resultCardQuery.data && (
         <div className="mt-5 grid gap-px border border-border bg-border sm:grid-cols-3">
-          {[["Итоговое место", resultCardQuery.data.rank ? `#${resultCardQuery.data.rank}` : "—"], ["Итоговый результат", safeScore(resultCardQuery.data.score ?? resultCardQuery.data.final_score, competition.metric)], ["Статус проверки", resultCardQuery.data.verification_status || resultCardQuery.data.status || "Подтверждён"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-lg font-bold">{value}</p></div>)}
+          {[["Итоговое место", resultCardQuery.data.rank ? `#${resultCardQuery.data.rank}` : "—"], ["Итоговый результат", safeScore(resultCardQuery.data.score ?? resultCardQuery.data.final_score, competition.metric)], ["Статус проверки", resultCardQuery.data.verification_status || resultCardQuery.data.status || "—"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-lg font-bold">{value}</p></div>)}
         </div>
       )}
 
@@ -898,7 +815,7 @@ export default function CompetitionDetail() {
                   {statusLabel}
                 </span>
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{TASK_TYPE_LABELS[competition.task_type]}</span>
-                <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{meta.difficulty}</span>
+                <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{competition.difficulty || "Не указана"}</span>
                 {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {competition.access_type === "application" ? "По заявке" : "По приглашению"}</span>}
               </div>
               <h1 className="mt-5 max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
@@ -907,13 +824,13 @@ export default function CompetitionDetail() {
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><Users size={14} /> {competition.participants_count} участников</span>
               <span className="inline-flex items-center gap-1.5"><CalendarClock size={14} /> {status === "active" ? getDeadlineLabel(competition) : statusLabel}</span>
-              <span className="inline-flex items-center gap-1.5"><Award size={14} /> {competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без призового фонда"}</span>
+              <span className="inline-flex items-center gap-1.5"><Award size={14} /> {prize || "Без призового фонда"}</span>
             </div>
           </div>
           <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
             {[
               [Target, "Метрика", METRIC_LABELS[competition.metric]],
-              [Trophy, isCommunity ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : competition.prize_fund ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : "Без приза"],
+              [Trophy, isCommunity ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : prize || "Без приза"],
               [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
               [ShieldCheck, "Итоговый результат", "После финальной проверки"],
             ].map(([Icon, label, value], index) => (
@@ -930,11 +847,12 @@ export default function CompetitionDetail() {
 
       <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_310px]">
         <main className="min-w-0">
-          {activeTab === "overview" && <OverviewTab competition={competition} meta={meta} />}
+          {activeTab === "overview" && <OverviewTab competition={competition} />}
           {activeTab === "data" && <DataTab competition={competition} locked={status === "upcoming" || !joined} />}
           {activeTab === "submit" && (
             <SubmitTab
               competition={competition}
+              participation={participation}
               submissions={submissions}
               onSubmitted={onSubmitted}
               locked={locked}
@@ -942,24 +860,18 @@ export default function CompetitionDetail() {
               onJoin={join}
             />
           )}
-          {activeTab === "leaderboard" && <LeaderboardTab competition={competition} leaderboard={leaderboard} submissions={submissions} />}
+          {activeTab === "leaderboard" && <LeaderboardTab competition={competition} />}
           {activeTab === "rules" && <RulesTab competition={competition} />}
           {activeTab === "discussion" && (
-            <DiscussionTab
-              discussions={discussions}
-              newThread={newThread}
-              setNewThread={setNewThread}
-              onCreate={createThread}
-            />
+            <DiscussionTab discussions={discussions} />
           )}
         </main>
 
         <ParticipationPanel
           competition={competition}
+          participation={participation}
           status={status}
           joined={joined}
-          submissions={submissions}
-          leaderboard={leaderboard}
           onJoin={join}
           onLeave={leave}
           leaving={leaving}

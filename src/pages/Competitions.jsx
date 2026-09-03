@@ -48,18 +48,9 @@ function pluralize(value, one, few, many) {
 }
 
 function getStatus(competition) {
-  if (competition.status === "completed") return "finished";
-  if (competition.status === "draft") return "upcoming";
-  if (competition.status === "active" && competition.deadline && new Date(competition.deadline).getTime() < Date.now()) return "finalizing";
-  return "active";
-}
-
-function enrichOfficial(competition) {
-  return {
-    ...competition,
-    origin: competition.origin || "official_platform",
-    access_type: competition.access_type || competition.access || (competition.is_private ? "invite_only" : "open"),
-  };
+  if (["completed", "finished", "archived"].includes(competition.status)) return "finished";
+  if (["scheduled", "approved_scheduled"].includes(competition.status)) return "upcoming";
+  return competition.status;
 }
 
 const ACCESS_LABELS = {
@@ -71,7 +62,7 @@ const ACCESS_LABELS = {
 };
 
 function getCardMeta(competition) {
-  const access = competition.access_type || competition.access;
+  const access = competition.access;
   return {
     difficulty: competition.difficulty || "Не указана",
     access: ACCESS_LABELS[access] || access || "Не указан",
@@ -104,10 +95,7 @@ export default function Competitions() {
   });
   const serverCompetitions = Array.isArray(competitionsResponse) ? competitionsResponse : competitionsResponse?.data || competitionsResponse?.items || [];
 
-  const competitions = useMemo(
-    () => section === "community" ? serverCompetitions : serverCompetitions.map(enrichOfficial),
-    [section, serverCompetitions],
-  );
+  const competitions = serverCompetitions;
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -120,13 +108,13 @@ export default function Competitions() {
           || String(competition.description || "").toLowerCase().includes(query)
           || competition.company_name?.toLowerCase().includes(query);
         const typeMatches = typeFilter === "all" || competition.task_type === typeFilter;
-        const accessMatches = accessFilter === "all" || competition.access_type === accessFilter;
+        const accessMatches = accessFilter === "all" || competition.access === accessFilter;
         return statusMatches && searchMatches && typeMatches && accessMatches;
       })
       .sort((a, b) => {
         if (sort === "participants") return (b.participants_count || 0) - (a.participants_count || 0);
-        if (sort === "newest") return String(b.id).localeCompare(String(a.id));
-        return new Date(a.deadline || "2100-01-01") - new Date(b.deadline || "2100-01-01");
+        if (sort === "newest") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        return (a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY) - (b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY);
       });
   }, [accessFilter, competitions, search, sort, statusFilter, typeFilter]);
 

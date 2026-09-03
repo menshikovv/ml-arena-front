@@ -18,15 +18,9 @@ function mapUser(account = {}, profile = {}) {
     full_name: profile.full_name ?? profile.name ?? account.full_name ?? account.name ?? [firstName, lastName].filter(Boolean).join(" "),
     education_status: profile.university || "",
     organization: profile.company || account.organization_name || "",
-    birth_date: profile.birth_date || "",
-    ml_experience_years: profile.ml_experience_years ?? "",
-    ml_experience: profile.ml_experience || "",
     account_status: account.status === "pending_email" ? "pending_verification" : account.status,
     preregistration_status: account.email_verified ? "confirmed" : "pending_email",
     registered_at: profile.created_at,
-    ml_interests: Array.isArray(profile.ml_interests)
-      ? profile.ml_interests
-      : Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
   };
 }
 
@@ -152,6 +146,8 @@ export const AuthProvider = ({ children }) => {
       kaggle_url: changes.kaggle_url || null,
       visible_to_employers: changes.visible_to_employers,
       public_profile: changes.public_profile,
+      show_real_name: changes.show_real_name,
+      show_career_details: changes.show_career_details,
     };
     Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
     const profile = await api.profiles.updateMe(body);

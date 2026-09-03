@@ -7,7 +7,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/api/mlArenaApi";
-import { BLOG_CATEGORIES, formatBlogDate, getBlogCategory } from "@/lib/blog-data";
+import { formatBlogDate, getBlogCategory } from "@/lib/blog-data";
 import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 const PAGE_SIZE = 6;
@@ -18,7 +18,7 @@ function adaptPost(post) {
     category: post.category?.slug || post.primary_category?.slug || post.category_slug || "news",
     tags: (post.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug).filter(Boolean),
     publishedAt: post.published_at || post.publishedAt,
-    readingTime: post.reading_time_minutes || post.reading_time || post.readingTime || 5,
+    readingTime: post.reading_time_minutes ?? post.reading_time ?? post.readingTime ?? null,
     featured: post.is_featured ?? post.featured ?? false,
     visual: blogCoverVisual(post),
   };
@@ -46,7 +46,7 @@ function ArticleCard({ post }) {
       <div className="flex flex-1 flex-col p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="font-semibold text-primary">{category?.name}</span>
-          <span className="flex items-center gap-1.5 text-muted-foreground"><Clock3 size={13} /> {post.readingTime} мин</span>
+          {post.readingTime != null && <span className="flex items-center gap-1.5 text-muted-foreground"><Clock3 size={13} /> {post.readingTime} мин</span>}
         </div>
         <h2 className="mt-4 line-clamp-3 font-heading text-xl font-extrabold leading-tight transition-colors group-hover:text-primary">{post.title}</h2>
         <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
@@ -62,7 +62,7 @@ function ArticleCard({ post }) {
 export default function Blog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get("category") || "all";
-  const activeCategory = BLOG_CATEGORIES.some((category) => category.slug === categoryParam) ? categoryParam : "all";
+  const activeCategory = categoryParam;
   const queryParam = searchParams.get("query") || "";
   const [search, setSearch] = useState(queryParam);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -76,7 +76,7 @@ export default function Blog() {
   const serverPosts = responsePosts.map(adaptPost);
   const posts = serverPosts;
   const serverCategories = Array.isArray(categoriesQuery.data) ? categoriesQuery.data.map((item) => ({ slug: item.slug, name: item.name })) : [];
-  const categories = serverCategories.length ? [{ slug: "all", name: "Все" }, ...serverCategories] : BLOG_CATEGORIES;
+  const categories = [{ slug: "all", name: "Все" }, ...serverCategories];
 
   useEffect(() => {
     setSearch(queryParam);
@@ -193,7 +193,7 @@ export default function Blog() {
                 <p className="mt-4 text-base leading-7 text-muted-foreground">{featured.excerpt}</p>
                 <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {formatBlogDate(featured.publishedAt)}</span>
-                  <span className="flex items-center gap-1.5"><Clock3 size={14} /> {featured.readingTime} мин</span>
+                  {featured.readingTime != null && <span className="flex items-center gap-1.5"><Clock3 size={14} /> {featured.readingTime} мин</span>}
                 </div>
                 <span className="mt-7 inline-flex items-center gap-2 font-semibold text-primary">Читать материал <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
               </div>
