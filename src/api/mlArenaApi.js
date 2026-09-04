@@ -308,7 +308,17 @@ async function fetchBlob(path) {
 }
 
 async function downloadFromApi(path) {
-  const response = await fetch(`${API_URL}${path}`, { headers: { Authorization: `Bearer ${getAccessToken() || ""}` } });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      headers: { Authorization: `Bearer ${getAccessToken() || ""}` },
+    });
+  } catch (error) {
+    throw new ApiError(0, {
+      message: "Хранилище не разрешило скачивание. Проверьте CORS для storage.mlarena.ru.",
+      cause: error,
+    });
+  }
   if (!response.ok) throw new ApiError(response.status, { message: "Не удалось скачать файл" });
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
