@@ -58,10 +58,9 @@ const INITIAL_FORM = {
   statement: "",
   metric: "ROC-AUC",
   predictionFormat: "id, prediction",
-  trainFile: "",
-  testFile: "",
-  sampleFile: "",
-  targetFile: "",
+  participantBundle: "",
+  publicLabelsFile: "",
+  privateLabelsFile: "",
   access: "open",
   maxParticipants: "",
   startsAt: "",
@@ -100,12 +99,12 @@ function ToggleCard({ active, icon: Icon, title, text, onClick }) {
   );
 }
 
-function FileSlot({ label, required, value, onChange }) {
+function FileSlot({ label, required, value, onChange, accept = ".csv,text/csv,application/csv", placeholder = "Выберите CSV-файл" }) {
   return (
     <label className="group flex min-h-24 cursor-pointer items-center gap-4 border border-dashed border-border bg-card p-4 hover:border-primary/40 hover:bg-primary/[0.025]">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary/10 text-primary"><Upload size={18} /></span>
-      <span className="min-w-0 flex-1"><span className="block text-sm font-bold">{label}{required && " *"}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{value?.name || "Выберите CSV-файл"}</span></span>
-      <input type="file" className="sr-only" accept=".csv,text/csv" onChange={(event) => onChange(event.target.files?.[0] || null)} />
+      <span className="min-w-0 flex-1"><span className="block text-sm font-bold">{label}{required && " *"}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{value?.name || placeholder}</span></span>
+      <input type="file" className="sr-only" accept={accept} onChange={(event) => onChange(event.target.files?.[0] || null)} />
     </label>
   );
 }
@@ -123,7 +122,7 @@ export default function CommunityCompetitionCreate() {
     if (step === 0) return form.title.trim().length >= 5 && form.description.trim().length >= 12;
     if (step === 1) return form.direction !== "other" || form.customDirection.trim().length >= 3;
     if (step === 2) return form.statement.trim().length >= 20 && form.metric;
-    if (step === 3) return Boolean(form.trainFile && form.testFile && form.sampleFile && form.targetFile);
+    if (step === 3) return Boolean(form.participantBundle && form.publicLabelsFile && form.privateLabelsFile);
     if (step === 5) return Boolean(form.startsAt && form.endsAt && new Date(form.endsAt) > new Date(form.startsAt));
     if (step === 6) return form.rightsConfirmed && form.noPersonalDataConfirmed && form.rulesConfirmed;
     return true;
@@ -164,14 +163,13 @@ export default function CommunityCompetitionCreate() {
       });
       const versionId = dataset.version_id || dataset.current_version?.id || dataset.version?.id || dataset.id;
       const files = [
-        [form.trainFile, "train", "participant"],
-        [form.testFile, "test", "participant"],
-        [form.sampleFile, "sample_submission", "participant"],
-        [form.targetFile, "private_labels", "evaluator_only"],
+        [form.participantBundle, "participant_bundle", "participant"],
+        [form.publicLabelsFile, "public_labels", "evaluator_only"],
+        [form.privateLabelsFile, "private_labels", "evaluator_only"],
       ];
       for (let position = 0; position < files.length; position += 1) {
         const [file, kind, visibility] = files[position];
-        const upload = await uploadFile(file, "dataset", { community_competition_id: competitionId });
+        const upload = await uploadFile(file, "competition_dataset", { community_competition_id: competitionId });
         await api.communityCompetitions.attachDatasetFile(competitionId, versionId, { upload_id: upload.id, kind, visibility, position });
       }
       await api.communityCompetitions.submitForReview(competitionId);
@@ -238,7 +236,7 @@ export default function CommunityCompetitionCreate() {
 
             {step === 2 && <div className="space-y-5"><Field label="Полное условие" hint="Цель, target, доступные признаки и ожидаемый результат."><Textarea rows={7} value={form.statement} onChange={(event) => update("statement", event.target.value)} placeholder="Опишите постановку задачи..." /></Field><div className="grid gap-5 sm:grid-cols-2"><Field label="Метрика" hint="Только из безопасного списка."><Select value={form.metric} onChange={(event) => update("metric", event.target.value)}><option value="">Выберите метрику</option>{metrics.map((item) => <option key={item}>{item}</option>)}</Select></Field><Field label="Формат предсказаний"><Input value={form.predictionFormat} onChange={(event) => update("predictionFormat", event.target.value)} placeholder="id, prediction" /></Field></div><div className="border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground"><Settings2 size={18} className="mb-2 text-primary" />Пользовательский scoring.py не выполняется. Платформа использует выбранную метрику и безопасную конфигурацию.</div></div>}
 
-            {step === 3 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">Файлы загрузятся в защищённое хранилище после подтверждения последнего шага.</p><div className="grid gap-3 sm:grid-cols-2"><FileSlot label="train.csv" required value={form.trainFile} onChange={(value) => update("trainFile", value)} /><FileSlot label="test.csv" required value={form.testFile} onChange={(value) => update("testFile", value)} /><FileSlot label="sample_submission.csv" required value={form.sampleFile} onChange={(value) => update("sampleFile", value)} /><FileSlot label="Скрытые ответы test" required value={form.targetFile} onChange={(value) => update("targetFile", value)} /></div><div className="mt-4 flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-muted-foreground"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />Скрытые ответы доступны только контуру проверки и не должны попадать в файлы участников.</div></div>}
+            {step === 3 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">ZIP должен содержать в корне только train.csv, test.csv и sample_submission.csv. Ответы загрузите отдельными CSV.</p><div className="grid gap-3 sm:grid-cols-2"><FileSlot label="Данные участника" required value={form.participantBundle} onChange={(value) => update("participantBundle", value)} accept=".zip,application/zip" placeholder="Выберите ZIP-файл" /><FileSlot label="Публичные ответы" required value={form.publicLabelsFile} onChange={(value) => update("publicLabelsFile", value)} /><FileSlot label="Приватные ответы" required value={form.privateLabelsFile} onChange={(value) => update("privateLabelsFile", value)} /></div><div className="mt-4 flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-muted-foreground"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />Оба файла с ответами доступны только контуру проверки и не входят в ZIP участников.</div></div>}
 
             {step === 4 && <div className="grid gap-3 sm:grid-cols-3">{[{ id: "open", icon: Users, title: "Открыто", text: "Любой зарегистрированный участник может присоединиться." }, { id: "invite_only", icon: LockKeyhole, title: "По приглашению", text: "Доступ по системному приглашению или одноразовой ссылке." }, { id: "application", icon: FileCheck2, title: "По заявке", text: "Организатор принимает или отклоняет заявку по нику." }].map((item) => <ToggleCard key={item.id} active={form.access === item.id} icon={item.icon} title={item.title} text={item.text} onClick={() => update("access", item.id)} />)}<div className="sm:col-span-3"><Field label="Максимум участников" hint="Необязательно. Контактные данные участников организатору не передаются."><Input type="number" min="2" value={form.maxParticipants} onChange={(event) => update("maxParticipants", event.target.value)} placeholder="Без ограничения" /></Field></div></div>}
 

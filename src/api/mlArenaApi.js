@@ -202,6 +202,7 @@ export const api = {
     attachDatasetFile: (id, versionId, body) => apiData(`/api/v1/admin/datasets/${id}/versions/${versionId}/files`, { method: "POST", body: json(body) }),
     deleteDatasetFile: (id, versionId, fileId) => apiData(`/api/v1/admin/datasets/${id}/versions/${versionId}/files/${fileId}`, { method: "DELETE" }),
     archiveDataset: (id) => apiData(`/api/v1/admin/datasets/${id}/archive`, { method: "POST" }),
+    restoreDataset: (id) => apiData(`/api/v1/admin/datasets/${id}/restore`, { method: "POST" }),
     deleteDataset: (id) => apiData(`/api/v1/admin/datasets/${id}`, { method: "DELETE" }),
     validateDatasetVersion: (id) => apiData(`/api/v1/admin/dataset-versions/${id}/validate`, { method: "POST" }),
     datasetValidation: (id) => apiData(`/api/v1/admin/dataset-versions/${id}/validation`),
