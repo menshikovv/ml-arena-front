@@ -786,30 +786,6 @@ function ContentSectionLegacy({ permissions, requestAction }) {
   const create = useMutation({ mutationFn: api.admin.createBlogPost, onSuccess: (post) => { queryClient.invalidateQueries({ queryKey: ["admin", "blog"] }); setCreating(false); setEditingId(post.id); toast({ title: "Черновик создан", description: "Добавьте обложку и подготовьте материал к проверке." }); }, onError: (error) => toast({ title: "Не удалось создать материал", description: error.message, variant: "destructive" }) });
   const rows = listRows(posts.data);
   const transition = (post, action, title, permission, options = {}) => requestAction({ title, description: `${post.title}. Сервер проверит допустимость перехода статуса и обязательные поля.`, confirm: title, danger: options.danger, reason: false, run: () => api.admin.blogPostAction(post.id, action, options.body), invalidate: ["admin", "blog"], disabled: !can(permissions, permission) });
-  const openPublishedForEditing = (post) => requestAction({
-    title: "Снять статью с публикации?",
-    description: `${post.title}. Статья временно исчезнет из публичного блога, перейдёт в черновик и откроется в редакторе. После изменений её нужно снова отправить на проверку и опубликовать.`,
-    confirm: "Снять и редактировать",
-    danger: true,
-    reason: false,
-    invalidate: ["admin", "blog"],
-    run: async () => {
-      await api.admin.blogPostAction(post.id, "archive");
-      await api.admin.blogPostAction(post.id, "return-to-draft");
-      setEditingId(post.id);
-    },
-  });
-  const openArchivedForEditing = (post) => requestAction({
-    title: "Вернуть статью в редактор?",
-    description: `${post.title}. Статья станет черновиком и откроется для изменения.`,
-    confirm: "Вернуть и редактировать",
-    reason: false,
-    invalidate: ["admin", "blog"],
-    run: async () => {
-      await api.admin.blogPostAction(post.id, "return-to-draft");
-      setEditingId(post.id);
-    },
-  });
   return (
     <>
       <SectionHeading title="Редакция блога" description="Черновики, проверка и публикация материалов с разделением редакторских прав." count={listTotal(posts.data)} action={can(permissions, "content.write") ? <Button onClick={() => setCreating(true)}><FileText size={16} /> Новый материал</Button> : null} />
@@ -867,6 +843,30 @@ function ContentSection({ permissions, requestAction }) {
   const directAction = useMutation({ mutationFn: ({ post, action }) => action === "delete" ? api.admin.deleteBlogPost(post.id) : api.admin.blogPostAction(post.id, action), onSuccess: (_, variables) => { queryClient.invalidateQueries({ queryKey: ["admin", "blog"] }); toast({ title: variables.action === "duplicate" ? "Создана копия-черновик" : "Черновик удалён" }); }, onError: (error) => toast({ title: "Операция отклонена", description: error.message, variant: "destructive" }) });
   const rows = listRows(posts.data);
   const transition = (post, action, title, permission, options = {}) => requestAction({ title, description: `${post.title}. Сервер проверит допустимость перехода статуса и обязательные поля.`, confirm: title, danger: options.danger, reason: false, run: () => api.admin.blogPostAction(post.id, action, options.body), invalidate: ["admin", "blog"], disabled: !can(permissions, permission) });
+  const openPublishedForEditing = (post) => requestAction({
+    title: "Снять статью с публикации?",
+    description: `${post.title}. Статья временно исчезнет из публичного блога, перейдёт в черновик и откроется в редакторе. После изменений её нужно снова отправить на проверку и опубликовать.`,
+    confirm: "Снять и редактировать",
+    danger: true,
+    reason: false,
+    invalidate: ["admin", "blog"],
+    run: async () => {
+      await api.admin.blogPostAction(post.id, "archive");
+      await api.admin.blogPostAction(post.id, "return-to-draft");
+      setEditingId(post.id);
+    },
+  });
+  const openArchivedForEditing = (post) => requestAction({
+    title: "Вернуть статью в редактор?",
+    description: `${post.title}. Статья станет черновиком и откроется для изменения.`,
+    confirm: "Вернуть и редактировать",
+    reason: false,
+    invalidate: ["admin", "blog"],
+    run: async () => {
+      await api.admin.blogPostAction(post.id, "return-to-draft");
+      setEditingId(post.id);
+    },
+  });
   const scheduled = () => { queryClient.invalidateQueries({ queryKey: ["admin", "blog"] }); setSchedulePost(null); toast({ title: "Публикация запланирована" }); };
   return <>
     <SectionHeading title="Редакция блога" description="Полный цикл материалов: справочники, черновики, версии, предпросмотр, аналитика и публикация." count={listTotal(posts.data)} action={can(permissions, "content.write") ? <div className="flex flex-wrap gap-2">{can(permissions, "content.media") && <Button variant="outline" onClick={() => setMediaOpen(true)}><ImageIcon size={16} /> Медиатека</Button>}<Button variant="outline" onClick={() => setTaxonomyOpen(true)}><Settings2 size={16} /> Категории и теги</Button><Button onClick={() => setCreating(true)}><FileText size={16} /> Новый материал</Button></div> : null} />
