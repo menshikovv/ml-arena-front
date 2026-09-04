@@ -1,5 +1,3 @@
-export const FOUNDER_TELEGRAM_URL = import.meta.env.VITE_FOUNDER_TELEGRAM_URL || "https://t.me/ml_arena";
-
 export const ML_INTERESTS = [
   "Tabular ML",
   "NLP",

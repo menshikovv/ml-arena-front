@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, uploadFile } from "@/api/mlArenaApi";
-import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 const PENDING_EMAIL_KEY = "ml-arena-pending-email";
 const AuthContext = createContext(null);
@@ -15,7 +14,7 @@ function mapUser(account = {}, profile = {}) {
     nickname: profile.user_name || profile.username || profile.nickname || account.nickname || account.username || account.email?.split("@")[0],
     first_name: firstName,
     last_name: lastName,
-    full_name: profile.full_name ?? profile.name ?? account.full_name ?? account.name ?? [firstName, lastName].filter(Boolean).join(" "),
+    full_name: [firstName, lastName].filter(Boolean).join(" "),
     education_status: profile.university || "",
     organization: profile.company || account.organization_name || "",
     account_status: account.status === "pending_email" ? "pending_verification" : account.status,
@@ -43,6 +42,8 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [pendingCredentials, setPendingCredentials] = useState(null);
+  const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
 
   const clearSession = useCallback(() => {
     setUser(null);
@@ -71,6 +72,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkUserAuth();
   }, [checkUserAuth]);
+
+  useEffect(() => {
+    let active = true;
+    api.public.config()
+      .then((settings) => { if (active) setAppPublicSettings(settings); })
+      .catch(() => { if (active) setAppPublicSettings(null); })
+      .finally(() => { if (active) setIsLoadingPublicSettings(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const handleExpired = () => clearSession();
@@ -186,11 +196,11 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     isLoadingAuth,
-    isLoadingPublicSettings: false,
+    isLoadingPublicSettings,
     authError,
     authChecked,
     pendingEmail: sessionStorage.getItem(PENDING_EMAIL_KEY),
-    appPublicSettings: { telegram_url: FOUNDER_TELEGRAM_URL },
+    appPublicSettings,
     register,
     login,
     logout,
@@ -204,7 +214,7 @@ export const AuthProvider = ({ children }) => {
     navigateToLogin,
     checkUserAuth,
     checkAppState,
-  }), [authChecked, authError, checkAppState, checkUserAuth, deleteAvatar, forgotPassword, isAuthenticated, isLoadingAuth, login, logout, navigateToLogin, register, resendVerification, resetPassword, updateAvatar, updateProfile, user, verifyEmail]);
+  }), [appPublicSettings, authChecked, authError, checkAppState, checkUserAuth, deleteAvatar, forgotPassword, isAuthenticated, isLoadingAuth, isLoadingPublicSettings, login, logout, navigateToLogin, register, resendVerification, resetPassword, updateAvatar, updateProfile, user, verifyEmail]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

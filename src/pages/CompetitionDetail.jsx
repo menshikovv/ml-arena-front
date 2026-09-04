@@ -598,7 +598,7 @@ function DiscussionTab({ discussions }) {
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{discussion.content}</p>
               <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
                 <span>{discussion.author_name}</span>
-                <span className="inline-flex items-center gap-1"><MessageSquare size={12} /> {discussion.comments_count || 0}</span>
+                <span className="inline-flex items-center gap-1"><MessageSquare size={12} /> {discussion.comments_count ?? "—"}</span>
               </div>
             </div>
           </article>

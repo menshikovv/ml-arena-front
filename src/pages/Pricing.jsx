@@ -102,7 +102,7 @@ const COACH_INSIGHTS = [
   {
     icon: CheckCircle2,
     title: "Что получилось",
-    text: "Результат выше вашего медианного результата по ранжированию. Эталон среднего уровня превышен на 3,8%.",
+    text: "ML Coach сопоставляет результат с доступной историей и эталоном задачи.",
     tone: "text-emerald-600 dark:text-emerald-400",
   },
   {
@@ -114,7 +114,7 @@ const COACH_INSIGHTS = [
   {
     icon: BarChart3,
     title: "Что изменилось",
-    text: "Это третий подтверждённый результат по ранжированию. Достаточность данных по направлению выросла.",
+    text: "ML Coach показывает, как новый подтверждённый результат меняет картину по направлению.",
     tone: "text-primary",
   },
   {
@@ -354,11 +354,8 @@ export default function Pricing() {
               <div><p className="font-heading text-lg font-extrabold">Еженедельный прогресс</p><p className="mt-1 text-xs text-muted-foreground">Обновлено сегодня</p></div>
               <CalendarCheck2 size={22} className="text-primary" />
             </div>
-            <div className="grid grid-cols-3 gap-2 py-5">
-              {[{ value: "+2", label: "подтверждения" }, { value: "+6%", label: "стабильность" }, { value: "3", label: "шага дальше" }].map((item) => <div key={item.label} className="bg-secondary/55 p-3 text-center"><p className="font-heading text-xl font-extrabold">{item.value}</p><p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">{item.label}</p></div>)}
-            </div>
-            <div className="space-y-4 border-t border-border pt-5">
-              {[{ label: "Табличные данные", value: 88 }, { label: "Ранжирование", value: 72 }, { label: "Временные ряды", value: 44 }].map((skill) => <div key={skill.label}><div className="mb-2 flex justify-between text-sm"><span className="font-semibold">{skill.label}</span><span className="text-muted-foreground">{skill.value}%</span></div><div className="h-2 overflow-hidden bg-secondary"><motion.div className="h-full bg-gradient-to-r from-primary to-accent" initial={reduceMotion ? false : { width: 0 }} whileInView={{ width: `${skill.value}%` }} viewport={{ once: true }} transition={{ duration: 0.7 }} /></div></div>)}
+            <div className="grid gap-3 py-5 sm:grid-cols-3">
+              {["Новые подтверждения", "Изменение стабильности", "Следующие шаги"].map((label) => <div key={label} className="bg-secondary/55 p-4"><CheckCircle2 size={17} className="text-primary" /><p className="mt-3 text-sm font-semibold">{label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Значение рассчитывается по данным вашего профиля.</p></div>)}
             </div>
             <div className="mt-6 flex items-start gap-3 border border-primary/15 bg-primary/5 p-4"><Target size={19} className="mt-0.5 shrink-0 text-primary" /><div><p className="text-sm font-bold">Рекомендуемый следующий шаг</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Закрепить временную валидацию в тренировочной задаче без влияния на рейтинг.</p></div></div>
           </div>

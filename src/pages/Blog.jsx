@@ -7,15 +7,17 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/api/mlArenaApi";
-import { formatBlogDate, getBlogCategory } from "@/lib/blog-data";
-import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
+import { formatBlogDate } from "@/lib/blog-data";
+import { useAuth } from "@/lib/AuthContext";
 
 const PAGE_SIZE = 6;
 
 function adaptPost(post) {
+  const category = post.category || post.primary_category || null;
   return {
     ...post,
-    category: post.category?.slug || post.primary_category?.slug || post.category_slug || "news",
+    categorySlug: category?.slug || post.category_slug || null,
+    categoryName: category?.name || post.category_name || null,
     tags: (post.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug).filter(Boolean),
     publishedAt: post.published_at || post.publishedAt,
     readingTime: post.reading_time_minutes ?? post.reading_time ?? post.readingTime ?? null,
@@ -38,14 +40,12 @@ function materialWord(count) {
 }
 
 function ArticleCard({ post }) {
-  const category = getBlogCategory(post.category);
-
   return (
     <Link to={`/blog/${post.slug}`} className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
       <BlogCover visual={post.visual} compact className="aspect-video shrink-0" />
       <div className="flex flex-1 flex-col p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="font-semibold text-primary">{category?.name}</span>
+          {post.categoryName && <span className="font-semibold text-primary">{post.categoryName}</span>}
           {post.readingTime != null && <span className="flex items-center gap-1.5 text-muted-foreground"><Clock3 size={13} /> {post.readingTime} мин</span>}
         </div>
         <h2 className="mt-4 line-clamp-3 font-heading text-xl font-extrabold leading-tight transition-colors group-hover:text-primary">{post.title}</h2>
@@ -60,6 +60,8 @@ function ArticleCard({ post }) {
 }
 
 export default function Blog() {
+  const { appPublicSettings } = useAuth();
+  const telegramUrl = appPublicSettings?.telegram_url;
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get("category") || "all";
   const activeCategory = categoryParam;
@@ -68,7 +70,7 @@ export default function Blog() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const postsQuery = useQuery({
     queryKey: ["blog-posts", activeCategory, queryParam, visibleCount],
-    queryFn: () => api.blog.posts({ category: activeCategory, q: queryParam.trim().length >= 2 ? queryParam.trim() : undefined, limit: Math.min(50, visibleCount + 1), offset: 0 }),
+    queryFn: () => api.blog.posts({ category: activeCategory === "all" ? undefined : activeCategory, q: queryParam.trim().length >= 2 ? queryParam.trim() : undefined, limit: Math.min(50, visibleCount + 1), offset: 0 }),
     staleTime: 30000,
   });
   const categoriesQuery = useQuery({ queryKey: ["blog-categories"], queryFn: api.blog.categories, staleTime: 300000 });
@@ -113,7 +115,7 @@ export default function Blog() {
   const normalizedQuery = normalize(queryParam);
   const filteredPosts = useMemo(() => posts
     .filter((post) => {
-      if (activeCategory !== "all" && post.category !== activeCategory) return false;
+      if (activeCategory !== "all" && post.categorySlug !== activeCategory) return false;
       if (normalizedQuery.length < 2) return true;
       const haystack = normalize([post.title, post.excerpt, ...post.tags].join(" "));
       return haystack.includes(normalizedQuery);
@@ -187,7 +189,7 @@ export default function Blog() {
               <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <span className="rounded-sm bg-primary/10 px-2.5 py-1.5 font-semibold text-primary">Главный материал</span>
-                  <span className="font-semibold text-muted-foreground">{getBlogCategory(featured.category)?.name}</span>
+                  {featured.categoryName && <span className="font-semibold text-muted-foreground">{featured.categoryName}</span>}
                 </div>
                 <h2 className="mt-6 font-heading text-3xl font-extrabold leading-tight transition-colors group-hover:text-primary sm:text-4xl">{featured.title}</h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground">{featured.excerpt}</p>
@@ -204,7 +206,7 @@ export default function Blog() {
         <section id="blog-results" className={`${showFeatured ? "mt-14 " : ""}scroll-mt-24`}>
           <Reveal className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="font-heading text-3xl font-extrabold">{normalizedQuery ? "Результаты поиска" : activeCategory === "all" ? "Последние материалы" : getBlogCategory(activeCategory)?.name}</h2>
+              <h2 className="font-heading text-3xl font-extrabold">{normalizedQuery ? "Результаты поиска" : activeCategory === "all" ? "Последние материалы" : categories.find((item) => item.slug === activeCategory)?.name || "Материалы"}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{filteredPosts.length} {materialWord(filteredPosts.length)}</p>
             </div>
             <div className="scrollbar-thin flex max-w-full gap-2 overflow-x-auto pb-1">
@@ -238,7 +240,7 @@ export default function Blog() {
             <p className="font-heading text-2xl font-extrabold sm:text-3xl">Активности Founder Season — в Telegram</p>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/75">Мини-задачи, быстрые разборы и анонсы первого соревнования выходят в официальном канале ML-Арены.</p>
           </div>
-          <Button asChild size="lg" variant="secondary" className="shrink-0"><a href={FOUNDER_TELEGRAM_URL} target="_blank" rel="noopener noreferrer"><Send size={17} /> Открыть Telegram</a></Button>
+          {telegramUrl && <Button asChild size="lg" variant="secondary" className="shrink-0"><a href={telegramUrl} target="_blank" rel="noopener noreferrer"><Send size={17} /> Открыть Telegram</a></Button>}
         </Reveal>
       </section>
     </div>

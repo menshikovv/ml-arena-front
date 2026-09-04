@@ -2,15 +2,16 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Loader2, Mail, Send, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { FOUNDER_TELEGRAM_URL, trackFounderEvent } from "@/lib/founder-season";
+import { trackFounderEvent } from "@/lib/founder-season";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 
 export default function FounderSeasonTelegramCard({ compact = false, embedded = false, pending = false }) {
-  const { isAuthenticated, user, resendVerification } = useAuth();
+  const { appPublicSettings, isAuthenticated, user, resendVerification } = useAuth();
   const location = useLocation();
   const pendingEmail = pending || (isAuthenticated && user?.account_status === "pending_verification");
-  const telegramAvailable = Boolean(FOUNDER_TELEGRAM_URL);
+  const telegramUrl = appPublicSettings?.telegram_url;
+  const telegramAvailable = Boolean(telegramUrl);
   const [resending, setResending] = useState(false);
 
   const openTelegram = () => {
@@ -67,7 +68,7 @@ export default function FounderSeasonTelegramCard({ compact = false, embedded = 
               </Button>
             ) : telegramAvailable ? (
               <Button asChild>
-                <a href={FOUNDER_TELEGRAM_URL} target="_blank" rel="noopener noreferrer" onClick={openTelegram}>
+                <a href={telegramUrl} target="_blank" rel="noopener noreferrer" onClick={openTelegram}>
                   <Send size={16} /> Перейти в Telegram
                 </a>
               </Button>
@@ -77,7 +78,7 @@ export default function FounderSeasonTelegramCard({ compact = false, embedded = 
 
             {(!isAuthenticated || pendingEmail) && telegramAvailable && (
               <Button asChild variant="outline">
-                <a href={FOUNDER_TELEGRAM_URL} target="_blank" rel="noopener noreferrer" onClick={openTelegram}>
+                <a href={telegramUrl} target="_blank" rel="noopener noreferrer" onClick={openTelegram}>
                   Telegram <ArrowRight size={15} />
                 </a>
               </Button>

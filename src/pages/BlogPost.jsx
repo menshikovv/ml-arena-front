@@ -9,14 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/api/mlArenaApi";
 import { API_URL } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
-import { formatBlogDate, getBlogCategory } from "@/lib/blog-data";
+import { formatBlogDate } from "@/lib/blog-data";
 
 function RelatedCard({ post }) {
   return (
     <Link to={`/blog/${post.slug}`} className="group grid overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
       <BlogCover visual={post.visual} compact className="aspect-[16/8]" />
       <div className="p-5">
-        <span className="text-xs font-semibold text-primary">{getBlogCategory(post.category)?.name}</span>
+        {post.categoryName && <span className="text-xs font-semibold text-primary">{post.categoryName}</span>}
         <h3 className="mt-3 line-clamp-3 font-heading text-lg font-extrabold leading-tight group-hover:text-primary">{post.title}</h3>
         <span className="mt-5 flex items-center gap-1.5 text-xs font-semibold text-primary">Читать <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" /></span>
       </div>
@@ -86,9 +86,11 @@ export default function BlogPost() {
   const [comment, setComment] = useState("");
   const postQuery = useQuery({ queryKey: ["blog-post", slug], queryFn: () => api.blog.post(slug), retry: false });
   const serverPost = postQuery.data;
+  const serverCategory = serverPost?.category || serverPost?.primary_category || null;
   const post = serverPost ? {
     ...serverPost,
-    category: serverPost.category?.slug || serverPost.primary_category?.slug || serverPost.category_slug || "news",
+    categorySlug: serverCategory?.slug || serverPost.category_slug || null,
+    categoryName: serverCategory?.name || serverPost.category_name || null,
     tags: (serverPost.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || tag.slug).filter(Boolean),
     publishedAt: serverPost.published_at || serverPost.publishedAt,
     readingTime: serverPost.reading_time_minutes ?? serverPost.reading_time ?? serverPost.readingTime ?? null,
@@ -96,7 +98,6 @@ export default function BlogPost() {
     visual: blogCoverVisual(serverPost),
     sections: [],
   } : null;
-  const category = post ? getBlogCategory(post.category) : null;
   const commentsQuery = useQuery({ queryKey: ["blog-comments", serverPost?.id], queryFn: () => api.blog.comments(serverPost.id), enabled: Boolean(serverPost?.id) });
   const comments = Array.isArray(commentsQuery.data) ? commentsQuery.data : commentsQuery.data?.items || [];
   const createComment = useMutation({
@@ -127,10 +128,11 @@ export default function BlogPost() {
       .filter((item) => item?.slug && item.slug !== post.slug)
       .map((item) => ({
         ...item,
-        category: item.category?.slug || item.primary_category?.slug || item.category_slug || "news",
+        categorySlug: item.category?.slug || item.primary_category?.slug || item.category_slug || null,
+        categoryName: item.category?.name || item.primary_category?.name || item.category_name || null,
         visual: blogCoverVisual(item),
       }))
-      .sort((a, b) => Number(b.category === post.category) - Number(a.category === post.category))
+      .sort((a, b) => Number(b.categorySlug === post.categorySlug) - Number(a.categorySlug === post.categorySlug))
       .slice(0, 3);
   }, [post, relatedQuery.data]);
 
@@ -222,11 +224,11 @@ export default function BlogPost() {
           <Reveal className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-14">
             <nav className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" aria-label="Хлебные крошки">
               <Link to="/blog" className="hover:text-primary">Блог</Link><span>/</span>
-              <Link to={`/blog?category=${post.category}`} className="hover:text-primary">{category?.name}</Link><span>/</span>
+              {post.categorySlug && post.categoryName && <><Link to={`/blog?category=${post.categorySlug}`} className="hover:text-primary">{post.categoryName}</Link><span>/</span></>}
               <span className="max-w-md truncate text-foreground">{post.title}</span>
             </nav>
             <div className="mt-8 max-w-4xl">
-              <span className="inline-flex rounded-sm bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{category?.name}</span>
+              {post.categoryName && <span className="inline-flex rounded-sm bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{post.categoryName}</span>}
               <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">{post.title}</h1>
               <p className="mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">{post.excerpt}</p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">

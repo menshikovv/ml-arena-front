@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -121,8 +121,9 @@ function TimerDisplay({ seconds, compact = false }) {
 }
 
 function getWinRate(opponent) {
-  const matches = Number(opponent.wins || 0) + Number(opponent.losses || 0);
-  return matches ? Math.round((Number(opponent.wins || 0) / matches) * 100) : null;
+  if (opponent.wins == null || opponent.losses == null) return null;
+  const matches = Number(opponent.wins) + Number(opponent.losses);
+  return matches ? Math.round((Number(opponent.wins) / matches) * 100) : null;
 }
 
 function getDuelDate(duel) {
@@ -324,7 +325,7 @@ function OpponentCard({ opponent, onChallenge, pending, currentRating }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{opponent.name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            {opponent.rating === null ? <span className="text-xs text-muted-foreground">Нет калибровки</span> : <><LeagueBadge rating={opponent.rating} size="sm" /><span className="text-xs text-muted-foreground">{opponent.rating} Elo</span></>}
+            {opponent.rating === null ? <span className="text-xs text-muted-foreground">Нет калибровки</span> : <LeagueBadge rating={opponent.rating} size="sm" />}
           </div>
         </div>
         <span className="text-xs font-medium text-muted-foreground">{winRate === null ? "—" : `${winRate}%`}</span>
@@ -763,7 +764,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{opponent.name}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      {opponent.rating === null ? <span className="text-xs text-muted-foreground">Рейтинг ещё не откалиброван</span> : <><LeagueBadge rating={opponent.rating} size="sm" /><span className="text-xs text-muted-foreground">{opponent.rating} очков{getWinRate(opponent) === null ? "" : ` · ${getWinRate(opponent)}% побед`}</span></>}
+                      {opponent.rating === null ? <span className="text-xs text-muted-foreground">Рейтинг ещё не откалиброван</span> : <><LeagueBadge rating={opponent.rating} size="sm" />{getWinRate(opponent) !== null && <span className="text-xs text-muted-foreground">{getWinRate(opponent)}% побед</span>}</>}
                     </div>
                   </div>
                 </div>
@@ -1101,8 +1102,8 @@ export default function Duels() {
         name: profile.user_name || profile.nickname,
         avatar: profile.avatar_url,
         rating: rating?.duel_rating ?? null,
-        wins: rating?.wins ?? 0,
-        losses: rating?.losses ?? 0,
+        wins: rating?.wins ?? null,
+        losses: rating?.losses ?? null,
         focus: Object.entries(profile.skills || {}).filter(([, value]) => value > 0).map(([key]) => key),
       };
     });

@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 
 const NAV_ITEMS = [
-  { to: "/competitions", label: "Соревнования", icon: Trophy },
-  { to: "/duels", label: "Дуэли", icon: Swords },
-  { to: "/rating", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing },
-  { to: "/ml-passport", label: "ML-паспорт", icon: UserRoundCheck },
+  { to: "/competitions", label: "Соревнования", icon: Trophy, feature: "competitions" },
+  { to: "/duels", label: "Дуэли", icon: Swords, feature: "duels" },
+  { to: "/rating", label: "Рейтинг", icon: ChartNoAxesColumnIncreasing, feature: "rating" },
+  { to: "/ml-passport", label: "ML-паспорт", icon: UserRoundCheck, feature: "ml_passport" },
   { to: "/blog", label: "Блог", icon: BookOpenText },
   { to: "/companies", label: "Компаниям", icon: BriefcaseBusiness },
   { to: "/support", label: "Поддержка", icon: LifeBuoy },
@@ -43,12 +43,13 @@ export default function AppLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { appPublicSettings, isAuthenticated, user, logout } = useAuth();
   const adminAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: user?.role === "admin", retry: false, staleTime: 60000 });
   const isSuperAdmin = adminAccess.data?.roles?.includes("super_admin");
+  const publicNavItems = NAV_ITEMS.filter((item) => !item.feature || appPublicSettings?.features?.[item.feature] === true);
   const navItems = user?.role === "admin"
-    ? [...NAV_ITEMS, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Админка", icon: ShieldCheck }]
-    : NAV_ITEMS;
+    ? [...publicNavItems, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Админка", icon: ShieldCheck }]
+    : publicNavItems;
   const isActive = (path) => {
     if (path === "/ml-passport") {
       return location.pathname === path

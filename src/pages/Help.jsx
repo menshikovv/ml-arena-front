@@ -28,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/AuthContext";
-import { FOUNDER_TELEGRAM_URL } from "@/lib/founder-season";
 
 const SUPPORT_EMAIL = "support@mlarena.ru";
 
@@ -259,7 +258,6 @@ const CONTACTS = [
   { title: "Поддержка", text: "Вопросы об аккаунте, сайте, результатах и работе платформы.", action: "Открыть поддержку", to: "/support", icon: LifeBuoy, tone: "bg-primary/10 text-primary" },
   { title: "Компаниям", text: "Корпоративные соревнования, поиск специалистов и совместные ML-проекты.", action: "Открыть страницу для компаний", to: "/companies", icon: BriefcaseBusiness, tone: "bg-[hsl(var(--chart-4)/0.14)] text-[hsl(var(--chart-4))]" },
   { title: "Написать на почту", text: "Прямая связь с командой ML-Арены для любых вопросов.", action: "Скопировать email", href: "mailto:support@mlarena.ru", icon: Mail, tone: "bg-green/10 text-green", copyEmail: "support@mlarena.ru" },
-  { title: "Telegram-канал", text: "Анонсы, обновления и новости платформы.", action: "Открыть в Telegram", href: FOUNDER_TELEGRAM_URL, icon: Send, tone: "bg-sky/10 text-sky", external: true },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -287,7 +285,10 @@ function scrollToSection(id) {
 }
 
 export default function Help({ embedded = false, contactsOnly = false }) {
-  const { isAuthenticated, user } = useAuth();
+  const { appPublicSettings, isAuthenticated, user } = useAuth();
+  const contacts = appPublicSettings?.telegram_url
+    ? [...CONTACTS, { title: "Telegram-канал", text: "Анонсы, обновления и новости платформы.", action: "Открыть в Telegram", href: appPublicSettings.telegram_url, icon: Send, tone: "bg-sky/10 text-sky", external: true }]
+    : CONTACTS;
   const location = useLocation();
   const initialCategory = new URLSearchParams(location.search).get("category") || "all";
   const initialSupportCategory = CATEGORY_OPTIONS.some(([value]) => value === initialCategory) ? initialCategory : "technical";
@@ -654,7 +655,7 @@ function ContactsSection({ standalone = false }) {
         </motion.div>
 
         <Stagger viewportReveal className="mt-8 grid max-w-5xl gap-4 md:grid-cols-2" delay={0.06} staggerChildren={0.08}>
-          {CONTACTS.map((contact) => {
+          {contacts.map((contact) => {
             const Icon = contact.icon;
             const isEmail = contact.copyEmail;
             const isExternal = contact.external;

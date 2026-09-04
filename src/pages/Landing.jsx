@@ -40,10 +40,10 @@ import ThemeToggle from "@/components/ml/ThemeToggle";
 import { api } from "@/api/mlArenaApi";
 
 const FEATURES = [
-  { icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: Классификация, Регрессия, NLP, Компьютерное зрение, Временные ряды, Ранжирование, Кластеризация, RecSys. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
-  { icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300" },
-  { icon: Medal, title: "Рейтинг и лиги", desc: "Единая система прогресса: соревнования, дуэли, сезоны и переходы из Бронзы к Платине.", color: "text-[hsl(var(--chart-5))] bg-[hsl(var(--chart-5)/0.16)]" },
-  { icon: Brain, title: "ML-паспорт", desc: "Рейтинг, бейджи, сильные стороны и подтверждённые результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
+  { feature: "competitions", icon: Trophy, title: "Соревнования", desc: "Открытые и закрытые ML-задачи: Классификация, Регрессия, NLP, Компьютерное зрение, Временные ряды, Ранжирование, Кластеризация, RecSys. Загружай решения и двигайся вверх по рейтингу.", color: "text-primary bg-primary/10" },
+  { feature: "duels", icon: Swords, title: "Дуэли 1x1", desc: "Быстрые сражения с таймером, отправкой решения и сравнением результата. Формат для практики, азарта и проверки себя.", color: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300" },
+  { feature: "rating", icon: Medal, title: "Рейтинг", desc: "Сезонная система прогресса по результатам соревнований и дуэлей.", color: "text-[hsl(var(--chart-5))] bg-[hsl(var(--chart-5)/0.16)]" },
+  { feature: "ml_passport", icon: Brain, title: "ML-паспорт", desc: "Рейтинг, бейджи, сильные стороны и подтверждённые результаты вместо пустых слов в резюме.", color: "text-[hsl(var(--chart-3))] bg-[hsl(var(--chart-3)/0.16)]" },
   { icon: Building2, title: "Компании", desc: "Инструмент для поиска начинающих ML/DS и AI-специалистов, которые уже показали практический результат.", color: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.16)]" },
   { icon: Zap, title: "Автопроверка", desc: "Отправка CSV, расчет результата, обновление рейтинга и понятная обратная связь по решению.", color: "text-primary bg-primary/10" },
 ];
@@ -367,15 +367,16 @@ function ArenaLogoMark({ className = "h-8 w-8" }) {
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, logout } = useAuth();
+  const { appPublicSettings, isAuthenticated, logout } = useAuth();
   const loginTarget = `/login${location.search}`;
   const primaryTarget = isAuthenticated ? "/profile" : loginTarget;
   const reduceMotion = useReducedMotion();
   const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
   const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
   const profileQuery = useQuery({ queryKey: ["profile", "me"], queryFn: api.profiles.me, enabled: isAuthenticated, staleTime: 30000 });
-  useQuery({ queryKey: ["public-config"], queryFn: api.public.config, staleTime: 300000 });
   useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
+  const enabledFeatures = appPublicSettings?.features || {};
+  const featureEnabled = (name) => enabledFeatures[name] === true;
   const previewEntries = leaderboardPreview.data?.items || leaderboardPreview.data?.rows || (Array.isArray(leaderboardPreview.data) ? leaderboardPreview.data : []);
   const landingStats = [
     { value: publicStats.data?.users ?? "—", label: "участников", icon: Users },
@@ -404,14 +405,14 @@ export default function Landing() {
           </Link>
           <nav className="hidden items-center gap-6 xl:flex">
             {[
-              ["/competitions", "Соревнования"],
-              ["/duels", "Дуэли"],
-              ["/rating", "Рейтинг"],
-              ["/ml-passport", "ML-паспорт"],
+              ["/competitions", "Соревнования", "competitions"],
+              ["/duels", "Дуэли", "duels"],
+              ["/rating", "Рейтинг", "rating"],
+              ["/ml-passport", "ML-паспорт", "ml_passport"],
               ["/blog", "Блог"],
               ["/companies", "Компаниям"],
               ["/support", "Поддержка"],
-            ].map(([to, label]) => (
+            ].filter(([, , feature]) => !feature || featureEnabled(feature)).map(([to, label]) => (
               <Link
                 key={to}
                 to={to}
@@ -473,14 +474,14 @@ export default function Landing() {
             </div>
             <nav className="flex flex-col gap-2">
               {[
-                ["/competitions", "Соревнования"],
-                ["/duels", "Дуэли"],
-                ["/rating", "Рейтинг"],
-                ["/ml-passport", "ML-паспорт"],
+                ["/competitions", "Соревнования", "competitions"],
+                ["/duels", "Дуэли", "duels"],
+                ["/rating", "Рейтинг", "rating"],
+                ["/ml-passport", "ML-паспорт", "ml_passport"],
                 ["/blog", "Блог"],
                 ["/companies", "Компаниям"],
                 ["/support", "Поддержка"],
-              ].map(([to, label]) => (
+              ].filter(([, , feature]) => !feature || featureEnabled(feature)).map(([to, label]) => (
                 <Link
                   key={to}
                   to={to}
@@ -717,7 +718,7 @@ export default function Landing() {
             desc="Практика, соревнование и карьерный профиль связаны между собой, поэтому каждый результат работает дальше."
           />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((feature, index) => (
+            {FEATURES.filter((feature) => !feature.feature || featureEnabled(feature.feature)).map((feature, index) => (
               <motion.div
                 key={feature.title}
                 initial="hidden"
@@ -846,15 +847,15 @@ export default function Landing() {
 
           <nav aria-label="Навигация в подвале" className="grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-4">
             {[
-              { title: "Платформа", links: [["/competitions", "Соревнования"], ["/duels", "Дуэли"], ["/rating", "Рейтинг"]] },
-              { title: "Материалы", links: [["/blog", "Блог"], ["/ml-passport", "ML-паспорт"], ["/support", "Частые вопросы"]] },
+              { title: "Платформа", links: [["/competitions", "Соревнования", "competitions"], ["/duels", "Дуэли", "duels"], ["/rating", "Рейтинг", "rating"]] },
+              { title: "Материалы", links: [["/blog", "Блог"], ["/ml-passport", "ML-паспорт", "ml_passport"], ["/support", "Частые вопросы"]] },
               { title: "Компаниям", links: [["/companies", "Решения для компаний"], ["/companies#cooperation-form", "Обсудить сотрудничество"]] },
               { title: "Поддержка", links: [["/support", "Помощь и FAQ"], ["/login", "Войти"]] },
             ].map((group) => (
               <div key={group.title}>
                 <p className="font-heading text-sm font-bold text-foreground">{group.title}</p>
                 <div className="mt-4 flex flex-col items-start gap-3">
-                  {group.links.map(([to, label]) => <Link key={`${group.title}-${to}`} to={to} className="text-sm text-muted-foreground transition-colors hover:text-primary">{label}</Link>)}
+                  {group.links.filter(([, , feature]) => !feature || featureEnabled(feature)).map(([to, label]) => <Link key={`${group.title}-${to}`} to={to} className="text-sm text-muted-foreground transition-colors hover:text-primary">{label}</Link>)}
                 </div>
               </div>
             ))}

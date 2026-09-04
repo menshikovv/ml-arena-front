@@ -21,7 +21,6 @@ export default function CompanyDashboard() {
     prize_fund: 0, deadline: "", rules: "",
   });
   const [skillFilter, setSkillFilter] = useState("all");
-  const [leagueFilter, setLeagueFilter] = useState("all");
   const [inviteModal, setInviteModal] = useState(null);
   const [inviteMsg, setInviteMsg] = useState("");
   const queryClient = useQueryClient();
@@ -44,18 +43,12 @@ export default function CompanyDashboard() {
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
     return profiles.filter((p) => {
-      if (leagueFilter !== "all") {
-        if (leagueFilter === "bronze" && p.rating >= 1100) return false;
-        if (leagueFilter === "silver" && (p.rating < 1100 || p.rating >= 1300)) return false;
-        if (leagueFilter === "gold" && (p.rating < 1300 || p.rating >= 1500)) return false;
-        if (leagueFilter === "platinum" && p.rating < 1500) return false;
-      }
       if (skillFilter !== "all") {
         if (!(Number(p.skills?.[skillFilter]) > 0)) return false;
       }
       return true;
     });
-  }, [profiles, skillFilter, leagueFilter]);
+  }, [profiles, skillFilter]);
 
   const handleCreate = async () => {
     if (!form.task_version_id || !form.title || !form.description || !form.deadline) {
@@ -173,13 +166,6 @@ export default function CompanyDashboard() {
             <option value="nlp">NLP</option>
             <option value="cv">CV</option>
             <option value="tabular">Табличные</option>
-          </select>
-          <select value={leagueFilter} onChange={(e) => setLeagueFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs">
-            <option value="all">Все лиги</option>
-            <option value="bronze">Бронза</option>
-            <option value="silver">Серебро</option>
-            <option value="gold">Золото</option>
-            <option value="platinum">Платина</option>
           </select>
         </div>
       </Reveal>

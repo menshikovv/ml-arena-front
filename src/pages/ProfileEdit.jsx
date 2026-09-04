@@ -36,21 +36,15 @@ const SECTIONS = [
   { id: "profile-visibility", label: "Видимость", icon: ShieldCheck },
 ];
 
-const splitFullName = (fullName = "") => {
-  const [firstName = "", ...lastNameParts] = fullName.trim().split(/\s+/).filter(Boolean);
-  return { first_name: firstName, last_name: lastNameParts.join(" ") };
-};
-
 export default function ProfileEdit() {
   const { user, updateProfile, updateAvatar, deleteAvatar } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
   const initial = useMemo(() => {
-    const fallbackName = splitFullName(user?.full_name);
     return {
       nickname: user?.nickname || "",
-      first_name: user?.first_name ?? fallbackName.first_name,
-      last_name: user?.last_name ?? fallbackName.last_name,
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
       city: user?.city || "",
       education_status: user?.education_status || "",
       organization: user?.organization || "",
