@@ -625,6 +625,7 @@ function BlogEditDialog({ postId, onClose, categories, tags, onSaved }) {
       queryClient.invalidateQueries({ queryKey: ["admin", "blog"] });
       toast({ title: "Черновик сохранён" });
       onSaved?.();
+      onClose();
     },
     onError: (error) => toast({ title: "Не удалось сохранить", description: error.message, variant: "destructive" }),
   });
