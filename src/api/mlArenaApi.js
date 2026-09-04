@@ -65,7 +65,7 @@ export const api = {
     leave: (id) => apiData(`/api/v1/competitions/${id}/participation/me`, { method: "DELETE" }),
     files: (id) => apiData(`/api/v1/competitions/${id}/files`),
     fileUrl: (competitionId, fileId) => apiData(`/api/v1/competitions/${competitionId}/files/${fileId}/download-url`, { method: "POST" }),
-    leaderboard: (id, params) => apiData(`/api/v1/competitions/${id}/leaderboard${queryString(params)}`, {}, { auth: false }),
+    leaderboard: (id, params) => apiData(`/api/v1/competitions/${id}/leaderboard${queryString(params)}`),
     submissions: (id, params) => apiRequest(`/api/v1/competitions/${id}/submissions/me${queryString(params)}`),
     submit: (id, uploadId, datasetVersionId) => apiData(`/api/v1/competitions/${id}/submissions`, { method: "POST", body: json({ upload_id: uploadId, dataset_version_id: datasetVersionId }) }),
     bySlug: (slug) => apiData(`/api/v1/competitions/by-slug/${encodeURIComponent(slug)}`),
@@ -80,7 +80,7 @@ export const api = {
     global: (params) => apiData(`/api/v1/leaderboard${queryString(params)}`, {}, { auth: false }),
   },
   rating: {
-    get: (params) => apiData(`/api/v1/rating${queryString(params)}`, {}, { auth: false }),
+    get: (params) => apiData(`/api/v1/rating${queryString(params)}`),
     seasons: () => apiData("/api/v1/rating/seasons", {}, { auth: false }),
     methodology: (params) => apiData(`/api/v1/rating/methodology${queryString(params)}`, {}, { auth: false }),
   },

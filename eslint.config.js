@@ -35,6 +35,7 @@ export default [
       "unused-imports": pluginUnusedImports,
     },
     rules: {
+      "no-undef": "error",
       "no-unused-vars": "off",
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "error",
@@ -55,6 +56,20 @@ export default [
         { ignore: ["cmdk-input-wrapper", "toast-close"] },
       ],
       "react-hooks/rules-of-hooks": "error",
+    },
+  },
+  {
+    files: ["src/api/**/*.js", "src/lib/**/*.{js,mjs,cjs,jsx}"],
+    languageOptions: {
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    rules: {
+      "no-undef": "error",
     },
   },
 ];

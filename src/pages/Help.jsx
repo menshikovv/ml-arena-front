@@ -375,7 +375,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
     return (
       <div className="min-h-full bg-background text-foreground">
         {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
-        <main><ContactsSection standalone /></main>
+        <main><ContactsSection contacts={contacts} standalone /></main>
       </div>
     );
   }
@@ -594,7 +594,7 @@ function Field({ label, htmlFor, className = "", children }) {
   return <div className={`space-y-2 ${className}`}><Label htmlFor={htmlFor}>{label}</Label>{children}</div>;
 }
 
-function ContactsSection({ standalone = false }) {
+function ContactsSection({ contacts, standalone = false }) {
   const Heading = standalone ? "h1" : "h2";
   const [copiedEmail, setCopiedEmail] = useState(null);
 

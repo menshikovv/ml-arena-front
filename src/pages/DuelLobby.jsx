@@ -280,7 +280,7 @@ function SubmissionUploader({ duel, currentUserId, locked, onFinished }) {
     <section className="border-t border-border pt-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl font-bold">{overtime ? "Дозагрузить решение" : "Загрузить решение"}</h2>
+          <h2 className="font-heading text-xl font-bold">Загрузить решение</h2>
         </div>
         <span className="text-xs text-muted-foreground">CSV · до 10 МБ</span>
       </div>

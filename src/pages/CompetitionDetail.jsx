@@ -68,8 +68,9 @@ function getStatus(competition) {
 }
 
 function getDeadlineLabel(competition) {
-  if (!competition.deadline) return "Дата уточняется";
-  const date = new Date(competition.deadline);
+  const deadline = competition.submission_deadline || competition.deadline;
+  if (!deadline) return "Дата уточняется";
+  const date = new Date(deadline);
   const days = Math.max(0, Math.ceil((date.getTime() - Date.now()) / 86400000));
   return `${days} ${pluralize(days, "день", "дня", "дней")} · до ${date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`;
 }
@@ -257,13 +258,12 @@ function DataTab({ competition, locked }) {
       {error && <p className="my-5 border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error.message}</p>}
       <div className="grid gap-3 py-5 md:grid-cols-2">
         {files.map((file) => {
-          const Icon = file.kind === "sample_submission" ? FileCheck2 : file.kind === "baseline" ? FileCode2 : Database;
+          const Icon = file.kind === "statement_attachment" ? FileCheck2 : file.kind === "baseline" ? FileCode2 : Database;
           const filename = file.file?.original_filename || file.kind;
           const description = {
-            train: "Признаки и целевая переменная",
-            test: "Признаки без ответов",
-            sample_submission: "Обязательный шаблон ответа",
+            participant_bundle: "ZIP с train.csv, test.csv и sample_submission.csv",
             baseline: "Стартовое решение",
+            statement_attachment: "Материал условия",
           }[file.kind] || "Файл соревнования";
           return (
             <div key={file.id} className="flex min-h-32 flex-col justify-between border border-border bg-card p-4">
@@ -614,8 +614,9 @@ function ParticipationPanel({ competition, participation, status, joined, onJoin
   const rank = participation?.public_rank;
   const attemptsLeft = participation?.attempts_left_today;
   const isCommunity = competition.origin === "community";
-  const restricted = competition.is_private || competition.access_type === "invite_only" || competition.access_type === "application";
-  const joinLabel = competition.access_type === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться";
+  const access = competition.access || competition.access_type;
+  const restricted = competition.is_private || access === "invite_only" || access === "application";
+  const joinLabel = access === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться";
 
   return (
     <aside className="border-y border-border bg-card p-5 lg:sticky lg:top-5">
@@ -770,7 +771,8 @@ export default function CompetitionDetail() {
   const status = getStatus(competition);
   const isCommunity = competition.origin === "community";
   const prize = formatPrize(competition);
-  const restricted = competition.is_private || competition.access_type === "invite_only" || competition.access_type === "application";
+  const access = competition.access || competition.access_type;
+  const restricted = competition.is_private || access === "invite_only" || access === "application";
   const locked = ["upcoming", "finished", "finalizing"].includes(status) || (restricted && !joined);
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
 
@@ -816,7 +818,7 @@ export default function CompetitionDetail() {
                 </span>
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{TASK_TYPE_LABELS[competition.task_type]}</span>
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{competition.difficulty || "Не указана"}</span>
-                {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {competition.access_type === "application" ? "По заявке" : "По приглашению"}</span>}
+                {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {access === "application" ? "По заявке" : "По приглашению"}</span>}
               </div>
               <h1 className="mt-5 max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.description}</p>
@@ -848,7 +850,7 @@ export default function CompetitionDetail() {
       <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_310px]">
         <main className="min-w-0">
           {activeTab === "overview" && <OverviewTab competition={competition} />}
-          {activeTab === "data" && <DataTab competition={competition} locked={status === "upcoming" || !joined} />}
+          {activeTab === "data" && <DataTab competition={competition} locked={status === "upcoming"} />}
           {activeTab === "submit" && (
             <SubmitTab
               competition={competition}
@@ -883,7 +885,7 @@ export default function CompetitionDetail() {
         {!joined && status === "active" ? (
           <Button className="w-full" onClick={join}>
             {restricted ? <Lock size={15} /> : <Trophy size={15} />}
-            {competition.access_type === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться"}
+            {access === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться"}
           </Button>
         ) : status === "active" ? (
           <Button className="w-full" onClick={() => navigate(`/competitions/${id}/submit`)}><Upload size={15} /> Загрузить CSV</Button>

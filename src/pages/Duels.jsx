@@ -520,7 +520,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
           <div>
             <h2 className="font-heading text-xl font-bold md:text-2xl">Выбери направление</h2>
           </div>
-          <span className="hidden text-xs text-muted-foreground md:block">Рейтинг соперника: ±200 очков</span>
+          <span className="hidden text-xs text-muted-foreground md:block">Диапазон подбора расширяет сервер</span>
         </div>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4" role="radiogroup" aria-label="Направление дуэли">
           {Object.entries(TASKS).map(([key, task]) => (
@@ -584,7 +584,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
               </motion.div>
             ) : (
               <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-xs text-muted-foreground">
-                Для рейтинговой дуэли разница рейтинга должна быть не больше 200 очков.
+                Доступность вызова и допустимую разницу рейтинга проверяет сервер.
               </motion.p>
             )}
           </AnimatePresence>
