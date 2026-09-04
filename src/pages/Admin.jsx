@@ -786,6 +786,30 @@ function ContentSectionLegacy({ permissions, requestAction }) {
   const create = useMutation({ mutationFn: api.admin.createBlogPost, onSuccess: (post) => { queryClient.invalidateQueries({ queryKey: ["admin", "blog"] }); setCreating(false); setEditingId(post.id); toast({ title: "Черновик создан", description: "Добавьте обложку и подготовьте материал к проверке." }); }, onError: (error) => toast({ title: "Не удалось создать материал", description: error.message, variant: "destructive" }) });
   const rows = listRows(posts.data);
   const transition = (post, action, title, permission, options = {}) => requestAction({ title, description: `${post.title}. Сервер проверит допустимость перехода статуса и обязательные поля.`, confirm: title, danger: options.danger, reason: false, run: () => api.admin.blogPostAction(post.id, action, options.body), invalidate: ["admin", "blog"], disabled: !can(permissions, permission) });
+  const openPublishedForEditing = (post) => requestAction({
+    title: "Снять статью с публикации?",
+    description: `${post.title}. Статья временно исчезнет из публичного блога, перейдёт в черновик и откроется в редакторе. После изменений её нужно снова отправить на проверку и опубликовать.`,
+    confirm: "Снять и редактировать",
+    danger: true,
+    reason: false,
+    invalidate: ["admin", "blog"],
+    run: async () => {
+      await api.admin.blogPostAction(post.id, "archive");
+      await api.admin.blogPostAction(post.id, "return-to-draft");
+      setEditingId(post.id);
+    },
+  });
+  const openArchivedForEditing = (post) => requestAction({
+    title: "Вернуть статью в редактор?",
+    description: `${post.title}. Статья станет черновиком и откроется для изменения.`,
+    confirm: "Вернуть и редактировать",
+    reason: false,
+    invalidate: ["admin", "blog"],
+    run: async () => {
+      await api.admin.blogPostAction(post.id, "return-to-draft");
+      setEditingId(post.id);
+    },
+  });
   return (
     <>
       <SectionHeading title="Редакция блога" description="Черновики, проверка и публикация материалов с разделением редакторских прав." count={listTotal(posts.data)} action={can(permissions, "content.write") ? <Button onClick={() => setCreating(true)}><FileText size={16} /> Новый материал</Button> : null} />
@@ -850,12 +874,13 @@ function ContentSection({ permissions, requestAction }) {
     <TableShell loading={posts.isLoading} error={posts.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((post) => <article key={post.id} className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center"><div><div className="flex flex-wrap gap-2"><Status value={post.status} />{post.featured && <span className="border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary">Главная</span>}</div><h3 className="mt-3 font-heading text-lg font-bold">{post.title}</h3><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{post.excerpt}</p><p className="mt-3 text-xs text-muted-foreground">Версия {post.version ?? "—"} · обновлено {formatDate(post.updated_at)}</p></div><ActionMenu>
       <ActionButton onClick={() => setInsightsPost(post)}><Gauge size={13} /> Предпросмотр и метрики</ActionButton>
       {["draft", "review"].includes(post.status) && can(permissions, "content.write") && <ActionButton onClick={() => setEditingId(post.id)}><Pencil size={13} /> Редактировать</ActionButton>}
+      {post.status === "published" && can(permissions, "content.write") && can(permissions, "content.publish") && <ActionButton onClick={() => openPublishedForEditing(post)}><Pencil size={13} /> Снять и редактировать</ActionButton>}
       {can(permissions, "content.write") && <ActionButton onClick={() => directAction.mutate({ post, action: "duplicate" })}><Copy size={13} /> Дублировать</ActionButton>}
       {post.status === "draft" && can(permissions, "content.review") && <ActionButton tone="primary" onClick={() => transition(post, "review", "Отправить на проверку", "content.review")}><ClipboardCheck size={13} /> На проверку</ActionButton>}
       {post.status === "review" && can(permissions, "content.publish") && <><ActionButton tone="primary" onClick={() => transition(post, "publish", "Опубликовать", "content.publish")}><Play size={13} /> Опубликовать</ActionButton><ActionButton onClick={() => setSchedulePost(post)}><FileClock size={13} /> Запланировать</ActionButton></>}
       {post.status === "review" && can(permissions, "content.review") && <ActionButton onClick={() => transition(post, "return-to-draft", "Вернуть в черновики", "content.review")}><RefreshCw size={13} /> Вернуть</ActionButton>}
-      {post.status === "archived" && can(permissions, "content.publish") && <ActionButton onClick={() => transition(post, "return-to-draft", "Вернуть в черновики", "content.publish")}><RefreshCw size={13} /> Вернуть в работу</ActionButton>}
-      {["published", "scheduled"].includes(post.status) && can(permissions, "content.publish") && <ActionButton tone="danger" onClick={() => transition(post, "archive", "Архивировать материал", "content.publish", { danger: true })}><Archive size={13} /> В архив</ActionButton>}
+      {post.status === "archived" && can(permissions, "content.write") && can(permissions, "content.publish") && <ActionButton onClick={() => openArchivedForEditing(post)}><RefreshCw size={13} /> Вернуть и редактировать</ActionButton>}
+      {post.status === "published" && can(permissions, "content.publish") && <ActionButton tone="danger" onClick={() => transition(post, "archive", "Архивировать материал", "content.publish", { danger: true })}><Archive size={13} /> В архив</ActionButton>}
       {post.status === "draft" && can(permissions, "content.write") && <ActionButton tone="danger" onClick={() => directAction.mutate({ post, action: "delete" })}><Trash2 size={13} /> Удалить черновик</ActionButton>}
     </ActionMenu></article>)}</div></TableShell>
     <BlogCreateDialog open={creating} onClose={() => setCreating(false)} categories={categories.data || []} pending={create.isPending} onSubmit={(form) => create.mutate(form)} />
