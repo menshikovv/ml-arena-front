@@ -5,7 +5,6 @@ import { Link, useParams } from "react-router-dom";
 import { Award, BadgeCheck, BriefcaseBusiness, CheckCircle2, Crown, Flame, Github, GraduationCap, History, Link as LinkIcon, Loader2, MapPin, Medal, Sparkles, Star, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
-import LeagueBadge from "@/components/ml/LeagueBadge";
 import { PageFrame } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
@@ -154,7 +153,6 @@ export default function Profile() {
         <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
           <Avatar name={displayName} src={profile.avatar_url} size={128} className="shrink-0 ring-8 ring-card shadow-lg" />
           <div className="min-w-0">
-            <LeagueBadge rating={profile.rating} size="lg" />
             <h1 className="mt-3 break-words font-heading text-3xl font-extrabold leading-tight [overflow-wrap:anywhere] sm:text-4xl">{displayName}</h1>
             {fullName && profile.user_name && <p className="mt-1 text-sm text-muted-foreground">@{profile.user_name}</p>}
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{profile.bio || "Описание профиля пока не заполнено."}</p>
@@ -163,6 +161,16 @@ export default function Profile() {
         </div>
         {isOwner && <Button asChild variant="outline" className="shrink-0 self-start lg:self-auto"><Link to="/profile/edit">Редактировать профиль</Link></Button>}
       </header>
+      <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5 border-b border-border py-7">
+        <div className="flex min-w-0 items-center gap-5 sm:gap-7">
+          <span aria-hidden="true" className="h-14 w-1 shrink-0 rounded-full bg-primary" />
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground">Рейтинг профиля</p>
+            <p className="mt-2 font-heading text-4xl font-extrabold tabular-nums leading-none sm:text-5xl">{profile.rating != null && Number.isFinite(Number(profile.rating)) ? Number(profile.rating).toLocaleString("ru-RU") : "—"}</p>
+          </div>
+        </div>
+        {overall?.rank != null && <div className="sm:text-right"><p className="text-xs text-muted-foreground">Место в текущем сезоне</p><p className="mt-2 font-heading text-2xl font-extrabold tabular-nums">#{overall.rank}</p></div>}
+      </div>
     </Reveal>
 
     <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.score ?? overall?.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status || "Завершённые матчи"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
