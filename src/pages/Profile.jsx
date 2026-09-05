@@ -86,14 +86,20 @@ function BadgeCard({ grant }) {
   const awardedDate = awardedAt ? new Date(awardedAt) : null;
 
   return (
-    <article className="group flex min-h-56 flex-col border border-border bg-card p-5 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <span className={cn("flex h-12 w-12 items-center justify-center border", colorClass)}><Icon size={22} /></span>
-        {grant?.status === "active" && <span className="border border-primary/20 bg-primary/5 px-2 py-1 text-[10px] font-semibold text-primary">Активен</span>}
+    <article className="group relative flex min-h-[340px] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card p-6 text-center transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl motion-reduce:transform-none">
+      <div className="flex min-h-5 items-center justify-between gap-3 text-[10px] font-semibold text-muted-foreground">
+        <span>ML-АРЕНА</span>
+        {grant?.status === "active" && <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Получен</span>}
       </div>
-      <h3 className="mt-5 font-heading text-xl font-extrabold leading-tight">{badge.name || badge.title || "Бейдж"}</h3>
-      {badge.description && <p className="mt-2 text-sm leading-6 text-muted-foreground">{badge.description}</p>}
-      {awardedDate && !Number.isNaN(awardedDate.getTime()) && <p className="mt-auto pt-5 text-xs text-muted-foreground">Получен {awardedDate.toLocaleDateString("ru-RU")}</p>}
+      <div aria-hidden="true" className={cn("relative mx-auto mb-3 mt-7 flex h-32 w-32 shrink-0 items-center justify-center rounded-full border-2 shadow-[inset_0_2px_0_rgb(255_255_255/0.5),0_8px_20px_rgb(0_0_0/0.06)] transition-transform duration-500 group-hover:-rotate-6 motion-reduce:transform-none", colorClass)}>
+        <span className="absolute inset-2 rounded-full border border-current opacity-25" />
+        <span className="absolute inset-4 rounded-full border border-dashed border-current opacity-20" />
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-card/70 shadow-sm"><Icon size={34} strokeWidth={1.5} /></span>
+        <span className="absolute -bottom-2 flex h-7 w-7 items-center justify-center rotate-45 rounded-sm border border-current bg-card"><Star size={13} className="-rotate-45 fill-current" /></span>
+      </div>
+      <h3 className="mt-6 break-words font-heading text-xl font-extrabold leading-snug [overflow-wrap:anywhere]">{badge.name || badge.title || "Бейдж"}</h3>
+      {badge.description && <p className="mx-auto mt-3 max-w-sm break-words text-sm leading-6 text-muted-foreground">{badge.description}</p>}
+      {awardedDate && !Number.isNaN(awardedDate.getTime()) && <div className="mt-auto pt-6"><p className="border-t border-border pt-4 text-xs text-muted-foreground">Получен <time dateTime={awardedDate.toISOString()} className="font-semibold text-foreground">{awardedDate.toLocaleDateString("ru-RU")}</time></p></div>}
     </article>
   );
 }
