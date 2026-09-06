@@ -31,6 +31,16 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
+function PricingReveal({ children, className, index = 0 }) {
+  const reduceMotion = useReducedMotion();
+  return <motion.div className={className}
+    initial={reduceMotion ? false : { opacity: 0, y: 26 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, amount: 0.1 }}
+    transition={{ duration: reduceMotion ? 0 : 0.65, delay: reduceMotion ? 0 : Math.min(index, 3) * 0.08, ease: [0.22, 1, 0.36, 1] }}
+  >{children}</motion.div>;
+}
+
 const FEATURES = [
   {
     icon: BrainCircuit,
@@ -294,10 +304,10 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal id="premium-includes" className="mt-16" delay={0.07}>
+      <Reveal id="premium-includes" className="mt-16" delay={0.07} viewportReveal>
         <section>
           <SectionTitle title="Персональный слой развития" description="Каждая функция отвечает на один вопрос: что делать дальше, чтобы подтверждённый уровень действительно рос." />
-          <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" viewportReveal>
             {FEATURES.map((feature, index) => (
               <StaggerItem key={feature.title} className={cn("h-full", index === 0 && "lg:col-span-2")}>
                 <article className="group relative h-full overflow-hidden border border-border bg-card p-5 shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 sm:p-6">
@@ -324,12 +334,12 @@ export default function Pricing() {
             <p className="mt-5 flex gap-2 text-sm leading-6 text-muted-foreground"><LockKeyhole size={17} className="mt-0.5 shrink-0 text-primary" />Он не придумывает причины ошибок и не создаёт неподтверждённые факты в ML-паспорте.</p>
           </div>
           <div className="grid gap-px border border-border bg-border sm:grid-cols-2">
-            {COACH_INSIGHTS.map((insight) => (
-              <div key={insight.title} className="bg-card p-5 sm:p-6">
+            {COACH_INSIGHTS.map((insight, index) => (
+              <PricingReveal key={insight.title} index={index} className="bg-card p-5 sm:p-6">
                 <insight.icon size={20} className={insight.tone} />
                 <h3 className="mt-5 font-heading text-lg font-extrabold">{insight.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{insight.text}</p>
-              </div>
+              </PricingReveal>
             ))}
           </div>
         </section>
@@ -341,15 +351,15 @@ export default function Pricing() {
             <SectionTitle title="План, который меняется вместе с результатами" description="Не бесконечная лента рекомендаций, а несколько приоритетных действий, пересчитанных после значимых новых подтверждений." />
             <div className="space-y-3">
               {DEVELOPMENT_STEPS.map((step, index) => (
-                <div key={step.title} className="grid grid-cols-[42px_minmax(0,1fr)] gap-4 border border-border bg-card p-4 transition-colors hover:border-primary/30 sm:p-5">
+                <PricingReveal key={step.title} index={index} className="grid grid-cols-[42px_minmax(0,1fr)] gap-4 border border-border bg-card p-4 transition-colors hover:border-primary/30 sm:p-5">
                   <span className="flex h-10 w-10 items-center justify-center border border-primary/15 bg-primary/10 font-heading text-sm font-extrabold text-primary">{String(index + 1).padStart(2, "0")}</span>
                   <div><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-heading font-extrabold">{step.title}</h3><span className="text-xs font-semibold text-primary">{step.status}</span></div><p className="mt-2 text-sm leading-6 text-muted-foreground">{step.description}</p></div>
-                </div>
+                </PricingReveal>
               ))}
             </div>
           </div>
 
-          <div className="border border-border bg-card p-5 shadow-sm sm:p-7">
+          <PricingReveal className="border border-border bg-card p-5 shadow-sm sm:p-7">
             <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
               <div><p className="font-heading text-lg font-extrabold">Еженедельный прогресс</p><p className="mt-1 text-xs text-muted-foreground">Обновлено сегодня</p></div>
               <CalendarCheck2 size={22} className="text-primary" />
@@ -358,24 +368,24 @@ export default function Pricing() {
               {["Новые подтверждения", "Изменение стабильности", "Следующие шаги"].map((label) => <div key={label} className="bg-secondary/55 p-4"><CheckCircle2 size={17} className="text-primary" /><p className="mt-3 text-sm font-semibold">{label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Значение рассчитывается по данным вашего профиля.</p></div>)}
             </div>
             <div className="mt-6 flex items-start gap-3 border border-primary/15 bg-primary/5 p-4"><Target size={19} className="mt-0.5 shrink-0 text-primary" /><div><p className="text-sm font-bold">Рекомендуемый следующий шаг</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Закрепить временную валидацию в тренировочной задаче без влияния на рейтинг.</p></div></div>
-          </div>
+          </PricingReveal>
         </section>
       </Reveal>
 
       <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="grid gap-4 lg:grid-cols-3">
-          <article className="border border-border bg-card p-6 lg:col-span-2">
+          <PricingReveal className="border border-border bg-card p-6 lg:col-span-2">
             <FlaskConical size={24} className="text-primary" />
             <h2 className="mt-6 font-heading text-3xl font-extrabold">Продолжайте практику после рейтинговой попытки</h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">Рейтинговый результат фиксируется, а дальше можно открыть тренировочный режим: проверить гипотезы, использовать подсказки и изучить разбор организатора.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">{["Рейтинг больше не меняется", "Подсказки открываются поэтапно", "Следующая задача подбирается по направлению"].map((item) => <div key={item} className="border-t-2 border-primary bg-secondary/40 p-4 text-sm font-semibold leading-6">{item}</div>)}</div>
-          </article>
-          <article className="border border-border bg-foreground p-6 text-background dark:bg-primary dark:text-primary-foreground">
+          </PricingReveal>
+          <PricingReveal index={1} className="border border-border bg-foreground p-6 text-background dark:bg-primary dark:text-primary-foreground">
             <FileText size={24} />
             <h3 className="mt-6 font-heading text-2xl font-extrabold">1 экспертный разбор в месяц</h3>
             <p className="mt-4 text-sm leading-6 opacity-75">Письменный разбор одного выбранного результата с конкретными рекомендациями. Формат и срок видны до отправки.</p>
             <div className="mt-7 border-t border-current/20 pt-5 text-sm font-semibold">Разбор не превращается в преимущество в рейтинге.</div>
-          </article>
+          </PricingReveal>
         </section>
       </Reveal>
 
@@ -396,14 +406,14 @@ export default function Pricing() {
               const open = openFaq === index;
               const answerId = `pricing-faq-${index}`;
               return (
-                <div key={item.question} className="border-b border-border">
+                <PricingReveal key={item.question} index={index} className="border-b border-border">
                   <button type="button" aria-expanded={open} aria-controls={answerId} onClick={() => setOpenFaq(open ? -1 : index)} className="flex w-full items-center justify-between gap-5 py-5 text-left font-heading text-base font-extrabold hover:text-primary sm:text-lg">
                     {item.question}<ChevronDown size={19} className={cn("shrink-0 transition-transform duration-200", open && "rotate-180 text-primary")} />
                   </button>
                   <AnimatePresence initial={false}>
                     {open && <motion.div id={answerId} initial={reduceMotion ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduceMotion ? undefined : { height: 0, opacity: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden"><p className="max-w-3xl pb-5 text-sm leading-6 text-muted-foreground">{item.answer}</p></motion.div>}
                   </AnimatePresence>
-                </div>
+                </PricingReveal>
               );
             })}
           </div>
