@@ -78,7 +78,7 @@ export default function Competitions() {
   const [accessFilter, setAccessFilter] = useState("all");
   const [sort, setSort] = useState("deadline");
   const [requestOpen, setRequestOpen] = useState(false);
-  const [requestForm, setRequestForm] = useState({ company: "", name: "", contact: "", prize: "", description: "" });
+  const [requestForm, setRequestForm] = useState({ company: "", name: "", contact: "", description: "" });
 
   useEffect(() => {
     if (!requestOpen) return undefined;
@@ -141,14 +141,14 @@ export default function Competitions() {
       email: requestForm.contact.trim().toLowerCase(),
       role: null,
       goal: "competition",
-      comment: `${requestForm.description.trim()}${requestForm.prize.trim() ? `\nПризовой фонд: ${requestForm.prize.trim()}` : ""}`,
+      comment: requestForm.description.trim(),
       consent_privacy: true,
       consent_marketing: false,
     }),
     onSuccess: () => {
       toast.success("Заявка отправлена команде ML-Арены");
       setRequestOpen(false);
-      setRequestForm({ company: "", name: "", contact: "", prize: "", description: "" });
+      setRequestForm({ company: "", name: "", contact: "", description: "" });
     },
     onError: (error) => toast.error(error.message || "Не удалось отправить заявку"),
   });
@@ -273,34 +273,28 @@ export default function Competitions() {
       </section>
 
       <Reveal className="mt-12" delay={0.08}>
-        <section className="grid gap-px border border-border bg-border md:grid-cols-3">
-          {FAIRNESS.map((item) => (
-            <article key={item.title} className="bg-card p-6">
-              <item.icon size={21} className="text-primary" />
-              <h3 className="mt-5 font-heading text-lg font-extrabold">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p>
-            </article>
-          ))}
+        <section className="grid gap-8 border-t border-border py-8 lg:grid-cols-[1fr_1.4fr] lg:gap-12">
+          <div><p className="text-xs font-semibold text-primary">Условия участия</p><h2 className="mt-3 font-heading text-2xl font-extrabold">Сильнее решение.<br />Выше результат.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Одинаковые возможности для участников на каждом этапе соревнования.</p></div>
+          <div className="divide-y divide-border">{FAIRNESS.map((item, index) => <article key={item.title} className="flex gap-5 py-5 first:pt-0 last:pb-0"><span aria-hidden="true" className="pt-1 font-mono text-sm text-primary/60">0{index + 1}</span><div><h3 className="font-heading text-base font-bold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p></div></article>)}</div>
         </section>
       </Reveal>
 
       <AnimatePresence>
         {requestOpen && (
           <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget) setRequestOpen(false); }}>
-            <motion.div role="dialog" aria-modal="true" aria-labelledby="competition-request-title" className="w-full max-w-xl overflow-hidden border border-border bg-card shadow-2xl" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }}>
-              <div className="flex items-start justify-between gap-5 border-b border-border px-5 py-5 md:px-6">
-                <div className="flex gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary/10 text-primary"><Building2 size={19} /></span><div><h2 id="competition-request-title" className="font-heading text-xl font-extrabold">Провести соревнование с ML-Ареной</h2><p className="mt-1 text-sm leading-5 text-muted-foreground">Расскажите о задаче, и команда свяжется с вами.</p></div></div>
+            <motion.div role="dialog" aria-modal="true" aria-labelledby="competition-request-title" className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-lg border border-border bg-card shadow-2xl" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }}>
+              <div className="flex items-start justify-between gap-5 border-b border-border bg-secondary/40 px-5 py-6 sm:px-8 sm:py-8">
+                <div><p className="mb-3 text-xs font-semibold text-primary">Компаниям и организаторам</p><h2 id="competition-request-title" className="font-heading text-2xl font-extrabold leading-snug">Провести соревнование с ML-Ареной</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">Расскажите о задаче, и команда свяжется с вами.</p></div>
                 <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setRequestOpen(false)} aria-label="Закрыть форму"><X size={17} /></Button>
               </div>
-              <form className="space-y-4 px-5 py-5 md:px-6" onSubmit={submitRequest}>
-                <div className="grid gap-4 sm:grid-cols-2">
+              <form className="space-y-6 px-5 py-6 sm:px-8 sm:py-7 [&_input]:h-11 [&_input]:rounded-md [&_input]:bg-secondary/20 [&_input]:font-normal [&_input]:shadow-none" onSubmit={submitRequest}>
+                <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Компания или проект"><Input required value={requestForm.company} onChange={(event) => setRequestForm({ ...requestForm, company: event.target.value })} placeholder="Название компании" /></Field>
                   <Field label="Ваше имя"><Input required value={requestForm.name} onChange={(event) => setRequestForm({ ...requestForm, name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
-                  <Field label="Email"><Input required type="email" value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" /></Field>
-                  <Field label="Призовой фонд"><Input value={requestForm.prize} onChange={(event) => setRequestForm({ ...requestForm, prize: event.target.value })} placeholder="Например, 300 000 ₽" /></Field>
                 </div>
-                <Field label="Кратко о задаче"><Textarea required rows={4} value={requestForm.description} onChange={(event) => setRequestForm({ ...requestForm, description: event.target.value })} placeholder="Что нужно решить и какой результат вы ожидаете" /></Field>
-                <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => setRequestOpen(false)}>Отмена</Button><Button type="submit" disabled={requestMutation.isPending}>{requestMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Отправить заявку</Button></div>
+                <Field label="Email для связи"><Input required type="email" autoComplete="email" value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" /></Field>
+                <Field label="Кратко о задаче"><Textarea required rows={5} className="min-h-32 resize-y rounded-md bg-secondary/20 p-3 font-normal leading-6 shadow-none" value={requestForm.description} onChange={(event) => setRequestForm({ ...requestForm, description: event.target.value })} placeholder="Что нужно решить и какой результат вы ожидаете" /></Field>
+                <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end"><Button type="button" variant="ghost" onClick={() => setRequestOpen(false)}>Отмена</Button><Button type="submit" className="min-h-11 px-6" disabled={requestMutation.isPending}>{requestMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Отправить заявку</Button></div>
               </form>
             </motion.div>
           </motion.div>

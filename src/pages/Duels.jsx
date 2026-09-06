@@ -623,18 +623,20 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
         <RecentDuels duels={duels} isLoading={isLoading} />
       </section>
 
-      <Stagger className="grid border-t border-border py-9 sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
+      <section className="border-t border-border py-9">
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-primary">От старта до результата</p><h2 className="mt-2 font-heading text-2xl font-extrabold">Один матч. Равные условия.</h2></div><Button variant="ghost" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
+      <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
         {RULES.map((rule, index) => {
-          const Icon = rule.icon;
           return (
-            <StaggerItem key={rule.title} className={cn("p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
-              <Icon size={20} className="text-primary" />
-              <h3 className="mt-4 font-heading text-base font-bold">{rule.title}</h3>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">{rule.text}</p>
+            <StaggerItem key={rule.title} className="min-w-0">
+              <div aria-hidden="true" className="flex items-center gap-3"><span className="font-mono text-xs font-semibold text-primary">0{index + 1}</span><span className="h-px flex-1 bg-border" /></div>
+              <h3 className={cn("mt-4 font-heading text-xl font-bold", index === 0 && "text-primary")}>{rule.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{rule.text}</p>
             </StaggerItem>
           );
         })}
       </Stagger>
+      </section>
 
       <DuelGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>

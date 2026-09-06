@@ -48,7 +48,9 @@ export default function AppLayout({ children }) {
   const isSuperAdmin = adminAccess.data?.roles?.includes("super_admin");
   const publicNavItems = NAV_ITEMS.filter((item) => !item.feature || appPublicSettings?.features?.[item.feature] === true);
   const navItems = user?.role === "admin"
-    ? [...publicNavItems, ...(isSuperAdmin ? [{ to: "/pricing", label: "Тарифы", icon: Crown }] : []), { to: "/admin", label: "Админка", icon: ShieldCheck }]
+    ? [...publicNavItems.flatMap((item) => item.to === "/support" && isSuperAdmin
+      ? [{ to: "/pricing", label: "Тарифы", icon: Crown }, item]
+      : [item]), { to: "/admin", label: "Админка", icon: ShieldCheck }]
     : publicNavItems;
   const isActive = (path) => {
     if (path === "/ml-passport") {
