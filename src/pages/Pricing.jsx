@@ -422,7 +422,7 @@ export default function Pricing() {
 
       <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
         <section className="flex flex-col gap-7 border-t border-border bg-foreground px-6 py-9 text-background sm:px-8 lg:flex-row lg:items-center lg:justify-between dark:bg-card dark:text-foreground">
-          <div><p className="flex items-center gap-2 text-sm font-bold text-accent"><Sparkles size={17} /> ML-Арена Premium</p><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">{monthlyPlan ? `От ${Math.round(Number(monthlyPlan.amount) / 100).toLocaleString("ru-RU")} ${monthlyPlan.currency === "RUB" ? "₽" : monthlyPlan.currency} в месяц.` : "Стоимость пока не опубликована."}</p></div>
+          <div><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">{monthlyPlan ? `От ${Math.round(Number(monthlyPlan.amount) / 100).toLocaleString("ru-RU")} ${monthlyPlan.currency === "RUB" ? "₽" : monthlyPlan.currency} в месяц.` : "Стоимость пока не опубликована."}</p></div>
           <Button size="lg" variant="secondary" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
         </section>
       </Reveal>

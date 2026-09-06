@@ -624,7 +624,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
       </section>
 
       <section className="border-t border-border py-9">
-      <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-primary">От старта до результата</p><h2 className="mt-2 font-heading text-2xl font-extrabold">Один матч. Равные условия.</h2></div><Button variant="ghost" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><h2 className="mt-2 font-heading text-2xl font-extrabold">Один матч. Равные условия.</h2></div><Button variant="ghost" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
       <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
         {RULES.map((rule, index) => {
           return (

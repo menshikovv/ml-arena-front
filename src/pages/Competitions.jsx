@@ -274,7 +274,7 @@ export default function Competitions() {
 
       <Reveal className="mt-12" delay={0.08}>
         <section className="grid gap-8 border-t border-border py-8 lg:grid-cols-[1fr_1.4fr] lg:gap-12">
-          <div><p className="text-xs font-semibold text-primary">Условия участия</p><h2 className="mt-3 font-heading text-2xl font-extrabold">Сильнее решение.<br />Выше результат.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Одинаковые возможности для участников на каждом этапе соревнования.</p></div>
+          <div><h2 className="mt-3 font-heading text-2xl font-extrabold">Сильнее решение.<br />Выше результат.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Одинаковые возможности для участников на каждом этапе соревнования.</p></div>
           <div className="divide-y divide-border">{FAIRNESS.map((item, index) => <article key={item.title} className="flex gap-5 py-5 first:pt-0 last:pb-0"><span aria-hidden="true" className="pt-1 font-mono text-sm text-primary/60">0{index + 1}</span><div><h3 className="font-heading text-base font-bold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p></div></article>)}</div>
         </section>
       </Reveal>
