@@ -4,9 +4,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import {
   Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CalendarClock, CheckCircle2, CircleAlert,
   ClipboardCheck, Database, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
-  Award, Bold, Copy, EyeOff, Heading1, Heading2, Heading3, ImageIcon, Italic, Link2, List, ListOrdered, LockKeyhole, Newspaper, Pause, Pencil, Play, Plus, Quote, RefreshCw, RotateCcw,
+  Award, Bold, Copy, Crown, EyeOff, Flame, Heading1, Heading2, Heading3, ImageIcon, Italic, Link2, List, ListOrdered, LockKeyhole, Medal, Newspaper, Pause, Pencil, Play, Plus, Quote, RefreshCw, RotateCcw,
   Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Strikethrough, Trash2,
-  Trophy, Undo2, Upload, UserCheck, Users, X,
+  Sparkles, Star, Swords, Target, Trophy, Undo2, Upload, UserCheck, Users, X,
 } from "lucide-react";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,22 @@ const STATUS_LABELS = {
   escalated: "Передана выше", resolved: "Решена", rejected: "Отклонена", failed: "Ошибка",
   disqualified: "Дисквалифицирована", scored: "Оценена", queued: "В очереди", validating: "Проверяется",
 };
+
+const BADGE_EDITOR_ICONS = [
+  ["award", "Награда", Award], ["badge_check", "Знак", BadgeCheck], ["crown", "Корона", Crown],
+  ["flame", "Серия", Flame], ["medal", "Медаль", Medal], ["sparkles", "Особое", Sparkles],
+  ["star", "Звезда", Star], ["swords", "Дуэль", Swords], ["target", "Цель", Target], ["trophy", "Кубок", Trophy],
+];
+
+const BADGE_EDITOR_COLORS = [
+  ["blue-500", "Синий", "bg-blue-500", "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300"],
+  ["cyan-500", "Бирюзовый", "bg-cyan-500", "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300"],
+  ["emerald-500", "Зелёный", "bg-emerald-500", "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"],
+  ["amber-500", "Золотой", "bg-amber-500", "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300"],
+  ["orange-500", "Оранжевый", "bg-orange-500", "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-300"],
+  ["rose-500", "Красный", "bg-rose-500", "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300"],
+  ["violet-500", "Фиолетовый", "bg-violet-500", "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-300"],
+];
 
 const SECTIONS = [
   { id: "dashboard", label: "Обзор", icon: LayoutDashboard, permission: "admin.dashboard.read" },
@@ -914,8 +930,9 @@ function resourceDefaults(type, item, mode) {
   };
   if (type === "datasets") return {
     name: item?.name || "", source_type: item?.source_type || "uploaded", owner_organization_id: item?.owner_organization_id || "",
-    schema_json: JSON.stringify(version.schema_json || version.schema_data || {}, null, 2), row_count: version.row_count ?? "",
-    checksum_sha256: version.checksum_sha256 || "", release_notes: "",
+    id_column: version.id_column || "id", checksum_sha256: version.checksum_sha256 || "",
+    generator_config: JSON.stringify(version.generator_config || null, null, 2), generator_seed: version.generator_seed ?? "",
+    generator_version: version.generator_version || "", release_notes: "",
   };
   if (type === "tasks") return {
     slug: item?.slug || "", owner_organization_id: item?.owner_organization_id || "", source_type: item?.source_type || "manual",
@@ -955,8 +972,10 @@ function resourcePayload(type, form, mode) {
   }
   if (type === "datasets") {
     if (mode === "version") return {
-      schema_json: jsonValue(form.schema_json, {}), row_count: form.row_count === "" ? null : Number(form.row_count),
-      checksum_sha256: form.checksum_sha256 || null, release_notes: form.release_notes || null,
+      id_column: form.id_column.trim(), checksum_sha256: form.checksum_sha256 || null,
+      generator_config: jsonValue(form.generator_config, null),
+      generator_seed: form.generator_seed === "" ? null : Number(form.generator_seed),
+      generator_version: form.generator_version || null, release_notes: form.release_notes || null,
     };
     if (mode === "edit") return { name: form.name };
     return { name: form.name, source_type: form.source_type, owner_organization_id: form.owner_organization_id || null };
@@ -999,6 +1018,26 @@ function AdminSelect({ value, onChange, options, disabled = false }) {
   return <select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} className="h-10 w-full border border-border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">{options.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>;
 }
 
+function BadgeEditorFields({ mode, form, update, input }) {
+  const selectedIcon = BADGE_EDITOR_ICONS.find(([key]) => key === form.icon_key) || BADGE_EDITOR_ICONS[0];
+  const selectedColor = BADGE_EDITOR_COLORS.find(([key]) => key === form.color_token) || BADGE_EDITOR_COLORS[0];
+  const PreviewIcon = selectedIcon[2];
+  return <div className="grid gap-6">
+    <div className="grid gap-5 sm:grid-cols-2">
+      {mode === "create" && <AdminField label="Код"><Input value={form.code} onChange={(event) => update("code", event.target.value.toLowerCase())} placeholder="first_duel" className={input} /></AdminField>}
+      <AdminField label="Название"><Input value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="Первая победа" className={input} /></AdminField>
+      <AdminField label="Описание" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} placeholder="За какое достижение участник получает этот бейдж" className="min-h-24 rounded-none" /></AdminField>
+    </div>
+    <div className="grid gap-6 border-t border-border pt-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(240px,.75fr)]">
+      <div className="space-y-7">
+        <fieldset><legend className="mb-3 text-sm font-semibold">Иконка</legend><div className="grid grid-cols-5 gap-2">{BADGE_EDITOR_ICONS.map(([key, label, Icon]) => <button key={key} type="button" title={label} aria-label={label} aria-pressed={form.icon_key === key} onClick={() => update("icon_key", key)} className={cn("flex aspect-square min-h-12 items-center justify-center border transition-[color,border-color,background-color,transform] hover:-translate-y-0.5", form.icon_key === key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-primary")}><Icon size={21} /></button>)}</div></fieldset>
+        <fieldset><legend className="mb-3 text-sm font-semibold">Цвет награды</legend><div className="flex flex-wrap gap-3">{BADGE_EDITOR_COLORS.map(([key, label, swatch]) => <button key={key} type="button" title={label} aria-label={label} aria-pressed={form.color_token === key} onClick={() => update("color_token", key)} className={cn("flex h-10 w-10 items-center justify-center rounded-full border-2 transition-transform hover:scale-105", form.color_token === key ? "border-foreground" : "border-transparent")}><span className={cn("h-7 w-7 rounded-full shadow-sm", swatch)} /></button>)}</div></fieldset>
+      </div>
+      <div className="rounded-lg border border-border bg-secondary/30 p-5 text-center"><p className="text-[10px] font-semibold text-muted-foreground">ПРЕДПРОСМОТР</p><div className={cn("relative mx-auto mt-6 flex h-32 w-32 items-center justify-center rounded-full border-2 shadow-[inset_0_2px_0_rgb(255_255_255/0.5),0_12px_28px_rgb(0_0_0/0.08)]", selectedColor[3])}><span className="absolute inset-2 rounded-full border border-current opacity-25" /><span className="absolute inset-4 rounded-full border border-dashed border-current opacity-20" /><span className="flex h-16 w-16 items-center justify-center rounded-full bg-card/75 shadow-sm"><PreviewIcon size={34} strokeWidth={1.5} /></span><span className="absolute -bottom-2 flex h-7 w-7 rotate-45 items-center justify-center rounded-sm border border-current bg-card"><Star size={13} className="-rotate-45 fill-current" /></span></div><h3 className="mt-7 break-words font-heading text-xl font-extrabold leading-snug">{form.name.trim() || "Название бейджа"}</h3><p className="mt-2 break-words text-xs leading-5 text-muted-foreground">{form.description.trim() || "Описание достижения появится здесь."}</p></div>
+    </div>
+  </div>;
+}
+
 function ResourceFields({ type, mode, form, update, organizationOptions = [], metricOptions = [], datasetOptions = [] }) {
   const input = "h-10 rounded-none bg-background";
   if (type === "metrics") return <div className="grid gap-5 sm:grid-cols-2">
@@ -1011,20 +1050,14 @@ function ResourceFields({ type, mode, form, update, organizationOptions = [], me
   if (type === "datasets") return <div className="grid gap-5 sm:grid-cols-2">
     {mode !== "version" && <AdminField label="Название" wide><Input value={form.name} onChange={(event) => update("name", event.target.value)} className={input} /></AdminField>}
     {mode === "create" && <><AdminField label="Источник"><AdminSelect value={form.source_type} onChange={(value) => update("source_type", value)} options={[["uploaded", "Загруженный"], ["synthetic", "Синтетический"]]} /></AdminField><AdminField label="Владелец"><AdminSelect value={form.owner_organization_id} onChange={(value) => update("owner_organization_id", value)} options={[["", "Платформа ML-Арена"], ...organizationOptions.map((item) => [item.id, item.label])]} /></AdminField></>}
-    {mode === "version" && <><AdminField label="Количество строк"><Input type="number" min="0" value={form.row_count} onChange={(event) => update("row_count", event.target.value)} className={input} /></AdminField><AdminField label="Контрольная сумма"><Input value={form.checksum_sha256} onChange={(event) => update("checksum_sha256", event.target.value)} className={input} /></AdminField><AdminField label="Схема (JSON)" wide><Textarea value={form.schema_json} onChange={(event) => update("schema_json", event.target.value)} className="min-h-44 rounded-none font-mono text-xs" /></AdminField><AdminField label="Описание версии" wide><Textarea value={form.release_notes} onChange={(event) => update("release_notes", event.target.value)} className="min-h-20 rounded-none" /></AdminField></>}
+    {mode === "version" && <><AdminField label="ID-колонка"><Input required maxLength={128} value={form.id_column} onChange={(event) => update("id_column", event.target.value)} placeholder="id" className={input} /></AdminField><AdminField label="Контрольная сумма SHA-256"><Input maxLength={64} value={form.checksum_sha256} onChange={(event) => update("checksum_sha256", event.target.value)} placeholder="Необязательно" className={input} /></AdminField><AdminField label="Версия генератора"><Input value={form.generator_version} onChange={(event) => update("generator_version", event.target.value)} placeholder="Только для synthetic" className={input} /></AdminField><AdminField label="Seed генератора"><Input type="number" value={form.generator_seed} onChange={(event) => update("generator_seed", event.target.value)} placeholder="Необязательно" className={input} /></AdminField><AdminField label="Конфигурация генератора (JSON)" wide><Textarea value={form.generator_config} onChange={(event) => update("generator_config", event.target.value)} className="min-h-28 rounded-none font-mono text-xs" /></AdminField><AdminField label="Описание версии" wide><Textarea maxLength={10000} value={form.release_notes} onChange={(event) => update("release_notes", event.target.value)} className="min-h-20 rounded-none" /></AdminField></>}
   </div>;
   if (type === "tasks") return <div className="grid gap-5 sm:grid-cols-2">
     {mode !== "version" && <AdminField label="Slug" wide><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase())} placeholder="customer-churn" className={input} /></AdminField>}
     {mode === "create" && <><AdminField label="Источник"><AdminSelect value={form.source_type} onChange={(value) => update("source_type", value)} options={[["manual", "Ручная"], ["synthetic", "Синтетическая"], ["competition_archive", "Архив соревнования"]]} /></AdminField><AdminField label="Владелец"><AdminSelect value={form.owner_organization_id} onChange={(value) => update("owner_organization_id", value)} options={[["", "Платформа ML-Арена"], ...organizationOptions.map((item) => [item.id, item.label])]} /></AdminField></>}
     {mode !== "edit" && <><AdminField label="Название" wide><Input value={form.title} onChange={(event) => update("title", event.target.value)} className={input} /></AdminField><AdminField label="Краткое описание" wide><Input value={form.short_description} onChange={(event) => update("short_description", event.target.value)} className={input} /></AdminField><AdminField label="Постановка" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Тип задачи"><AdminSelect value={form.task_type} onChange={(value) => update("task_type", value)} options={TASK_TYPE_OPTIONS} /></AdminField><AdminField label="Сложность"><Input value={form.difficulty} onChange={(event) => update("difficulty", event.target.value)} className={input} /></AdminField><AdminField label="Версия метрики"><select value={form.metric_version_id} onChange={(event) => update("metric_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите метрику</option>{metricOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></AdminField><AdminField label="Версия датасета"><select value={form.dataset_version_id} onChange={(event) => update("dataset_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите датасет</option>{datasetOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></AdminField><AdminField label="Целевая колонка"><Input value={form.target_column} onChange={(event) => update("target_column", event.target.value)} placeholder="target" className={input} /></AdminField><AdminField label="Колонка прогноза"><Input value={form.prediction_column} onChange={(event) => update("prediction_column", event.target.value)} placeholder="prediction" className={input} /></AdminField><AdminField label="Колонка группировки"><Input value={form.group_column} onChange={(event) => update("group_column", event.target.value)} placeholder="Только для ranking" className={input} /></AdminField><AdminField label="Формат решения"><AdminSelect value={form.submission_type} onChange={(value) => update("submission_type", value)} options={[["predictions_csv", "CSV с предсказаниями"], ["source_code", "Исходный код"]]} /></AdminField><AdminField label="Проверка"><AdminSelect value={form.evaluation_type} onChange={(value) => update("evaluation_type", value)} options={[["metric", "Метрика"], ["test_cases", "Тесты"], ["custom", "Своя"]]} /></AdminField><AdminField label="Правила" wide><Textarea value={form.rules} onChange={(event) => update("rules", event.target.value)} className="min-h-28 rounded-none" /></AdminField></>}
   </div>;
-  if (type === "badges") return <div className="grid gap-5 sm:grid-cols-2">
-    {mode === "create" && <AdminField label="Код"><Input value={form.code} onChange={(event) => update("code", event.target.value.toLowerCase())} placeholder="first_duel" className={input} /></AdminField>}
-    <AdminField label="Название"><Input value={form.name} onChange={(event) => update("name", event.target.value)} className={input} /></AdminField>
-    <AdminField label="Описание" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-24 rounded-none" /></AdminField>
-    <AdminField label="Ключ иконки"><Input value={form.icon_key} onChange={(event) => update("icon_key", event.target.value)} placeholder="award" className={input} /></AdminField>
-    <AdminField label="Цвет"><Input value={form.color_token} onChange={(event) => update("color_token", event.target.value)} placeholder="blue-500" className={input} /></AdminField>
-  </div>;
+  if (type === "badges") return <BadgeEditorFields mode={mode} form={form} update={update} input={input} />;
   if (type === "plans") return <div className="grid gap-5 sm:grid-cols-2">
     {mode === "create" && <AdminField label="Код"><Input value={form.code} onChange={(event) => update("code", event.target.value.toLowerCase())} placeholder="premium_monthly" className={input} /></AdminField>}
     <AdminField label="Название"><Input value={form.name} onChange={(event) => update("name", event.target.value)} className={input} /></AdminField>
@@ -1066,6 +1099,9 @@ function ResourceEditorDialog({ editor, onClose, onSaved }) {
     setPending(true);
     setError("");
     try {
+      if (editor.type === "datasets" && editor.mode === "version" && !form.id_column.trim()) {
+        throw new Error("Укажите ID-колонку датасета.");
+      }
       if (editor.type === "tasks" && editor.mode !== "edit" && !form.metric_version_id) {
         throw new Error("Выберите версию метрики. Если список пуст, сначала создайте метрику и её версию.");
       }

@@ -19,6 +19,10 @@ const DIRECTIONS = [
 const list = (value) => Array.isArray(value) ? value : value?.items || value?.data || [];
 const currentRating = (value) => value?.current_user || value?.currentUser || null;
 const shown = (value) => value === undefined || value === null ? "—" : value;
+const INTEREST_LABELS = {
+  classification: "Классификация", regression: "Регрессия", nlp: "NLP", computer_vision: "Компьютерное зрение",
+  time_series: "Временные ряды", ranking: "Ранжирование", clustering: "Кластеризация", recsys: "RecSys",
+};
 
 const BADGE_ICONS = {
   award: Award,
@@ -142,6 +146,13 @@ export default function Profile() {
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
+  const passportTabs = [
+    ["directions", "Направления", Target],
+    ["rating", "Рейтинг", Trophy],
+    ["practice", "Практика", Swords],
+    ["badges", "Бейджи", Award],
+    ...(isOwner ? [["career", "Личные данные", UserRoundSearch]] : []),
+  ];
 
   if (profileQuery.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
   if (!profile) return <div className="py-20 text-center text-muted-foreground">ML-паспорт не найден</div>;
@@ -157,6 +168,7 @@ export default function Profile() {
             {fullName && profile.user_name && <p className="mt-1 text-sm text-muted-foreground">@{profile.user_name}</p>}
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{profile.bio || "Описание профиля пока не заполнено."}</p>
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">{profile.city && <span className="flex items-center gap-1.5"><MapPin size={13} />{profile.city}</span>}{profile.university && <span className="flex items-center gap-1.5"><GraduationCap size={13} />{profile.university}</span>}{profile.company && <span className="flex items-center gap-1.5"><BriefcaseBusiness size={13} />{profile.company}</span>}{profile.github_url && <a href={profile.github_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary"><Github size={13} />GitHub</a>}{profile.kaggle_url && <a href={profile.kaggle_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary"><LinkIcon size={13} />Kaggle</a>}</div>
+            {profile.interests?.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{profile.interests.map((interest) => <span key={interest} className="rounded-full border border-primary/20 bg-primary/[0.06] px-3 py-1.5 text-xs font-semibold text-primary">{INTEREST_LABELS[interest] || interest}</span>)}</div>}
           </div>
         </div>
         {isOwner && <Button asChild variant="outline" className="shrink-0 self-start lg:self-auto"><Link to="/profile/edit">Редактировать профиль</Link></Button>}
@@ -176,7 +188,7 @@ export default function Profile() {
     <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.score ?? overall?.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status || "Завершённые матчи"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
 
     <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="mt-8">
-      <Tabs.List className="flex overflow-x-auto border border-border bg-card p-1" aria-label="Разделы ML-паспорта">{[["directions", "Направления", Target], ["rating", "Рейтинг", Trophy], ["practice", "Практика", Swords], ["badges", "Бейджи", Award], ["career", "Профиль", UserRoundSearch]].map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="flex min-h-11 min-w-36 flex-1 items-center justify-center gap-2 px-4 text-sm font-semibold text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Icon size={16} />{label}</Tabs.Trigger>)}</Tabs.List>
+      <Tabs.List className="flex overflow-x-auto border border-border bg-card p-1" aria-label="Разделы ML-паспорта">{passportTabs.map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="flex min-h-11 min-w-36 flex-1 items-center justify-center gap-2 px-4 text-sm font-semibold text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Icon size={16} />{label}</Tabs.Trigger>)}</Tabs.List>
 
       <Tabs.Content value="directions" className="mt-9 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Карта компетенций</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Ваши подтверждённые результаты в машинном обучении.</p><div className="mt-7 grid gap-4 md:grid-cols-2 2xl:grid-cols-4">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
 
@@ -186,7 +198,7 @@ export default function Profile() {
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="career" className="mt-7 outline-none"><Reveal><div className="grid gap-3 md:grid-cols-2"><Card className="border-border bg-card p-6"><BriefcaseBusiness size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Карьерные данные</h2><div className="mt-5 divide-y divide-border">{[["Город", profile.city], ["Университет", profile.university], ["Компания", profile.company], ["Виден работодателям", profile.visible_to_employers ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong className="text-right">{shown(value)}</strong></div>)}</div></Card><Card className="border-border bg-card p-6"><UserRoundSearch size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Публичность</h2><div className="mt-5 divide-y divide-border">{[["Публичный профиль", profile.public_profile ? "Да" : "Нет"], ["Показывать имя", profile.show_real_name ? "Да" : "Нет"], ["Показывать карьерные данные", profile.show_career_details ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong>{value}</strong></div>)}</div></Card></div></Reveal></Tabs.Content>
+      {isOwner && <Tabs.Content value="career" className="mt-7 outline-none"><Reveal><div className="grid gap-3 md:grid-cols-2"><Card className="border-border bg-card p-6"><BriefcaseBusiness size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Личные и карьерные данные</h2><div className="mt-5 divide-y divide-border">{[["Возраст", profile.age], ["Пол", profile.gender === "male" ? "Мужской" : profile.gender === "female" ? "Женский" : null], ["Город", profile.city], ["Университет", profile.university], ["Компания", profile.company], ["Виден работодателям", profile.visible_to_employers ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong className="text-right">{shown(value)}</strong></div>)}</div></Card><Card className="border-border bg-card p-6"><UserRoundSearch size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Публичность</h2><div className="mt-5 divide-y divide-border">{[["Публичный профиль", profile.public_profile ? "Да" : "Нет"], ["Показывать имя", profile.show_real_name ? "Да" : "Нет"], ["Показывать карьерные данные", profile.show_career_details ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong>{value}</strong></div>)}</div></Card></div></Reveal></Tabs.Content>}
     </Tabs.Root>
   </PageFrame></div>;
 }

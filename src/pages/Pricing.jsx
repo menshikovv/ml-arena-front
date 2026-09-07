@@ -20,7 +20,6 @@ import {
   Presentation,
   Route,
   ShieldCheck,
-  Sparkles,
   Target,
   X,
 } from "lucide-react";

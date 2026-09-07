@@ -273,9 +273,14 @@ export default function Competitions() {
       </section>
 
       <Reveal className="mt-12" delay={0.08}>
-        <section className="grid gap-8 border-t border-border py-8 lg:grid-cols-[1fr_1.4fr] lg:gap-12">
-          <div><h2 className="mt-3 font-heading text-2xl font-extrabold">Сильнее решение.<br />Выше результат.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Одинаковые возможности для участников на каждом этапе соревнования.</p></div>
-          <div className="divide-y divide-border">{FAIRNESS.map((item, index) => <article key={item.title} className="flex gap-5 py-5 first:pt-0 last:pb-0"><span aria-hidden="true" className="pt-1 font-mono text-sm text-primary/60">0{index + 1}</span><div><h3 className="font-heading text-base font-bold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p></div></article>)}</div>
+        <section className="overflow-hidden rounded-lg bg-foreground text-background dark:bg-card dark:text-foreground">
+          <div className="flex flex-col justify-between gap-5 px-6 py-8 sm:px-8 lg:flex-row lg:items-end lg:px-10 lg:py-10">
+            <div><p className="text-xs font-semibold text-accent">Принципы ML-Арены</p><h2 className="mt-3 max-w-2xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Результат определяет решение</h2></div>
+            <p className="max-w-md text-sm leading-6 text-background/60 dark:text-muted-foreground">Единые правила сохраняют ценность каждого места и каждого результата.</p>
+          </div>
+          <div className="grid border-t border-background/15 sm:grid-cols-3 dark:border-border">
+            {FAIRNESS.map((item, index) => <article key={item.title} className="border-b border-background/15 px-6 py-7 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 dark:border-border sm:px-8"><div className="flex items-center gap-3"><span aria-hidden="true" className="font-mono text-xs font-semibold text-accent">0{index + 1}</span><span className="h-px flex-1 bg-background/15 dark:bg-border" /></div><h3 className="mt-5 font-heading text-lg font-bold">{item.title}</h3><p className="mt-3 text-sm leading-6 text-background/60 dark:text-muted-foreground">{item.text}</p></article>)}
+          </div>
         </section>
       </Reveal>
 

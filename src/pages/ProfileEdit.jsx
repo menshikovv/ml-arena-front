@@ -13,6 +13,7 @@ import {
   MapPin,
   Save,
   ShieldCheck,
+  Target,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -26,6 +27,12 @@ import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
 
 const INPUT_CLASS = "h-10 rounded-md bg-secondary/20 px-3.5 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15";
+
+const ML_INTERESTS = [
+  ["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"],
+  ["computer_vision", "Компьютерное зрение"], ["time_series", "Временные ряды"],
+  ["ranking", "Ранжирование"], ["clustering", "Кластеризация"], ["recsys", "RecSys"],
+];
 
 const SECTIONS = [
   { id: "profile-main", label: "Профиль", icon: UserRound },
@@ -45,6 +52,9 @@ export default function ProfileEdit() {
       nickname: user?.nickname || "",
       first_name: user?.first_name || "",
       last_name: user?.last_name || "",
+      age: user?.age ?? "",
+      gender: user?.gender || "",
+      interests: Array.isArray(user?.interests) ? user.interests : [],
       city: user?.city || "",
       education_status: user?.education_status || "",
       organization: user?.organization || "",
@@ -66,7 +76,7 @@ export default function ProfileEdit() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(initial) || Boolean(avatarFile) || removeAvatar;
-  const completionFields = [form.first_name, form.last_name, form.city, form.education_status, form.organization, form.github_url, form.bio];
+  const completionFields = [form.first_name, form.last_name, form.city, form.education_status, form.organization, form.github_url, form.bio, form.interests.length];
   const completion = Math.round((completionFields.filter(Boolean).length / completionFields.length) * 100);
 
   useEffect(() => {
@@ -95,6 +105,12 @@ export default function ProfileEdit() {
   }, []);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const toggleInterest = (interest) => setForm((current) => ({
+    ...current,
+    interests: current.interests.includes(interest)
+      ? current.interests.filter((item) => item !== interest)
+      : [...current.interests, interest].slice(0, 8),
+  }));
   const goBack = () => {
     if (!dirty || window.confirm("Уйти без сохранения изменений?")) navigate("/profile");
   };
@@ -261,9 +277,12 @@ export default function ProfileEdit() {
                 </FormSection>
 
                 <FormSection id="profile-location" icon={MapPin} title="Личные данные">
-                  <Field label="Город" icon={MapPin}>
-                    <Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} />
-                  </Field>
+                  <div className="grid gap-5 sm:grid-cols-3">
+                    <Field label="Город" icon={MapPin}><Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} /></Field>
+                    <Field label="Возраст"><Input type="number" min="0" max="120" inputMode="numeric" value={form.age} onChange={(event) => update("age", event.target.value)} placeholder="Например, 24" className={INPUT_CLASS} /></Field>
+                    <Field label="Пол"><select value={form.gender} onChange={(event) => update("gender", event.target.value)} className={`${INPUT_CLASS} w-full border border-input text-sm`}><option value="">Не указывать</option><option value="male">Мужской</option><option value="female">Женский</option></select></Field>
+                  </div>
+                  <fieldset className="mt-7"><legend className="flex items-center gap-2 text-sm font-semibold"><Target size={14} className="text-muted-foreground" />ML-интересы</legend><p className="mt-2 text-xs leading-5 text-muted-foreground">Выберите направления, которыми занимаетесь или хотите заниматься.</p><div className="mt-4 flex flex-wrap gap-2">{ML_INTERESTS.map(([value, label]) => { const selected = form.interests.includes(value); return <button key={value} type="button" aria-pressed={selected} onClick={() => toggleInterest(value)} className={`rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"}`}>{selected && <Check size={13} className="mr-1.5 inline" />}{label}</button>; })}</div></fieldset>
                 </FormSection>
 
                 <FormSection id="profile-education" icon={GraduationCap} title="Образование">

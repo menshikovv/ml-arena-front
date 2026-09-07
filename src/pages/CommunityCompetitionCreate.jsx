@@ -57,7 +57,10 @@ const INITIAL_FORM = {
   customDirection: "",
   statement: "",
   metric: "ROC-AUC",
-  predictionFormat: "id, prediction",
+  targetColumn: "target",
+  predictionColumn: "prediction",
+  groupColumn: "",
+  idColumn: "id",
   participantBundle: "",
   publicLabelsFile: "",
   privateLabelsFile: "",
@@ -121,8 +124,9 @@ export default function CommunityCompetitionCreate() {
   const canContinue = useMemo(() => {
     if (step === 0) return form.title.trim().length >= 5 && form.description.trim().length >= 12;
     if (step === 1) return form.direction !== "other" || form.customDirection.trim().length >= 3;
-    if (step === 2) return form.statement.trim().length >= 20 && form.metric;
-    if (step === 3) return Boolean(form.participantBundle && form.publicLabelsFile && form.privateLabelsFile);
+    if (step === 2) return form.statement.trim().length >= 20 && form.metric && form.targetColumn.trim() && form.predictionColumn.trim()
+      && (!["ranking", "recsys"].includes(form.direction) || form.groupColumn.trim());
+    if (step === 3) return Boolean(form.idColumn.trim() && form.participantBundle && form.publicLabelsFile && form.privateLabelsFile);
     if (step === 5) return Boolean(form.startsAt && form.endsAt && new Date(form.endsAt) > new Date(form.startsAt));
     if (step === 6) return form.rightsConfirmed && form.noPersonalDataConfirmed && form.rulesConfirmed;
     return true;
@@ -142,6 +146,9 @@ export default function CommunityCompetitionCreate() {
         task_type: form.direction,
         custom_direction_label: form.direction === "other" ? form.customDirection.trim() : null,
         metric_code: metricCodes[form.metric] || form.metric.toLowerCase(),
+        target_column: form.targetColumn.trim(),
+        prediction_column: form.predictionColumn.trim(),
+        group_column: form.groupColumn.trim() || null,
         difficulty,
         access: form.access,
         max_participants: form.maxParticipants ? Number(form.maxParticipants) : null,
@@ -158,8 +165,8 @@ export default function CommunityCompetitionCreate() {
       const competitionId = competition.id;
       const dataset = await api.communityCompetitions.createDataset(competitionId, {
         name: `${form.title.trim()} — данные`,
-        description: form.description.trim(),
-        version: "1.0",
+        id_column: form.idColumn.trim(),
+        release_notes: null,
       });
       const versionId = dataset.version_id || dataset.current_version?.id || dataset.version?.id || dataset.id;
       const files = [
@@ -234,9 +241,9 @@ export default function CommunityCompetitionCreate() {
 
             {step === 1 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">Выберите одно направление. «Другое» не увеличивает статистику по восьми направлениям ML-Арены.</p><div className="grid gap-3 sm:grid-cols-2">{[...Object.entries(TASK_TYPE_LABELS).filter(([key]) => key !== "tabular"), ["other", "Другое"]].map(([key, label]) => <ToggleCard key={key} active={form.direction === key} icon={Target} title={label} text={key === "other" ? "Пользовательское направление" : "Стандартное направление ML-Арены"} onClick={() => { update("direction", key); update("metric", (METRICS[key] || [])[0] || ""); }} />)}</div>{form.direction === "other" && <div className="mt-5"><Field label="Название направления"><Input value={form.customDirection} onChange={(event) => update("customDirection", event.target.value)} placeholder="Например, обработка графов" /></Field></div>}</div>}
 
-            {step === 2 && <div className="space-y-5"><Field label="Полное условие" hint="Цель, target, доступные признаки и ожидаемый результат."><Textarea rows={7} value={form.statement} onChange={(event) => update("statement", event.target.value)} placeholder="Опишите постановку задачи..." /></Field><div className="grid gap-5 sm:grid-cols-2"><Field label="Метрика" hint="Только из безопасного списка."><Select value={form.metric} onChange={(event) => update("metric", event.target.value)}><option value="">Выберите метрику</option>{metrics.map((item) => <option key={item}>{item}</option>)}</Select></Field><Field label="Формат предсказаний"><Input value={form.predictionFormat} onChange={(event) => update("predictionFormat", event.target.value)} placeholder="id, prediction" /></Field></div><div className="border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground"><Settings2 size={18} className="mb-2 text-primary" />Пользовательский scoring.py не выполняется. Платформа использует выбранную метрику и безопасную конфигурацию.</div></div>}
+            {step === 2 && <div className="space-y-5"><Field label="Полное условие" hint="Цель, target, доступные признаки и ожидаемый результат."><Textarea rows={7} value={form.statement} onChange={(event) => update("statement", event.target.value)} placeholder="Опишите постановку задачи..." /></Field><div className="grid gap-5 sm:grid-cols-2"><Field label="Метрика" hint="Только из безопасного списка."><Select value={form.metric} onChange={(event) => update("metric", event.target.value)}><option value="">Выберите метрику</option>{metrics.map((item) => <option key={item}>{item}</option>)}</Select></Field><Field label="Целевая колонка" hint="Колонка правильного ответа в train и labels."><Input required maxLength={128} value={form.targetColumn} onChange={(event) => update("targetColumn", event.target.value)} placeholder="target" /></Field><Field label="Колонка прогноза" hint="Колонка результата в submission и sample."><Input required maxLength={128} value={form.predictionColumn} onChange={(event) => update("predictionColumn", event.target.value)} placeholder="prediction" /></Field>{["ranking", "recsys"].includes(form.direction) && <Field label="Колонка группировки" hint="Обязательна для ranking-метрик."><Input required maxLength={128} value={form.groupColumn} onChange={(event) => update("groupColumn", event.target.value)} placeholder="query_id" /></Field>}</div><div className="border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground"><Settings2 size={18} className="mb-2 text-primary" />Пользовательский scoring.py не выполняется. Платформа использует выбранную метрику и безопасную конфигурацию.</div></div>}
 
-            {step === 3 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">ZIP должен содержать в корне только train.csv, test.csv и sample_submission.csv. Ответы загрузите отдельными CSV.</p><div className="grid gap-3 sm:grid-cols-2"><FileSlot label="Данные участника" required value={form.participantBundle} onChange={(value) => update("participantBundle", value)} accept=".zip,application/zip" placeholder="Выберите ZIP-файл" /><FileSlot label="Публичные ответы" required value={form.publicLabelsFile} onChange={(value) => update("publicLabelsFile", value)} /><FileSlot label="Приватные ответы" required value={form.privateLabelsFile} onChange={(value) => update("privateLabelsFile", value)} /></div><div className="mt-4 flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-muted-foreground"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />Оба файла с ответами доступны только контуру проверки и не входят в ZIP участников.</div></div>}
+            {step === 3 && <div><p className="mb-5 text-sm leading-6 text-muted-foreground">ZIP должен содержать в корне только train.csv, test.csv и sample_submission.csv. Ответы загрузите отдельными CSV.</p><div className="mb-5 max-w-sm"><Field label="ID-колонка" hint="Одинаковая идентифицирующая колонка во всех CSV."><Input required maxLength={128} value={form.idColumn} onChange={(event) => update("idColumn", event.target.value)} placeholder="id" /></Field></div><div className="grid gap-3 sm:grid-cols-2"><FileSlot label="Данные участника" required value={form.participantBundle} onChange={(value) => update("participantBundle", value)} accept=".zip,application/zip" placeholder="Выберите ZIP-файл" /><FileSlot label="Публичные ответы" required value={form.publicLabelsFile} onChange={(value) => update("publicLabelsFile", value)} /><FileSlot label="Приватные ответы" required value={form.privateLabelsFile} onChange={(value) => update("privateLabelsFile", value)} /></div><div className="mt-4 flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-6 text-muted-foreground"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />Оба файла с ответами доступны только контуру проверки и не входят в ZIP участников.</div></div>}
 
             {step === 4 && <div className="grid gap-3 sm:grid-cols-3">{[{ id: "open", icon: Users, title: "Открыто", text: "Любой зарегистрированный участник может присоединиться." }, { id: "invite_only", icon: LockKeyhole, title: "По приглашению", text: "Доступ по системному приглашению или одноразовой ссылке." }, { id: "application", icon: FileCheck2, title: "По заявке", text: "Организатор принимает или отклоняет заявку по нику." }].map((item) => <ToggleCard key={item.id} active={form.access === item.id} icon={item.icon} title={item.title} text={item.text} onClick={() => update("access", item.id)} />)}<div className="sm:col-span-3"><Field label="Максимум участников" hint="Необязательно. Контактные данные участников организатору не передаются."><Input type="number" min="2" value={form.maxParticipants} onChange={(event) => update("maxParticipants", event.target.value)} placeholder="Без ограничения" /></Field></div></div>}
 
