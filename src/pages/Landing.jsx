@@ -89,7 +89,7 @@ function SectionTitle({ title, desc, align = "center" }) {
   );
 }
 
-function HeroCompanion({ reduceMotion, profile }) {
+function HeroCompanion({ reduceMotion }) {
   const videoRef = React.useRef(null);
   const float = (x, y) => reduceMotion
     ? undefined
@@ -215,7 +215,7 @@ function HeroCompanion({ reduceMotion, profile }) {
             </span>
             <span>
               <span className="block text-[13px] font-bold text-neutral-900 dark:text-white">ML-паспорт</span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">рейтинг {profile?.rating ?? "—"}</span>
+              <span className="mt-0.5 block text-[10px] font-semibold text-neutral-500 dark:text-slate-400">подтверждённые навыки</span>
             </span>
           </div>
         </motion.div>
@@ -224,17 +224,21 @@ function HeroCompanion({ reduceMotion, profile }) {
   );
 }
 
-function ArenaPreview({ entries = [] }) {
-  const rows = entries.slice(0, 3).map((entry) => ({ rank: entry.rank == null ? "—" : String(entry.rank).padStart(2, "0"), name: entry.user_name || "Участник", task: entry.city || "ML-Арена", score: String(entry.rating ?? "—"), active: entry.is_current_user }));
+function ArenaPreview() {
+  const rows = [
+    { rank: "01", name: "datawizard", task: "Кредитный скоринг", score: "1846", change: "+24" },
+    { rank: "02", name: "ml_ninja", task: "Тональность отзывов", score: "1792", change: "+18" },
+    { rank: "03", name: "Участник", task: "Цены на жильё", score: "1714", change: "+31", active: true },
+  ];
 
   return (
     <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
       <div className="flex items-center justify-between border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-2 font-medium text-foreground">
           <span className="h-2 w-2 rounded-full bg-accent" />
-          Онлайн-рейтинг
+          Пример сезонного рейтинга
         </span>
-        <span>Текущий рейтинг</span>
+        <span>Founder Season</span>
       </div>
       <div className="divide-y divide-border/70">
         {rows.map((row, index) => (
@@ -255,101 +259,59 @@ function ArenaPreview({ entries = [] }) {
             </div>
             <span className="hidden text-sm text-muted-foreground md:block">{row.task}</span>
             <span className="font-mono text-sm font-semibold">{row.score}</span>
-            <span className="hidden md:block" />
+            <span className="hidden border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 md:block">{row.change}</span>
           </motion.div>
         ))}
-        {!rows.length && <p className="py-10 text-center text-sm text-muted-foreground">Рейтинг пока пуст.</p>}
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-        <span>Рейтинг обновляется после каждого результата</span>
+        <span>Иллюстрация интерфейса рейтинга</span>
         <BarChart3 size={16} className="text-primary" />
       </div>
     </div>
   );
 }
 
-function PassportPreview({ profile }) {
+function PassportPreview() {
   const reduceMotion = useReducedMotion();
-  const skills = [["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"]].map(([key, label]) => {
-    const score = Number(profile?.skills?.[key]);
-    return { label, value: Number.isFinite(score) ? `${score}%` : "—", progress: Number.isFinite(score) ? score : 0 };
-  });
-  const profileStats = profile?.stats || {};
-  const stats = [
-    [profileStats.competitions_participated ?? "—", "соревнований"],
-    [(profileStats.duels_won ?? null) === null || (profileStats.duels_lost ?? null) === null ? "—" : profileStats.duels_won + profileStats.duels_lost, "дуэлей"],
-    [profile?.rating ?? "—", "рейтинг"],
+  const skills = [
+    { label: "Классификация", value: 92, tone: "bg-primary" },
+    { label: "Регрессия", value: 84, tone: "bg-emerald-500" },
+    { label: "NLP", value: 76, tone: "bg-violet-500" },
+    { label: "Временные ряды", value: 68, tone: "bg-amber-500" },
   ];
+  const stats = [["7", "соревнований"], ["18", "дуэлей"], ["24", "валидных решений"]];
+  const badges = [[Trophy, "Финалист сезона"], [Swords, "Серия побед"], [Sparkles, "Первый топ-10"]];
 
   return (
-    <motion.div
+    <motion.article
       initial={reduceMotion ? false : { opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.35 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative overflow-hidden border border-border bg-card p-5 shadow-[0_24px_60px_rgba(37,99,235,0.12)] md:p-6"
+      className="relative overflow-hidden rounded-lg border border-border bg-card shadow-[0_24px_60px_rgba(37,99,235,0.12)]"
     >
-      <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
-      <div className="pointer-events-none absolute -right-12 -top-14 text-primary/[0.045]">
-        <Brain size={180} strokeWidth={1} />
-      </div>
-      <div className="relative flex items-center justify-between gap-4 border-b border-border pb-4 mb-4">
-        <div className="flex items-center gap-3">
-          <motion.div
-            animate={reduceMotion ? undefined : { rotate: [0, -4, 4, 0] }}
-            transition={{ duration: 1.1, delay: 0.55, ease: "easeInOut" }}
-            className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20"
-          >
-            <Brain size={24} className="text-white" />
-          </motion.div>
-          <div>
-            <div className="font-heading font-bold">ML-паспорт</div>
-            <div className="text-sm text-muted-foreground">Младший ML-инженер</div>
+      <div className="h-1 bg-primary" />
+      <div className="p-5 md:p-7">
+        <div className="flex flex-col justify-between gap-5 border-b border-border pb-6 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <motion.div animate={reduceMotion ? undefined : { y: [0, -3, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }} className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20"><Brain size={27} /></motion.div>
+            <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-heading text-xl font-extrabold">ML-паспорт</h3><span className="border border-primary/20 bg-primary/5 px-2 py-1 text-[10px] font-semibold text-primary">ПРИМЕР</span></div><p className="mt-1 text-sm text-muted-foreground">Подтверждённый профиль ML-инженера</p></div>
           </div>
+          <div className="flex items-center gap-3"><div className="text-right"><p className="font-heading text-2xl font-extrabold">1684</p><p className="text-[10px] text-muted-foreground">сезонный рейтинг</p></div><LeagueBadge rating={1684} /></div>
         </div>
-        {Number.isFinite(Number(profile?.rating)) ? <LeagueBadge rating={Number(profile.rating)} /> : <span className="text-sm text-muted-foreground">Нет данных</span>}
+
+        <div className="grid gap-px border-b border-border bg-border sm:grid-cols-3">
+          {stats.map(([value, label], index) => <motion.div key={label} initial={reduceMotion ? false : { opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.32, delay: 0.12 + index * 0.07 }} className="bg-card px-3 py-5 text-center"><p className="font-heading text-2xl font-extrabold">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{label}</p></motion.div>)}
+        </div>
+
+        <div className="grid gap-7 py-6 lg:grid-cols-[minmax(0,1fr)_210px]">
+          <div><div className="mb-4 flex items-center justify-between"><h4 className="font-heading text-sm font-bold">Подтверждённые направления</h4><span className="text-[10px] font-semibold text-emerald-600">4 направления</span></div><div className="space-y-4">{skills.map((skill, index) => <div key={skill.label}><div className="mb-1.5 flex justify-between text-xs"><span className="font-semibold">{skill.label}</span><span className="font-mono text-muted-foreground">{skill.value}%</span></div><div className="h-2 overflow-hidden rounded-full bg-secondary"><motion.div initial={{ width: reduceMotion ? `${skill.value}%` : "0%" }} whileInView={{ width: `${skill.value}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 + index * 0.08, ease: "easeOut" }} className={`h-full rounded-full ${skill.tone}`} /></div></div>)}</div></div>
+          <div className="border-t border-border pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"><h4 className="font-heading text-sm font-bold">Достижения</h4><div className="mt-4 space-y-3">{badges.map(([Icon, label]) => <div key={label} className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary"><Icon size={17} /></span><span className="text-xs font-semibold leading-4">{label}</span></div>)}</div></div>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-md border border-emerald-500/20 bg-emerald-500/5 p-4"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold">Результаты проверены ML-Ареной</p><p className="mt-1 text-xs leading-5 text-muted-foreground">В паспорте объединяются соревнования, дуэли, направления и выданные достижения.</p></div></div>
       </div>
-      <div className="relative grid grid-cols-3 gap-3 mb-5">
-        {stats.map(([value, label], index) => (
-          <motion.div
-            key={label}
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.32, delay: 0.15 + index * 0.08 }}
-            className="rounded-lg border border-border/70 bg-secondary/60 p-3 text-center"
-          >
-            <div className="font-heading text-xl font-bold">{value}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
-          </motion.div>
-        ))}
-      </div>
-      <div className="relative space-y-4">
-        {skills.map((skill, index) => (
-          <div key={skill.label}>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="font-medium">{skill.label}</span>
-              <span className="text-muted-foreground">{skill.value}</span>
-            </div>
-            <div className="h-2 rounded-full bg-secondary">
-              <motion.div
-                initial={{ width: reduceMotion ? `${skill.progress}%` : "0%" }}
-                whileInView={{ width: `${skill.progress}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.65, delay: 0.25 + index * 0.1, ease: "easeOut" }}
-                className="relative h-2 rounded-full bg-primary"
-              >
-                <span className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 translate-x-0.5 rounded-full bg-white shadow-[0_0_0_3px_rgba(37,99,235,0.14)]" />
-              </motion.div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="relative mt-5 flex items-start gap-2 rounded-lg border border-primary/15 bg-primary/[0.035] p-3 text-sm text-muted-foreground">
-        <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-accent" />
-        Подтверждённые результаты в ML-паспорте.
-      </div>
-    </motion.div>
+    </motion.article>
   );
 }
 
@@ -372,12 +334,9 @@ export default function Landing() {
   const primaryTarget = isAuthenticated ? "/profile" : loginTarget;
   const reduceMotion = useReducedMotion();
   const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
-  const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
-  const profileQuery = useQuery({ queryKey: ["profile", "me"], queryFn: api.profiles.me, enabled: isAuthenticated, staleTime: 30000 });
   useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
   const enabledFeatures = appPublicSettings?.features || {};
   const featureEnabled = (name) => enabledFeatures[name] === true;
-  const previewEntries = leaderboardPreview.data?.items || leaderboardPreview.data?.rows || (Array.isArray(leaderboardPreview.data) ? leaderboardPreview.data : []);
   const landingStats = [
     { value: publicStats.data?.users ?? "—", label: "участников", icon: Users },
     { value: publicStats.data?.active_competitions ?? "—", label: "активных соревнований", icon: Trophy },
@@ -573,7 +532,7 @@ export default function Landing() {
               </motion.div>
 
               <div className="lg:col-span-6">
-                <HeroCompanion reduceMotion={reduceMotion} profile={profileQuery.data} />
+                <HeroCompanion reduceMotion={reduceMotion} />
               </div>
             </div>
 
@@ -744,10 +703,10 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 py-20 lg:py-24">
             <SectionTitle
               title={<>Рейтинг по результатам.<br />Без ручных оценок.</>}
-              desc="Позиции участников и значения рейтинга приходят из текущего серверного сезона."
+              desc="Так выглядит сезонная таблица: место меняется после подтверждённых результатов в соревнованиях и дуэлях."
             />
             <div>
-              <ArenaPreview entries={previewEntries} />
+              <ArenaPreview />
             </div>
           </div>
         </section>
@@ -801,7 +760,7 @@ export default function Landing() {
                 Подтверждено результатами на платформе
               </div>
             </div>
-            <PassportPreview profile={profileQuery.data} />
+            <PassportPreview />
           </motion.div>
         </section>
 
