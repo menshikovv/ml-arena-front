@@ -82,7 +82,12 @@ function safeScore(score, metric) {
 function formatPrize(competition) {
   const amount = Number(competition.prize_amount);
   if (!Number.isFinite(amount) || amount <= 0) return null;
-  return `${Math.round(amount / 100).toLocaleString("ru-RU")} ${competition.prize_currency || ""}`.trim();
+  const currency = competition.prize_currency || "RUB";
+  try {
+    return new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount / 100);
+  } catch {
+    return `${Math.round(amount / 100).toLocaleString("ru-RU")} ${currency}`;
+  }
 }
 
 function CompetitionTabs({ competitionId, activeTab }) {
@@ -118,6 +123,15 @@ function OverviewTab({ competition }) {
       <section className="border-b border-border pb-7">
         <h2 className="font-heading text-2xl font-bold">Что нужно сделать</h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">{competition.description}</p>
+      </section>
+
+      <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ["Отправок в день", competition.daily_submission_limit ?? "—", Upload],
+          ["Public leaderboard", competition.public_split_percent == null ? "—" : `${competition.public_split_percent}%`, BarChart3],
+          ["Начало", competition.starts_at ? new Date(competition.starts_at).toLocaleDateString("ru-RU") : "После публикации", CalendarClock],
+          ["Финальные итоги", competition.final_results_at ? new Date(competition.final_results_at).toLocaleDateString("ru-RU") : "После проверки", CheckCircle2],
+        ].map(([label, value, Icon], index) => <div key={label} className={cn("p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
       </section>
 
       <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
@@ -207,6 +221,8 @@ function OverviewTab({ competition }) {
           <p className="mt-2 text-sm leading-6 text-muted-foreground">Premium не меняет лимит submit-ов, score, положение в leaderboard или доступ к public данным.</p>
         </motion.article>
       </section>
+
+      {(competition.external_data_policy || competition.ai_tools_policy || competition.pretrained_models_policy) && <section className="border-t border-border py-7"><h2 className="font-heading text-xl font-bold">Дополнительные условия</h2><div className="mt-5 divide-y divide-border border-y border-border">{[["Внешние данные", competition.external_data_policy], ["AI-инструменты", competition.ai_tools_policy], ["Предобученные модели", competition.pretrained_models_policy]].filter(([, value]) => value).map(([label, value]) => <div key={label} className="grid gap-2 py-4 sm:grid-cols-[190px_1fr]"><p className="text-sm font-semibold">{label}</p><p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{value}</p></div>)}</div></section>}
     </div>
   );
 }
@@ -803,7 +819,7 @@ export default function CompetitionDetail() {
         </div>
       )}
 
-      <header className="mt-5 border-y border-border bg-card">
+      <header className="relative mt-5 overflow-hidden border-y border-border bg-card" style={{ borderTopColor: competition.banner_color || undefined, borderTopWidth: competition.banner_color ? 4 : undefined }}>
         <div className="grid lg:grid-cols-[minmax(0,1fr)_390px]">
           <div className="flex min-h-[260px] flex-col justify-between p-6 md:p-8">
             <div>
@@ -821,7 +837,7 @@ export default function CompetitionDetail() {
                 {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {access === "application" ? "По заявке" : "По приглашению"}</span>}
               </div>
               <h1 className="mt-5 max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.description}</p>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.short_description || competition.description}</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><Users size={14} /> {competition.participants_count} участников</span>

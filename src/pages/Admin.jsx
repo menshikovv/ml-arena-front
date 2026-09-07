@@ -273,7 +273,7 @@ function competitionForm(item = {}) {
     final_results_at: dateTimeInput(item.final_results_at),
     daily_submission_limit: String(item.daily_submission_limit ?? 5),
     public_split_percent: String(item.public_split_percent ?? 30),
-    prize_amount: String(item.prize_amount ?? 0),
+    prize_amount: String(Number(item.prize_amount || 0) / 100),
     prize_currency: item.prize_currency || "RUB",
     rules: item.rules || "",
     rules_version: item.rules_version || "v1",
@@ -296,7 +296,7 @@ function competitionPayload(form, creating) {
     submission_deadline: form.submission_deadline ? new Date(form.submission_deadline).toISOString() : null,
     final_results_at: form.final_results_at ? new Date(form.final_results_at).toISOString() : null,
     daily_submission_limit: Number(form.daily_submission_limit),
-    prize_amount: Number(form.prize_amount),
+    prize_amount: Math.round(Number(form.prize_amount || 0) * 100),
     rules: nullable(form.rules.trim()),
     rules_version: form.rules_version.trim(),
     banner_color: form.banner_color,
@@ -325,14 +325,31 @@ function CompetitionEditorDialog({ competitionId, creating, onClose, onSaved }) 
   useEffect(() => { if (detail.data) setForm(competitionForm(detail.data)); }, [detail.data]);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const organizations = listRows(organizationsQuery.data);
-  const taskOptions = listRows(tasksQuery.data).filter((item) => item.current_version?.id);
+  const taskOptions = listRows(tasksQuery.data).filter((item) => {
+    const version = item.current_version;
+    return version?.id === form.task_version_id
+      || (item.status === "draft" && version?.exposure_status === "private");
+  });
+  const selectedTask = taskOptions.find((item) => item.current_version?.id === form.task_version_id);
   const requiredReady = form.title.trim().length >= 3 && form.description.trim() && form.task_version_id && form.submission_deadline;
-  const submit = () => { setError(""); mutation.mutate(competitionPayload(form, creating)); };
+  const submit = () => {
+    setError("");
+    const startsAt = form.starts_at ? new Date(form.starts_at).getTime() : null;
+    const deadline = new Date(form.submission_deadline).getTime();
+    const finalResultsAt = form.final_results_at ? new Date(form.final_results_at).getTime() : null;
+    if (startsAt && startsAt >= deadline) return setError("Дедлайн отправок должен быть позже начала соревнования.");
+    if (finalResultsAt && finalResultsAt < deadline) return setError("Финальные результаты нельзя опубликовать раньше дедлайна отправок.");
+    if (Number(form.daily_submission_limit) < 0) return setError("Лимит отправок не может быть отрицательным.");
+    if (creating && (Number(form.public_split_percent) < 1 || Number(form.public_split_percent) > 99)) return setError("Доля public leaderboard должна быть от 1 до 99%.");
+    if (Number(form.prize_amount) < 0) return setError("Призовой фонд не может быть отрицательным.");
+    mutation.mutate(competitionPayload(form, creating));
+  };
   return <Dialog.Root open onOpenChange={(open) => !open && !mutation.isPending && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] flex max-h-[94vh] w-[calc(100%-2rem)] max-w-5xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-border bg-card shadow-2xl focus:outline-none"><div className="flex items-start justify-between border-b border-border p-5 md:px-7"><div><Dialog.Title className="font-heading text-2xl font-extrabold">{creating ? "Новое соревнование" : "Редактирование соревнования"}</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">Содержимое, ресурсы, сроки и правила события.</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div><div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-7">{detail.isLoading && !creating ? <LoadingRows /> : detail.error ? <ErrorState error={detail.error} /> : <div className="space-y-8">
-    <section><h3 className="font-heading text-lg font-bold">Основное</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Название" wide><Input value={form.title} onChange={(event) => update("title", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Краткое описание" wide><Textarea value={form.short_description} onChange={(event) => update("short_description", event.target.value)} className="min-h-20 rounded-none" /></AdminField><AdminField label="Полное описание" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Направление"><Input value={form.domain} onChange={(event) => update("domain", event.target.value)} className="rounded-none" /></AdminField></div></section>
-    <section><h3 className="font-heading text-lg font-bold">Ресурсы и проверка</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Организация"><select value={form.organization_id} onChange={(event) => update("organization_id", event.target.value)} disabled={!creating} className="h-10 w-full border border-border bg-background px-3 text-sm disabled:opacity-60"><option value="">Платформа ML-Арена</option>{organizations.map((item) => <option key={item.id} value={item.id}>{item.name || item.slug || item.id}</option>)}</select></AdminField><AdminField label="Версия задачи"><select value={form.task_version_id} onChange={(event) => update("task_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите версию задачи</option>{taskOptions.map((item) => <option key={item.current_version.id} value={item.current_version.id}>{item.current_version.title || item.slug} · версия {item.current_version.version}</option>)}</select></AdminField>{creating && <AdminField label="Доступ"><AdminSelect value={form.access} onChange={(value) => update("access", value)} options={[["open", "Открытое"], ["invite_only", "По приглашению"], ["partner", "Партнёрское"], ["premium", "Premium"]]} /></AdminField>}</div><p className="mt-3 text-xs leading-5 text-muted-foreground">Датасет, метрика, направление и сложность берутся из выбранной версии задачи.</p></section>
-    <section><h3 className="font-heading text-lg font-bold">Сроки и лимиты</h3><div className="mt-4 grid gap-4 md:grid-cols-3"><AdminField label="Начало"><Input type="datetime-local" value={form.starts_at} onChange={(event) => update("starts_at", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Дедлайн отправок"><Input type="datetime-local" value={form.submission_deadline} onChange={(event) => update("submission_deadline", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Финальные результаты"><Input type="datetime-local" value={form.final_results_at} onChange={(event) => update("final_results_at", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Отправок в день"><Input type="number" min="0" value={form.daily_submission_limit} onChange={(event) => update("daily_submission_limit", event.target.value)} className="rounded-none" /></AdminField>{creating && <AdminField label="Публичная выборка, %"><Input type="number" min="1" max="99" value={form.public_split_percent} onChange={(event) => update("public_split_percent", event.target.value)} className="rounded-none" /></AdminField>}<AdminField label="Приз в минимальных единицах"><Input type="number" min="0" value={form.prize_amount} onChange={(event) => update("prize_amount", event.target.value)} className="rounded-none" /></AdminField>{creating && <AdminField label="Валюта"><Input maxLength={3} value={form.prize_currency} onChange={(event) => update("prize_currency", event.target.value)} className="rounded-none uppercase" /></AdminField>}</div></section>
-    <section><h3 className="font-heading text-lg font-bold">Правила</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Правила" wide><Textarea value={form.rules} onChange={(event) => update("rules", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Версия правил"><Input value={form.rules_version} onChange={(event) => update("rules_version", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Цвет баннера"><Input type="color" value={form.banner_color} onChange={(event) => update("banner_color", event.target.value)} className="rounded-none p-1" /></AdminField></div></section>
+    <section className="grid gap-5 border-b border-border pb-8 lg:grid-cols-[minmax(0,1fr)_280px]"><div><h3 className="font-heading text-lg font-bold">Карточка соревнования</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Название" wide><Input maxLength={200} value={form.title} onChange={(event) => update("title", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Краткое описание" wide><Textarea maxLength={500} value={form.short_description} onChange={(event) => update("short_description", event.target.value)} className="min-h-20 rounded-none" /></AdminField><AdminField label="Полное описание" wide><Textarea maxLength={30000} value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Тематическое направление"><Input maxLength={100} value={form.domain} onChange={(event) => update("domain", event.target.value)} placeholder="Например, рекомендательные системы" className="rounded-none" /></AdminField></div></div><div className="self-start border border-border bg-secondary/25 p-5" style={{ borderTopColor: form.banner_color, borderTopWidth: 4 }}><p className="text-[10px] font-semibold uppercase text-muted-foreground">Предпросмотр</p><div className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary"><Trophy size={15} /> Соревнование</div><h4 className="mt-3 break-words font-heading text-xl font-extrabold leading-tight">{form.title.trim() || "Название соревнования"}</h4><p className="mt-3 break-words text-xs leading-5 text-muted-foreground">{form.short_description.trim() || "Короткое описание появится в каталоге и в шапке страницы."}</p><div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs"><span className="text-muted-foreground">Призовой фонд</span><span className="font-bold">{Number(form.prize_amount || 0).toLocaleString("ru-RU")} {form.prize_currency || "RUB"}</span></div></div></section>
+    <section><h3 className="font-heading text-lg font-bold">Задача и доступ</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Организатор"><select value={form.organization_id} onChange={(event) => update("organization_id", event.target.value)} disabled={!creating} className="h-10 w-full border border-border bg-background px-3 text-sm disabled:opacity-60"><option value="">Платформа ML-Арена</option>{organizations.map((item) => <option key={item.id} value={item.id}>{item.name || item.slug || item.id}</option>)}</select></AdminField><AdminField label="Закрытая версия задачи"><select value={form.task_version_id} onChange={(event) => update("task_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите задачу</option>{taskOptions.map((item) => <option key={item.current_version.id} value={item.current_version.id}>{item.current_version.title || item.slug} · v{item.current_version.version}</option>)}</select></AdminField>{creating && <AdminField label="Кто может участвовать"><AdminSelect value={form.access} onChange={(value) => update("access", value)} options={[["open", "Все пользователи"], ["invite_only", "Только по приглашению"], ["partner", "Участники партнёра"], ["premium", "Только Premium"]]} /></AdminField>}</div>{selectedTask ? <div className="mt-4 grid gap-px border border-border bg-border sm:grid-cols-3">{[["Тип", TASK_TYPE_OPTIONS.find(([id]) => id === selectedTask.current_version.task_type)?.[1] || selectedTask.current_version.task_type], ["Сложность", selectedTask.current_version.difficulty || "Не указана"], ["Версия", `v${selectedTask.current_version.version}`]].map(([label, value]) => <div key={label} className="bg-card p-3"><p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}</div> : <p className="mt-3 text-xs leading-5 text-muted-foreground">В списке только private-задачи, которые ещё не выпускались в дуэли и не закреплены за другим соревнованием.</p>}</section>
+    <section><h3 className="font-heading text-lg font-bold">Расписание и лимиты</h3><div className="mt-4 grid gap-4 md:grid-cols-3"><AdminField label="Начало"><Input type="datetime-local" value={form.starts_at} onChange={(event) => update("starts_at", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Дедлайн отправок"><Input type="datetime-local" value={form.submission_deadline} onChange={(event) => update("submission_deadline", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Публикация итогов"><Input type="datetime-local" value={form.final_results_at} onChange={(event) => update("final_results_at", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Отправок на участника в день"><Input type="number" min="0" value={form.daily_submission_limit} onChange={(event) => update("daily_submission_limit", event.target.value)} className="rounded-none" /></AdminField>{creating && <AdminField label="Доля public leaderboard, %"><Input type="number" min="1" max="99" value={form.public_split_percent} onChange={(event) => update("public_split_percent", event.target.value)} className="rounded-none" /></AdminField>}</div></section>
+    <section><h3 className="font-heading text-lg font-bold">Призы и оформление</h3><div className="mt-4 grid gap-4 md:grid-cols-3"><AdminField label="Общий призовой фонд"><Input type="number" min="0" step="0.01" value={form.prize_amount} onChange={(event) => update("prize_amount", event.target.value)} className="rounded-none" /></AdminField>{creating && <AdminField label="Валюта"><Input maxLength={3} value={form.prize_currency} onChange={(event) => update("prize_currency", event.target.value.toUpperCase())} className="rounded-none uppercase" /></AdminField>}<AdminField label="Цвет страницы"><Input type="color" value={form.banner_color} onChange={(event) => update("banner_color", event.target.value)} className="rounded-none p-1" /></AdminField></div><p className="mt-3 text-xs leading-5 text-muted-foreground">Сумма вводится в обычных денежных единицах. Распределение по местам backend пока не хранит, поэтому редактор не создаёт вымышленные призовые места.</p></section>
+    <section><h3 className="font-heading text-lg font-bold">Правила</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Правила участия" wide><Textarea maxLength={30000} value={form.rules} onChange={(event) => update("rules", event.target.value)} className="min-h-40 rounded-none" /></AdminField><AdminField label="Версия правил"><Input maxLength={40} value={form.rules_version} onChange={(event) => update("rules_version", event.target.value)} className="rounded-none" /></AdminField></div></section>
     {error && <div className="border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
   </div>}</div><div className="flex justify-end gap-2 border-t border-border p-5 md:px-7"><Button variant="outline" onClick={onClose}>Отмена</Button><Button onClick={submit} disabled={!requiredReady || mutation.isPending}>{mutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Сохранить</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
 }
@@ -942,6 +959,12 @@ function resourceDefaults(type, item, mode) {
     evaluation_type: version.evaluation_type || "metric", rules: version.rules || "", dataset_version_id: version.dataset_version_id || "",
     target_column: version.target_column || "target", prediction_column: version.prediction_column || "prediction",
     group_column: version.group_column || "",
+    usage_mode: version.exposure_status === "released" ? "public" : "competition",
+    duel_enabled: version.duel_enabled ?? true, practice_enabled: version.practice_enabled ?? true,
+    challenge_enabled: version.challenge_enabled ?? false,
+    challenge_difficulty: version.challenge_difficulty || "easy",
+    benchmark_score: version.benchmark_score ?? "", benchmark_rating: version.benchmark_rating ?? "",
+    benchmark_version: version.benchmark_version || "", challenge_calibrated: version.challenge_calibration_status === "calibrated",
   };
   if (type === "badges") return {
     code: item?.code || "", name: item?.name || "", description: item?.description || "",
@@ -949,7 +972,8 @@ function resourceDefaults(type, item, mode) {
   };
   if (type === "plans") return {
     code: item?.code || "", name: item?.name || "", description: item?.description || "",
-    billing_period: item?.billing_period || "month", amount: item?.amount ?? 0, compare_at_amount: item?.compare_at_amount ?? "",
+    billing_period: item?.billing_period || "month", amount: item?.amount == null ? 0 : Number(item.amount) / 100,
+    compare_at_amount: item?.compare_at_amount == null ? "" : Number(item.compare_at_amount) / 100,
     currency: item?.currency || "RUB", features: (item?.features || []).join("\n"),
     entitlements: JSON.stringify(item?.entitlements || {}, null, 2), publish: false,
   };
@@ -1001,7 +1025,7 @@ function resourcePayload(type, form, mode) {
   if (type === "plans") {
     const body = {
       name: form.name, description: form.description || null, billing_period: form.billing_period || null,
-      amount: Number(form.amount), compare_at_amount: form.compare_at_amount === "" ? null : Number(form.compare_at_amount),
+      amount: Math.round(Number(form.amount) * 100), compare_at_amount: form.compare_at_amount === "" ? null : Math.round(Number(form.compare_at_amount) * 100),
       currency: form.currency.toUpperCase(), features: form.features.split("\n").map((value) => value.trim()).filter(Boolean),
       entitlements: jsonValue(form.entitlements, {}),
     };
@@ -1052,35 +1076,69 @@ function ResourceFields({ type, mode, form, update, organizationOptions = [], me
     {mode === "create" && <><AdminField label="Источник"><AdminSelect value={form.source_type} onChange={(value) => update("source_type", value)} options={[["uploaded", "Загруженный"], ["synthetic", "Синтетический"]]} /></AdminField><AdminField label="Владелец"><AdminSelect value={form.owner_organization_id} onChange={(value) => update("owner_organization_id", value)} options={[["", "Платформа ML-Арена"], ...organizationOptions.map((item) => [item.id, item.label])]} /></AdminField></>}
     {mode === "version" && <><AdminField label="ID-колонка"><Input required maxLength={128} value={form.id_column} onChange={(event) => update("id_column", event.target.value)} placeholder="id" className={input} /></AdminField><AdminField label="Контрольная сумма SHA-256"><Input maxLength={64} value={form.checksum_sha256} onChange={(event) => update("checksum_sha256", event.target.value)} placeholder="Необязательно" className={input} /></AdminField><AdminField label="Версия генератора"><Input value={form.generator_version} onChange={(event) => update("generator_version", event.target.value)} placeholder="Только для synthetic" className={input} /></AdminField><AdminField label="Seed генератора"><Input type="number" value={form.generator_seed} onChange={(event) => update("generator_seed", event.target.value)} placeholder="Необязательно" className={input} /></AdminField><AdminField label="Конфигурация генератора (JSON)" wide><Textarea value={form.generator_config} onChange={(event) => update("generator_config", event.target.value)} className="min-h-28 rounded-none font-mono text-xs" /></AdminField><AdminField label="Описание версии" wide><Textarea maxLength={10000} value={form.release_notes} onChange={(event) => update("release_notes", event.target.value)} className="min-h-20 rounded-none" /></AdminField></>}
   </div>;
-  if (type === "tasks") return <div className="grid gap-5 sm:grid-cols-2">
-    {mode !== "version" && <AdminField label="Slug" wide><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase())} placeholder="customer-churn" className={input} /></AdminField>}
-    {mode === "create" && <><AdminField label="Источник"><AdminSelect value={form.source_type} onChange={(value) => update("source_type", value)} options={[["manual", "Ручная"], ["synthetic", "Синтетическая"], ["competition_archive", "Архив соревнования"]]} /></AdminField><AdminField label="Владелец"><AdminSelect value={form.owner_organization_id} onChange={(value) => update("owner_organization_id", value)} options={[["", "Платформа ML-Арена"], ...organizationOptions.map((item) => [item.id, item.label])]} /></AdminField></>}
-    {mode !== "edit" && <><AdminField label="Название" wide><Input value={form.title} onChange={(event) => update("title", event.target.value)} className={input} /></AdminField><AdminField label="Краткое описание" wide><Input value={form.short_description} onChange={(event) => update("short_description", event.target.value)} className={input} /></AdminField><AdminField label="Постановка" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Тип задачи"><AdminSelect value={form.task_type} onChange={(value) => update("task_type", value)} options={TASK_TYPE_OPTIONS} /></AdminField><AdminField label="Сложность"><Input value={form.difficulty} onChange={(event) => update("difficulty", event.target.value)} className={input} /></AdminField><AdminField label="Версия метрики"><select value={form.metric_version_id} onChange={(event) => update("metric_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите метрику</option>{metricOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></AdminField><AdminField label="Версия датасета"><select value={form.dataset_version_id} onChange={(event) => update("dataset_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите датасет</option>{datasetOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></AdminField><AdminField label="Целевая колонка"><Input value={form.target_column} onChange={(event) => update("target_column", event.target.value)} placeholder="target" className={input} /></AdminField><AdminField label="Колонка прогноза"><Input value={form.prediction_column} onChange={(event) => update("prediction_column", event.target.value)} placeholder="prediction" className={input} /></AdminField><AdminField label="Колонка группировки"><Input value={form.group_column} onChange={(event) => update("group_column", event.target.value)} placeholder="Только для ranking" className={input} /></AdminField><AdminField label="Формат решения"><AdminSelect value={form.submission_type} onChange={(value) => update("submission_type", value)} options={[["predictions_csv", "CSV с предсказаниями"], ["source_code", "Исходный код"]]} /></AdminField><AdminField label="Проверка"><AdminSelect value={form.evaluation_type} onChange={(value) => update("evaluation_type", value)} options={[["metric", "Метрика"], ["test_cases", "Тесты"], ["custom", "Своя"]]} /></AdminField><AdminField label="Правила" wide><Textarea value={form.rules} onChange={(event) => update("rules", event.target.value)} className="min-h-28 rounded-none" /></AdminField></>}
+  if (type === "tasks") return <div className="space-y-7">
+    <section className="grid gap-5 sm:grid-cols-2">
+      {mode !== "version" && <AdminField label="Slug" wide><Input value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase())} placeholder="customer-churn" className={input} /></AdminField>}
+      {mode === "create" && <><AdminField label="Источник"><AdminSelect value={form.source_type} onChange={(value) => update("source_type", value)} options={[["manual", "Ручная"], ["synthetic", "Синтетическая"], ["competition_archive", "Архив соревнования"]]} /></AdminField><AdminField label="Владелец"><AdminSelect value={form.owner_organization_id} onChange={(value) => update("owner_organization_id", value)} options={[["", "Платформа ML-Арена"], ...organizationOptions.map((item) => [item.id, item.label])]} /></AdminField></>}
+      {mode !== "edit" && <><AdminField label="Название" wide><Input maxLength={200} value={form.title} onChange={(event) => update("title", event.target.value)} className={input} /></AdminField><AdminField label="Краткое описание" wide><Input maxLength={500} value={form.short_description} onChange={(event) => update("short_description", event.target.value)} className={input} /></AdminField><AdminField label="Постановка" wide><Textarea maxLength={30000} value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Тип задачи"><AdminSelect value={form.task_type} onChange={(value) => update("task_type", value)} options={TASK_TYPE_OPTIONS} /></AdminField><AdminField label="Сложность"><Input maxLength={30} value={form.difficulty} onChange={(event) => update("difficulty", event.target.value)} className={input} /></AdminField><AdminField label="Версия метрики"><select value={form.metric_version_id} onChange={(event) => update("metric_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите метрику</option>{metricOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></AdminField><AdminField label="Версия датасета"><select value={form.dataset_version_id} onChange={(event) => update("dataset_version_id", event.target.value)} className="h-10 w-full border border-border bg-background px-3 text-sm"><option value="">Выберите датасет</option>{datasetOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></AdminField><AdminField label="Целевая колонка"><Input value={form.target_column} onChange={(event) => update("target_column", event.target.value)} placeholder="target" className={input} /></AdminField><AdminField label="Колонка прогноза"><Input value={form.prediction_column} onChange={(event) => update("prediction_column", event.target.value)} placeholder="prediction" className={input} /></AdminField><AdminField label="Колонка группировки"><Input value={form.group_column} onChange={(event) => update("group_column", event.target.value)} placeholder="Только для ranking" className={input} /></AdminField><AdminField label="Формат решения"><AdminSelect value={form.submission_type} onChange={(value) => update("submission_type", value)} options={[["predictions_csv", "CSV с предсказаниями"], ["source_code", "Исходный код"]]} /></AdminField><AdminField label="Проверка"><AdminSelect value={form.evaluation_type} onChange={(value) => update("evaluation_type", value)} options={[["metric", "Метрика"], ["test_cases", "Тесты"], ["custom", "Своя"]]} /></AdminField><AdminField label="Правила" wide><Textarea maxLength={30000} value={form.rules} onChange={(event) => update("rules", event.target.value)} className="min-h-28 rounded-none" /></AdminField></>}
+    </section>
+    {mode !== "edit" && <section className="border-t border-border pt-6"><h3 className="font-heading text-lg font-bold">Назначение версии</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Выбор определяет, останется ли версия закрытой для будущего соревнования или сразу станет доступна пользователям.</p><div className="mt-4 grid gap-3 sm:grid-cols-2">{[["competition", "Для соревнования", "Private-версия. Её можно выбрать в редакторе соревнования; после привязки она станет competition_only."], ["public", "Для дуэлей и практики", "Released-версия. После сохранения сервер проверит ZIP датасета и последний validation run."]].map(([value, label, text]) => <button key={value} type="button" onClick={() => update("usage_mode", value)} className={cn("border p-4 text-left transition-colors", form.usage_mode === value ? "border-primary bg-primary/5" : "border-border bg-background hover:border-primary/30")}><span className="flex items-center gap-2 text-sm font-bold">{value === "competition" ? <Trophy size={17} /> : <Swords size={17} />}{label}</span><span className="mt-2 block text-xs leading-5 text-muted-foreground">{text}</span></button>)}</div>
+      {form.usage_mode === "public" && <div className="mt-5 border border-border bg-secondary/20 p-5"><div className="grid gap-3 sm:grid-cols-3"><AdminCheckbox checked={form.duel_enabled} onChange={(value) => update("duel_enabled", value)} label="Обычные дуэли" /><AdminCheckbox checked={form.practice_enabled} onChange={(value) => update("practice_enabled", value)} label="Практика" /><AdminCheckbox checked={form.challenge_enabled} onChange={(value) => update("challenge_enabled", value)} label="Вызов ML-Арены" /></div>{form.challenge_enabled && <div className="mt-6 grid gap-5 border-t border-border pt-5 sm:grid-cols-2"><AdminField label="Уровень вызова"><AdminSelect value={form.challenge_difficulty} onChange={(value) => update("challenge_difficulty", value)} options={[["easy", "Лёгкий"], ["medium", "Средний"], ["advanced", "Продвинутый"]]} /></AdminField><AdminField label="Benchmark score"><Input type="number" step="any" value={form.benchmark_score} onChange={(event) => update("benchmark_score", event.target.value)} placeholder="0.8564" className={input} /></AdminField><AdminField label="Рейтинг benchmark"><Input type="number" min="0" value={form.benchmark_rating} onChange={(event) => update("benchmark_rating", event.target.value)} placeholder="1700" className={input} /></AdminField><AdminField label="Версия benchmark"><Input maxLength={40} value={form.benchmark_version} onChange={(event) => update("benchmark_version", event.target.value)} placeholder="benchmark-v3" className={input} /></AdminField><AdminCheckbox checked={form.challenge_calibrated} onChange={(value) => update("challenge_calibrated", value)} label="Benchmark проверен и откалиброван" /><div className="border-l-2 border-primary pl-3 text-xs leading-5 text-muted-foreground sm:col-span-2">Одна версия покрывает один уровень. Для трёх уровней создайте и выпустите три версии с отдельными benchmark-настройками.</div></div>}</div>}
+    </section>}
   </div>;
   if (type === "badges") return <BadgeEditorFields mode={mode} form={form} update={update} input={input} />;
-  if (type === "plans") return <div className="grid gap-5 sm:grid-cols-2">
-    {mode === "create" && <AdminField label="Код"><Input value={form.code} onChange={(event) => update("code", event.target.value.toLowerCase())} placeholder="premium_monthly" className={input} /></AdminField>}
-    <AdminField label="Название"><Input value={form.name} onChange={(event) => update("name", event.target.value)} className={input} /></AdminField>
-    <AdminField label="Описание" wide><Textarea value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-24 rounded-none" /></AdminField>
-    <AdminField label="Период"><Input value={form.billing_period} onChange={(event) => update("billing_period", event.target.value)} placeholder="month" className={input} /></AdminField>
-    <AdminField label="Валюта"><Input value={form.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} maxLength={3} className={input} /></AdminField>
-    <AdminField label="Цена в копейках"><Input type="number" min="0" value={form.amount} onChange={(event) => update("amount", event.target.value)} className={input} /></AdminField>
-    <AdminField label="Старая цена в копейках"><Input type="number" min="0" value={form.compare_at_amount} onChange={(event) => update("compare_at_amount", event.target.value)} className={input} /></AdminField>
-    <AdminField label="Преимущества, по одному в строке" wide><Textarea value={form.features} onChange={(event) => update("features", event.target.value)} className="min-h-28 rounded-none" /></AdminField>
-    <AdminField label="Возможности и лимиты (JSON)" wide><Textarea value={form.entitlements} onChange={(event) => update("entitlements", event.target.value)} className="min-h-36 rounded-none font-mono text-xs" /></AdminField>
-    {mode === "create" && <AdminCheckbox checked={form.publish} onChange={(value) => update("publish", value)} label="Сразу опубликовать тариф" />}
-  </div>;
+  if (type === "plans") {
+    const price = Number(form.amount) || 0;
+    const comparePrice = Number(form.compare_at_amount) || 0;
+    const annual = form.billing_period === "year";
+    const discount = comparePrice > price && comparePrice > 0 ? Math.round((1 - price / comparePrice) * 100) : 0;
+    const currencyLabel = form.currency === "RUB" ? "₽" : form.currency;
+    return <div className="grid gap-6">
+      <div className="grid gap-5 sm:grid-cols-2">
+        {mode === "create" && <AdminField label="Код"><Input value={form.code} onChange={(event) => update("code", event.target.value.toLowerCase())} placeholder={annual ? "premium_yearly" : "premium_monthly"} className={input} /></AdminField>}
+        <AdminField label="Название"><Input value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="Premium" className={input} /></AdminField>
+        <AdminField label="Описание" wide><Textarea maxLength={10000} value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-24 rounded-none" /></AdminField>
+      </div>
+      <div className="grid gap-5 border-y border-border bg-secondary/25 p-5 sm:grid-cols-2">
+        <AdminField label="Период оплаты"><AdminSelect value={form.billing_period} onChange={(value) => update("billing_period", value)} options={[["month", "Ежемесячно"], ["year", "Ежегодно"]]} /></AdminField>
+        <AdminField label="Валюта"><Input value={form.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} maxLength={3} placeholder="RUB" className={input} /></AdminField>
+        <AdminField label={annual ? "Цена за год" : "Цена за месяц"}><Input type="number" min="0" step="0.01" value={form.amount} onChange={(event) => update("amount", event.target.value)} className={input} /></AdminField>
+        <AdminField label="Цена до скидки"><Input type="number" min="0" step="0.01" value={form.compare_at_amount} onChange={(event) => update("compare_at_amount", event.target.value)} placeholder="Необязательно" className={input} /></AdminField>
+        <div className="sm:col-span-2"><div className="flex flex-wrap items-end justify-between gap-4 border-l-2 border-primary bg-card px-4 py-4"><div><p className="text-xs font-semibold text-muted-foreground">Как увидит пользователь</p><p className="mt-2 font-heading text-2xl font-extrabold">{price.toLocaleString("ru-RU")} {currencyLabel} <span className="text-sm font-semibold text-muted-foreground">{annual ? "в год" : "в месяц"}</span></p>{annual && price > 0 && <p className="mt-1 text-xs font-semibold text-primary">≈ {Math.round(price / 12).toLocaleString("ru-RU")} {currencyLabel} в месяц</p>}</div>{discount > 0 && <span className="border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">Скидка {discount}%</span>}</div></div>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <AdminField label="Условия и преимущества" wide><Textarea value={form.features} onChange={(event) => update("features", event.target.value)} placeholder="Каждое условие с новой строки" className="min-h-32 rounded-none" /></AdminField>
+        <AdminField label="Возможности и лимиты (JSON)" wide><Textarea value={form.entitlements} onChange={(event) => update("entitlements", event.target.value)} className="min-h-36 rounded-none font-mono text-xs" /></AdminField>
+        {mode === "create" && <AdminCheckbox checked={form.publish} onChange={(value) => update("publish", value)} label="Сразу опубликовать тариф" />}
+      </div>
+    </div>;
+  }
   return null;
 }
 
-function AdminCheckbox({ checked, onChange, label }) {
-  return <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold sm:col-span-2"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-primary" />{label}</label>;
+function AdminCheckbox({ checked, onChange, label, wide = false }) {
+  return <label className={cn("flex cursor-pointer items-center gap-3 text-sm font-semibold", wide && "sm:col-span-2")}><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-primary" />{label}</label>;
+}
+
+function taskReleasePayload(form) {
+  const challenge = form.challenge_enabled;
+  return {
+    duel_enabled: form.duel_enabled,
+    practice_enabled: form.practice_enabled,
+    challenge_enabled: challenge,
+    challenge_difficulty: challenge ? form.challenge_difficulty : null,
+    benchmark_score: challenge ? String(form.benchmark_score) : null,
+    benchmark_rating: challenge ? Number(form.benchmark_rating) : null,
+    benchmark_version: challenge ? form.benchmark_version.trim() : null,
+    challenge_calibration_status: challenge && form.challenge_calibrated ? "calibrated" : null,
+  };
 }
 
 function ResourceEditorDialog({ editor, onClose, onSaved }) {
   const [form, setForm] = useState(() => resourceDefaults(editor?.type, editor?.item, editor?.mode));
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const { toast } = useToast();
   const taskReferencesEnabled = editor?.type === "tasks" && editor?.mode !== "edit";
   const organizationReferencesEnabled = ["tasks", "datasets"].includes(editor?.type) && editor?.mode === "create";
   const organizationsQuery = useQuery({ queryKey: ["admin", "resource-organization-options"], queryFn: () => api.admin.organizations({ limit: 50, offset: 0 }), enabled: organizationReferencesEnabled });
@@ -1102,6 +1160,12 @@ function ResourceEditorDialog({ editor, onClose, onSaved }) {
       if (editor.type === "datasets" && editor.mode === "version" && !form.id_column.trim()) {
         throw new Error("Укажите ID-колонку датасета.");
       }
+      if (editor.type === "plans" && form.compare_at_amount !== "" && Number(form.compare_at_amount) < Number(form.amount)) {
+        throw new Error("Цена до скидки не может быть меньше текущей цены.");
+      }
+      if (editor.type === "plans" && form.currency.trim().length !== 3) {
+        throw new Error("Укажите трёхбуквенный код валюты, например RUB.");
+      }
       if (editor.type === "tasks" && editor.mode !== "edit" && !form.metric_version_id) {
         throw new Error("Выберите версию метрики. Если список пуст, сначала создайте метрику и её версию.");
       }
@@ -1111,6 +1175,13 @@ function ResourceEditorDialog({ editor, onClose, onSaved }) {
       if (editor.type === "tasks" && editor.mode !== "edit" && (!form.target_column.trim() || !form.prediction_column.trim())) {
         throw new Error("Укажите целевую колонку и колонку прогноза.");
       }
+      if (editor.type === "tasks" && editor.mode !== "edit" && form.usage_mode === "public" && !form.duel_enabled && !form.practice_enabled && !form.challenge_enabled) {
+        throw new Error("Выберите хотя бы один режим: дуэли, практика или вызов ML-Арены.");
+      }
+      if (editor.type === "tasks" && editor.mode !== "edit" && form.usage_mode === "public" && form.challenge_enabled
+        && (!String(form.benchmark_score).trim() || !String(form.benchmark_rating).trim() || !form.benchmark_version.trim() || !form.challenge_calibrated)) {
+        throw new Error("Для вызова ML-Арены заполните benchmark, его рейтинг и версию, затем подтвердите калибровку.");
+      }
       const body = resourcePayload(editor.type, form, editor.mode);
       let result;
       if (editor.type === "metrics") result = editor.mode === "create" ? await api.admin.createMetric(body) : editor.mode === "edit" ? await api.admin.updateMetric(editor.item.id, body) : await api.admin.createMetricVersion(editor.item.id, body);
@@ -1118,6 +1189,17 @@ function ResourceEditorDialog({ editor, onClose, onSaved }) {
       if (editor.type === "tasks") result = editor.mode === "create" ? await api.admin.createTask(body) : editor.mode === "edit" ? await api.admin.updateTask(editor.item.id, body) : await api.admin.createTaskVersion(editor.item.id, body);
       if (editor.type === "badges") result = editor.mode === "create" ? await api.admin.createBadge(body) : await api.admin.updateBadge(editor.item.id, body);
       if (editor.type === "plans") result = editor.mode === "create" ? await api.admin.createBillingPlan(body) : await api.admin.updateBillingPlan(editor.item.id, body);
+      if (editor.type === "tasks" && editor.mode !== "edit" && form.usage_mode === "public") {
+        const taskId = result?.id || editor.item?.id;
+        const versionId = result?.current_version?.id || result?.current_version_id;
+        try {
+          await api.admin.releaseTaskVersion(taskId, versionId, taskReleasePayload(form));
+        } catch (releaseError) {
+          onSaved(result);
+          toast({ title: "Задача сохранена как private", description: `Выпуск отклонён сервером: ${apiErrorMessage(releaseError)}`, variant: "destructive" });
+          return;
+        }
+      }
       onSaved(result);
     } catch (saveError) {
       setError(saveError instanceof SyntaxError ? "Проверьте корректность JSON-полей." : apiErrorMessage(saveError));
@@ -1129,6 +1211,43 @@ function ResourceEditorDialog({ editor, onClose, onSaved }) {
   const title = editor.mode === "create" ? `Создать ${names[editor.type]}` : editor.mode === "version" ? "Создать новую версию" : `Редактировать ${names[editor.type]}`;
   const referencesLoading = (taskReferencesEnabled && (metricsQuery.isLoading || datasetsQuery.isLoading)) || (organizationReferencesEnabled && organizationsQuery.isLoading);
   return <Dialog.Root open onOpenChange={(open) => !open && !pending && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] flex max-h-[92vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-border bg-card shadow-2xl focus:outline-none"><div className="flex items-start justify-between gap-5 border-b border-border p-5 md:px-6"><div><Dialog.Title className="font-heading text-2xl font-extrabold">{title}</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">Поля и переходы повторно проверяются сервером.</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div><div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6"><ResourceFields type={editor.type} mode={editor.mode} form={form} update={update} organizationOptions={organizationOptions} metricOptions={metricOptions} datasetOptions={datasetOptions} />{(organizationsQuery.error || metricsQuery.error || datasetsQuery.error) && <div className="mt-5"><ErrorState compact error={organizationsQuery.error || metricsQuery.error || datasetsQuery.error} /></div>}{error && <div className="mt-5 border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}</div><div className="flex justify-end gap-2 border-t border-border bg-card/95 p-4"><Button variant="outline" onClick={onClose} disabled={pending}>Отмена</Button><Button onClick={save} disabled={pending || referencesLoading}>{pending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Сохранить</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
+}
+
+function TaskReleaseDialog({ task, tasks, onClose, onSaved }) {
+  const version = task?.current_version;
+  const [form, setForm] = useState(() => resourceDefaults("tasks", task, "release"));
+  const [error, setError] = useState("");
+  const mutation = useMutation({
+    mutationFn: () => api.admin.releaseTaskVersion(task.id, version.id, taskReleasePayload(form)),
+    onSuccess: onSaved,
+    onError: (releaseError) => setError(apiErrorMessage(releaseError)),
+  });
+  useEffect(() => {
+    setForm(resourceDefaults("tasks", task, "release"));
+    setError("");
+  }, [task]);
+  if (!task || !version) return null;
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const challengeCoverage = ["easy", "medium", "advanced"].map((difficulty) => ({
+    difficulty,
+    ready: tasks.some((item) => item.current_version?.task_type === version.task_type
+      && item.current_version?.exposure_status === "released"
+      && item.current_version?.challenge_enabled
+      && item.current_version?.challenge_difficulty === difficulty),
+  }));
+  const submit = () => {
+    setError("");
+    if (!form.duel_enabled && !form.practice_enabled && !form.challenge_enabled) {
+      setError("Выберите хотя бы один пользовательский режим.");
+      return;
+    }
+    if (form.challenge_enabled && (!String(form.benchmark_score).trim() || !String(form.benchmark_rating).trim() || !form.benchmark_version.trim() || !form.challenge_calibrated)) {
+      setError("Заполните все benchmark-поля и подтвердите калибровку.");
+      return;
+    }
+    mutation.mutate();
+  };
+  return <Dialog.Root open onOpenChange={(open) => !open && !mutation.isPending && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] flex max-h-[92vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-border bg-card shadow-2xl focus:outline-none"><div className="flex items-start justify-between gap-4 border-b border-border p-5 md:px-6"><div><Dialog.Title className="font-heading text-2xl font-extrabold">Доступ к задаче</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">{version.title} · версия {version.version}</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div><div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6"><div className="border-l-2 border-primary bg-primary/5 p-4 text-sm leading-6"><p className="font-semibold">Release необратимо открывает эту версию пользователям.</p><p className="mt-1 text-muted-foreground">После этого её нельзя использовать как новую закрытую задачу соревнования. Сервер также потребует проверенный dataset и participant bundle.</p></div><div className="mt-6 grid gap-4 sm:grid-cols-3"><AdminCheckbox checked={form.duel_enabled} onChange={(value) => update("duel_enabled", value)} label="Обычные дуэли" /><AdminCheckbox checked={form.practice_enabled} onChange={(value) => update("practice_enabled", value)} label="Практика" /><AdminCheckbox checked={form.challenge_enabled} onChange={(value) => update("challenge_enabled", value)} label="Вызов ML-Арены" /></div>{form.challenge_enabled && <div className="mt-6 space-y-6 border-t border-border pt-6"><div><p className="text-sm font-semibold">Покрытие уровней для направления</p><div className="mt-3 grid grid-cols-3 gap-2">{challengeCoverage.map(({ difficulty, ready }) => <div key={difficulty} className={cn("border p-3 text-center", ready ? "border-emerald-500/25 bg-emerald-500/5" : "border-border bg-secondary/25")}><p className="text-xs font-bold">{{ easy: "Лёгкий", medium: "Средний", advanced: "Продвинутый" }[difficulty]}</p><p className={cn("mt-1 text-[10px]", ready ? "text-emerald-600" : "text-muted-foreground")}>{ready ? "Настроен" : "Нет задачи"}</p></div>)}</div></div><div className="grid gap-5 sm:grid-cols-2"><AdminField label="Уровень этой версии"><AdminSelect value={form.challenge_difficulty} onChange={(value) => update("challenge_difficulty", value)} options={[["easy", "Лёгкий"], ["medium", "Средний"], ["advanced", "Продвинутый"]]} /></AdminField><AdminField label="Benchmark score"><Input type="number" step="any" value={form.benchmark_score} onChange={(event) => update("benchmark_score", event.target.value)} placeholder="0.8564" className="rounded-none" /></AdminField><AdminField label="Рейтинг benchmark"><Input type="number" min="0" value={form.benchmark_rating} onChange={(event) => update("benchmark_rating", event.target.value)} placeholder="1700" className="rounded-none" /></AdminField><AdminField label="Версия benchmark"><Input maxLength={40} value={form.benchmark_version} onChange={(event) => update("benchmark_version", event.target.value)} placeholder="benchmark-v3" className="rounded-none" /></AdminField><AdminCheckbox wide checked={form.challenge_calibrated} onChange={(value) => update("challenge_calibrated", value)} label="Benchmark проверен и откалиброван" /></div><p className="text-xs leading-5 text-muted-foreground">Для всех трёх кнопок вызова нужны три released-версии этого направления, каждая со своим уровнем и benchmark.</p></div>}{error && <div className="mt-6 border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}</div><div className="flex justify-end gap-2 border-t border-border p-4 md:px-6"><Button variant="outline" onClick={onClose} disabled={mutation.isPending}>Отмена</Button><Button onClick={submit} disabled={mutation.isPending}>{mutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpRight size={16} />} Выпустить версию</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
 }
 
 function DatasetFilesDialog({ datasetId, permissions, onClose, onSaved }) {
@@ -1213,6 +1332,7 @@ function ResourcesSection({ permissions, requestAction }) {
   const [active, setActive] = useState(available[0]?.[0] || "datasets");
   const [editor, setEditor] = useState(null);
   const [datasetFilesId, setDatasetFilesId] = useState(null);
+  const [taskRelease, setTaskRelease] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const current = RESOURCE_TYPES[active];
@@ -1230,12 +1350,7 @@ function ResourcesSection({ permissions, requestAction }) {
       {active === "datasets" && <ActionButton onClick={() => setDatasetFilesId(item.id)}><Upload size={13} /> Файлы</ActionButton>}
       {active === "datasets" && item.current_version?.id && can(permissions, "datasets.validate") && <ActionButton tone="primary" onClick={() => run(item, "Проверить датасет", "Сервер проверит структуру и приватность файлов текущей версии.", () => api.admin.validateDatasetVersion(item.current_version.id))}><CheckCircle2 size={13} /> Проверить</ActionButton>}
       {active === "metrics" && item.status !== "active" && <ActionButton tone="primary" onClick={() => run(item, "Опубликовать метрику", displayName(item), () => api.admin.metricAction(item.id, "publish"))}><Play size={13} /> Опубликовать</ActionButton>}
-      {active === "tasks" && item.status !== "published" && <ActionButton tone="primary" onClick={() => run(item, "Опубликовать задачу", displayName(item), () => api.admin.taskAction(item.id, "publish"))}><Play size={13} /> Опубликовать</ActionButton>}
-      {active === "tasks" && item.current_version?.id && item.current_version?.exposure_status !== "released" && <ActionButton tone="primary" onClick={() => run(item, "Открыть задачу для дуэлей и практики", "Версия станет публичной и больше не сможет использоваться как закрытая конкурсная.", () => api.admin.releaseTaskVersion(item.id, item.current_version.id, {
-        duel_enabled: true,
-        practice_enabled: true,
-        challenge_enabled: false,
-      }))}><ArrowUpRight size={13} /> Открыть</ActionButton>}
+      {active === "tasks" && item.current_version?.id && item.current_version?.exposure_status !== "competition_only" && item.status !== "archived" && <ActionButton tone="primary" onClick={() => setTaskRelease(item)}><ArrowUpRight size={13} /> Настроить доступ</ActionButton>}
       {active === "plans" && item.status !== "active" && <ActionButton tone="primary" onClick={() => run(item, "Опубликовать тариф", displayName(item), () => api.admin.billingPlanAction(item.id, "publish"))}><Play size={13} /> Опубликовать</ActionButton>}
       {active === "metrics" && item.status !== "archived" && <ActionButton tone="danger" onClick={() => run(item, "Архивировать метрику", displayName(item), () => api.admin.metricAction(item.id, "archive"), { danger: true })}><Archive size={13} /></ActionButton>}
       {active === "datasets" && item.status !== "archived" && <ActionButton tone="danger" onClick={() => run(item, "Архивировать датасет", displayName(item), () => api.admin.archiveDataset(item.id), { danger: true })}><Archive size={13} /></ActionButton>}
@@ -1247,7 +1362,7 @@ function ResourcesSection({ permissions, requestAction }) {
     </ActionMenu>;
   };
   const canCreate = active !== "subscriptions" && can(permissions, current.write);
-  return <><SectionHeading title="Ресурсы платформы" description="Создание, версии, публикация и архивирование сущностей, от которых зависит работа платформы." count={listTotal(query.data)} action={canCreate ? <Button onClick={() => setEditor({ type: active, mode: "create", item: null })}><Plus size={16} /> Создать {current.singular}</Button> : null} /><div className="mb-4 flex flex-wrap gap-2">{available.map(([id, resource]) => { const Icon = resource.icon; return <button key={id} type="button" onClick={() => setActive(id)} className={`inline-flex h-10 items-center gap-2 border px-3 text-sm font-semibold ${active === id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:text-primary"}`}><Icon size={15} />{resource.label}</button>; })}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((item) => <div key={item.id} className="grid gap-4 px-5 py-4 xl:grid-cols-[minmax(220px,1fr)_130px_150px_minmax(280px,auto)] xl:items-center"><div><p className="font-semibold">{displayName(item)}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{item.code || item.slug || item.id}</p>{item.current_version && <p className="mt-1 text-xs text-muted-foreground">Версия {item.current_version.version} · {item.current_version.exposure_status || item.current_version.direction || "текущая"}</p>}</div><Status value={item.status} /><p className="text-sm text-muted-foreground">{formatDate(item.updated_at || item.created_at)}</p><div className="xl:justify-self-end">{actions(item)}</div></div>)}</div></TableShell><ResourceEditorDialog editor={editor} onClose={() => setEditor(null)} onSaved={saved} /><DatasetFilesDialog datasetId={datasetFilesId} permissions={permissions} onClose={() => setDatasetFilesId(null)} onSaved={invalidate} /></>;
+  return <><SectionHeading title="Ресурсы платформы" description="Создание, версии, публикация и архивирование сущностей, от которых зависит работа платформы." count={listTotal(query.data)} action={canCreate ? <Button onClick={() => setEditor({ type: active, mode: "create", item: null })}><Plus size={16} /> Создать {current.singular}</Button> : null} /><div className="mb-4 flex flex-wrap gap-2">{available.map(([id, resource]) => { const Icon = resource.icon; return <button key={id} type="button" onClick={() => setActive(id)} className={`inline-flex h-10 items-center gap-2 border px-3 text-sm font-semibold ${active === id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:text-primary"}`}><Icon size={15} />{resource.label}</button>; })}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((item) => <div key={item.id} className="grid gap-4 px-5 py-4 xl:grid-cols-[minmax(260px,1fr)_160px_150px_minmax(280px,auto)] xl:items-center"><div><p className="font-semibold">{displayName(item)}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{item.code || item.slug || item.id}</p>{item.current_version && <div className="mt-2 flex flex-wrap gap-1.5"><span className="border border-border bg-secondary px-2 py-1 text-[10px] font-semibold">v{item.current_version.version}</span>{active === "tasks" ? <>{item.current_version.exposure_status === "private" && <span className="border border-amber-500/25 bg-amber-500/5 px-2 py-1 text-[10px] font-semibold text-amber-700">Для соревнования</span>}{item.current_version.exposure_status === "competition_only" && <span className="border border-primary/25 bg-primary/5 px-2 py-1 text-[10px] font-semibold text-primary">Закреплена в соревновании</span>}{item.current_version.duel_enabled && <span className="border border-border px-2 py-1 text-[10px] font-semibold">Дуэли</span>}{item.current_version.practice_enabled && <span className="border border-border px-2 py-1 text-[10px] font-semibold">Практика</span>}{item.current_version.challenge_enabled && <span className="border border-emerald-500/25 bg-emerald-500/5 px-2 py-1 text-[10px] font-semibold text-emerald-700">ML-Арена · {{ easy: "лёгкий", medium: "средний", advanced: "продвинутый" }[item.current_version.challenge_difficulty] || item.current_version.challenge_difficulty}</span>}</> : <span className="text-[10px] text-muted-foreground">{item.current_version.exposure_status || item.current_version.direction || "текущая"}</span>}</div>}</div><Status value={item.status} /><p className="text-sm text-muted-foreground">{formatDate(item.updated_at || item.created_at)}</p><div className="xl:justify-self-end">{actions(item)}</div></div>)}</div></TableShell><ResourceEditorDialog editor={editor} onClose={() => setEditor(null)} onSaved={saved} /><TaskReleaseDialog task={taskRelease} tasks={rows} onClose={() => setTaskRelease(null)} onSaved={() => { setTaskRelease(null); invalidate(); toast({ title: "Доступ к задаче обновлён" }); }} /><DatasetFilesDialog datasetId={datasetFilesId} permissions={permissions} onClose={() => setDatasetFilesId(null)} onSaved={invalidate} /></>;
 }
 
 function RatingSeasonsSection({ requestAction }) {
