@@ -68,18 +68,34 @@ export default function AppLayout({ children }) {
     return () => document.documentElement.classList.remove("arena-app-active");
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
+
   const handleLogout = () => {
     logout();
     setMobileOpen(false);
     navigate("/");
   };
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ mobile = false }) => {
+    const expanded = mobile || !collapsed;
+    return (
     <div className="flex h-full flex-col">
-      <div className={`arena-sidebar-logo flex h-[76px] shrink-0 items-center border-b border-sidebar-border px-4 ${collapsed ? "justify-center" : ""}`}>
+      <div className={`arena-sidebar-logo flex h-[76px] shrink-0 items-center border-b border-sidebar-border px-4 ${!expanded ? "justify-center" : ""}`}>
         <Link to="/" className="group flex min-w-0 items-center gap-3" onClick={() => setMobileOpen(false)}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-card shadow-sm ring-1 ring-sidebar-border"><ArenaLogoMark className="h-8 w-8" /></span>
-          {!collapsed && <span className="min-w-0"><span className="block truncate font-heading text-xl font-extrabold leading-none">ML-Арена</span><span className="mt-1.5 block text-[10px] font-semibold uppercase text-muted-foreground">Founder Season</span></span>}
+          {expanded && <span className="min-w-0"><span className="block truncate font-heading text-xl font-extrabold leading-none">ML-Арена</span><span className="mt-1.5 block text-[10px] font-semibold uppercase text-muted-foreground">Founder Season</span></span>}
         </Link>
       </div>
 
@@ -88,11 +104,11 @@ export default function AppLayout({ children }) {
           const Icon = item.icon;
           const active = isActive(item.to);
           return (
-            <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className={`arena-nav-item group relative flex min-h-13 items-center gap-3 px-3 py-2.5 text-[15px] font-semibold ${active ? "arena-nav-item-active text-primary-foreground" : "text-sidebar-foreground hover:text-primary"} ${collapsed ? "justify-center" : ""}`} title={collapsed ? item.label : undefined}>
+            <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className={`arena-nav-item group relative flex min-h-13 items-center gap-3 px-3 py-2.5 text-[15px] font-semibold ${active ? "arena-nav-item-active text-primary-foreground" : "text-sidebar-foreground hover:text-primary"} ${!expanded ? "justify-center" : ""}`} title={!expanded ? item.label : undefined}>
               <span className={`relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center border transition-colors ${active ? "border-primary-foreground/20 bg-primary-foreground/10" : "border-sidebar-border bg-card text-primary group-hover:border-primary/25 group-hover:bg-primary/5"}`}>
                 <Icon size={19} strokeWidth={2.15} />
               </span>
-              {!collapsed && <span className="relative z-[1] truncate">{item.label}</span>}
+              {expanded && <span className="relative z-[1] truncate">{item.label}</span>}
             </Link>
           );
         })}
@@ -100,21 +116,22 @@ export default function AppLayout({ children }) {
 
       <div className="mt-auto shrink-0 border-t border-sidebar-border bg-card/55 p-3">
         {isAuthenticated ? (
-          <div className={`${collapsed ? "flex justify-center py-2" : "p-2"}`}>
+          <div className={`${!expanded ? "flex justify-center py-2" : "p-2"}`}>
             <Link to="/profile" onClick={() => setMobileOpen(false)} className="group flex items-center gap-3">
               <Avatar name={user?.full_name || user?.nickname || user?.email} src={user?.avatar_url} size={36} className="ring-2 ring-card ring-offset-1 ring-offset-primary/20" />
-              {!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold group-hover:text-primary">{user?.full_name || user?.nickname || "Участник"}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{user?.full_name && user?.nickname ? `@${user.nickname.replace(/^@/, "")}` : user?.email}</p></div>}
+              {expanded && <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold group-hover:text-primary">{user?.full_name || user?.nickname || "Участник"}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{user?.full_name && user?.nickname ? `@${user.nickname.replace(/^@/, "")}` : user?.email}</p></div>}
             </Link>
-            {!collapsed && <div className="mt-4 grid grid-cols-[1fr_38px] gap-2"><Button asChild size="sm" variant="outline" className="rounded-none"><Link to="/profile/edit" onClick={() => setMobileOpen(false)}><Pencil size={14} /> Настроить</Link></Button><Button type="button" size="icon" variant="ghost" className="h-[38px] w-[38px] rounded-none" onClick={handleLogout} title="Выйти"><LogOut size={16} /></Button></div>}
+            {expanded && <div className="mt-4 grid grid-cols-[1fr_42px] gap-2"><Button asChild size="sm" variant="outline" className="min-h-11 rounded-none"><Link to="/profile/edit" onClick={() => setMobileOpen(false)}><Pencil size={14} /> Настроить</Link></Button><Button type="button" size="icon" variant="ghost" className="h-11 w-[42px] rounded-none" onClick={handleLogout} title="Выйти"><LogOut size={16} /></Button></div>}
           </div>
         ) : (
-          <div className={`space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
-            <Button asChild size={collapsed ? "icon" : "sm"} variant="outline" className={collapsed ? "" : "w-full"}><Link to="/login" onClick={() => setMobileOpen(false)} title="Войти"><LogIn size={16} />{!collapsed && "Войти"}</Link></Button>
+          <div className={`space-y-2 ${!expanded ? "flex flex-col items-center" : ""}`}>
+            <Button asChild size={!expanded ? "icon" : "sm"} variant="outline" className={!expanded ? "" : "min-h-11 w-full"}><Link to="/login" onClick={() => setMobileOpen(false)} title="Войти"><LogIn size={16} />{expanded && "Войти"}</Link></Button>
           </div>
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="arena-app-shell flex h-[100dvh] max-h-[100dvh] overflow-hidden bg-background font-body">
@@ -133,12 +150,18 @@ export default function AppLayout({ children }) {
           </div>
           <ThemeToggle />
         </header>
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-4 md:hidden">
-          <button type="button" onClick={() => setMobileOpen(true)} title="Открыть меню"><Menu size={20} /></button>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-3 md:hidden">
+          <button type="button" onClick={() => setMobileOpen(true)} className="flex h-11 w-11 shrink-0 items-center justify-center border border-border bg-background text-foreground transition-colors active:bg-secondary" title="Открыть меню" aria-label="Открыть меню" aria-expanded={mobileOpen} aria-controls="arena-mobile-navigation"><Menu size={20} /></button>
           <Link to="/" className="flex items-center gap-2"><ArenaLogoMark className="h-8 w-8" /><span className="font-heading text-lg font-extrabold">ML-Арена</span></Link>
           <ThemeToggle className="ml-auto" />
         </header>
-        {mobileOpen && <div className="fixed inset-0 z-50 flex md:hidden"><div className="arena-sidebar w-[292px] max-w-[86vw] border-r border-sidebar-border bg-sidebar"><div className="absolute left-[min(292px,86vw)] top-3 z-10"><button type="button" onClick={() => setMobileOpen(false)} className="ml-3 flex h-9 w-9 items-center justify-center border border-border bg-card shadow" title="Закрыть меню"><X size={18} /></button></div><SidebarContent /></div><button type="button" aria-label="Закрыть меню" className="flex-1 bg-foreground/35 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} /></div>}
+        <div className={`fixed inset-0 z-50 flex md:hidden ${mobileOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`} aria-hidden={!mobileOpen}>
+          <div id="arena-mobile-navigation" className={`arena-sidebar relative w-[292px] max-w-[86vw] border-r border-sidebar-border bg-sidebar shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+            <div className="absolute right-3 top-3 z-10"><button type="button" onClick={() => setMobileOpen(false)} className="flex h-11 w-11 items-center justify-center border border-border bg-card shadow" title="Закрыть меню" aria-label="Закрыть меню"><X size={18} /></button></div>
+            <SidebarContent mobile />
+          </div>
+          <button type="button" aria-label="Закрыть меню" className={`flex-1 bg-foreground/35 backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none ${mobileOpen ? "opacity-100" : "opacity-0"}`} onClick={() => setMobileOpen(false)} />
+        </div>
         <main className="arena-app-main scrollbar-thin min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children || <Outlet />}</main>
       </div>
     </div>

@@ -69,7 +69,6 @@ const INITIAL_FORM = {
   startsAt: "",
   endsAt: "",
   attempts: "5",
-  split: "30/70",
   externalData: "forbidden",
   aiTools: "allowed",
   pretrainedModels: "allowed",
@@ -155,7 +154,6 @@ export default function CommunityCompetitionCreate() {
         starts_at: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         submission_deadline: new Date(form.endsAt).toISOString(),
         daily_submission_limit: Number(form.attempts),
-        public_split_percent: Number(form.split.split("/")[0]),
         rules: "Один аккаунт на участника. Решения загружаются только в CSV.",
         external_data_policy: form.externalData === "forbidden" ? "Запрещены" : "Разрешены",
         ai_tools_policy: form.aiTools === "allowed" ? "Разрешены" : "Запрещены",
@@ -247,7 +245,7 @@ export default function CommunityCompetitionCreate() {
 
             {step === 4 && <div className="grid gap-3 sm:grid-cols-3">{[{ id: "open", icon: Users, title: "Открыто", text: "Любой зарегистрированный участник может присоединиться." }, { id: "invite_only", icon: LockKeyhole, title: "По приглашению", text: "Доступ по системному приглашению или одноразовой ссылке." }, { id: "application", icon: FileCheck2, title: "По заявке", text: "Организатор принимает или отклоняет заявку по нику." }].map((item) => <ToggleCard key={item.id} active={form.access === item.id} icon={item.icon} title={item.title} text={item.text} onClick={() => update("access", item.id)} />)}<div className="sm:col-span-3"><Field label="Максимум участников" hint="Необязательно. Контактные данные участников организатору не передаются."><Input type="number" min="2" value={form.maxParticipants} onChange={(event) => update("maxParticipants", event.target.value)} placeholder="Без ограничения" /></Field></div></div>}
 
-            {step === 5 && <div className="space-y-5"><div className="grid gap-5 sm:grid-cols-2"><Field label="Начало"><Input type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} /></Field><Field label="Окончание"><Input type="datetime-local" value={form.endsAt} onChange={(event) => update("endsAt", event.target.value)} /></Field><Field label="Попыток в сутки"><Select value={form.attempts} onChange={(event) => update("attempts", event.target.value)}>{["3", "5", "10"].map((item) => <option key={item} value={item}>{item}</option>)}</Select></Field><Field label="Public / Private"><Select value={form.split} onChange={(event) => update("split", event.target.value)}><option value="20/80">20% / 80%</option><option value="30/70">30% / 70%</option><option value="40/60">40% / 60%</option></Select></Field></div><div className="border border-border bg-secondary/45 p-4 text-sm leading-6 text-muted-foreground">Private оценка скрыта до завершения. Итоговые места определяются после финального пересчёта.</div></div>}
+            {step === 5 && <div className="space-y-5"><div className="grid gap-5 sm:grid-cols-2"><Field label="Начало"><Input type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} /></Field><Field label="Окончание"><Input type="datetime-local" value={form.endsAt} onChange={(event) => update("endsAt", event.target.value)} /></Field><Field label="Попыток в сутки"><Select value={form.attempts} onChange={(event) => update("attempts", event.target.value)}>{["3", "5", "10"].map((item) => <option key={item} value={item}>{item}</option>)}</Select></Field></div><div className="border border-border bg-secondary/45 p-4 text-sm leading-6 text-muted-foreground">Публичные и приватные ответы загружаются отдельными файлами. Приватная оценка скрыта до завершения, итоговые места определяются после финального пересчёта.</div></div>}
 
             {step === 6 && <ReviewStep form={form} update={update} />}
           </div>

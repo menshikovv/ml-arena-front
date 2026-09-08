@@ -273,13 +273,14 @@ export default function Competitions() {
       </section>
 
       <Reveal className="mt-12" delay={0.08}>
-        <section className="overflow-hidden rounded-lg bg-foreground text-background dark:bg-card dark:text-foreground">
+        <section className="overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-sm">
+          <div className="h-1 bg-primary" />
           <div className="flex flex-col justify-between gap-5 px-6 py-8 sm:px-8 lg:flex-row lg:items-end lg:px-10 lg:py-10">
             <div><p className="text-xs font-semibold text-accent">Принципы ML-Арены</p><h2 className="mt-3 max-w-2xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Результат определяет решение</h2></div>
-            <p className="max-w-md text-sm leading-6 text-background/60 dark:text-muted-foreground">Единые правила сохраняют ценность каждого места и каждого результата.</p>
+            <p className="max-w-md text-sm leading-6 text-muted-foreground">Единые правила сохраняют ценность каждого места и каждого результата.</p>
           </div>
-          <div className="grid border-t border-background/15 sm:grid-cols-3 dark:border-border">
-            {FAIRNESS.map((item, index) => <article key={item.title} className="border-b border-background/15 px-6 py-7 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 dark:border-border sm:px-8"><div className="flex items-center gap-3"><span aria-hidden="true" className="font-mono text-xs font-semibold text-accent">0{index + 1}</span><span className="h-px flex-1 bg-background/15 dark:bg-border" /></div><h3 className="mt-5 font-heading text-lg font-bold">{item.title}</h3><p className="mt-3 text-sm leading-6 text-background/60 dark:text-muted-foreground">{item.text}</p></article>)}
+          <div className="grid border-t border-border bg-secondary/15 sm:grid-cols-3">
+            {FAIRNESS.map((item, index) => <article key={item.title} className="border-b border-border bg-card/80 px-6 py-7 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:px-8"><div className="flex items-center gap-3"><span aria-hidden="true" className="font-mono text-xs font-semibold text-accent">0{index + 1}</span><span className="h-px flex-1 bg-border" /></div><h3 className="mt-5 font-heading text-lg font-bold">{item.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{item.text}</p></article>)}
           </div>
         </section>
       </Reveal>

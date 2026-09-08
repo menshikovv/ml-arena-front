@@ -259,6 +259,7 @@ export default function Pricing() {
                   <>
                     <div className="flex flex-wrap items-end gap-x-3 gap-y-1"><span className="font-heading text-4xl font-extrabold sm:text-5xl">{price == null ? "—" : `${price.toLocaleString("ru-RU")} ${currency}`}</span><span className="pb-1 text-sm text-muted-foreground">в год</span></div>
                     {price != null && <p className="mt-2 text-sm font-semibold text-primary">{Math.round(price / 12).toLocaleString("ru-RU")} {currency} в месяц</p>}
+                    {price != null && comparePrice != null && comparePrice > price && <p className="mt-2 text-sm"><span className="text-muted-foreground line-through">{comparePrice.toLocaleString("ru-RU")} {currency}</span><span className="ml-2 font-semibold text-emerald-600">экономия {Math.round((1 - price / comparePrice) * 100)}%</span></p>}
                   </>
                 ) : (
                   <>

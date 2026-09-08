@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   Award,
@@ -132,10 +132,10 @@ function HeroCompanion({ reduceMotion }) {
       initial={reduceMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
-      className="relative flex min-h-[500px] w-full items-center justify-center py-8 lg:justify-end"
+      className="relative flex min-h-[390px] w-full items-center justify-center py-5 sm:min-h-[500px] sm:py-8 lg:justify-end"
     >
-      <div className="absolute left-1/2 top-1/2 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-300/30" />
-      <div className="absolute left-1/2 top-1/2 h-[330px] w-[330px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-300/35" />
+      <div className="absolute left-1/2 top-1/2 h-[310px] w-[310px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-300/30 sm:h-[430px] sm:w-[430px]" />
+      <div className="absolute left-1/2 top-1/2 h-[240px] w-[240px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-300/35 sm:h-[330px] sm:w-[330px]" />
 
       <motion.div
         className="relative w-full max-w-[600px]"
@@ -168,7 +168,7 @@ function HeroCompanion({ reduceMotion }) {
           animate={float([0, 2, 0], [0, -8, 0])}
           whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: 1 }}
           transition={{ duration: 5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          className={`${glassClass} right-0 top-[13%] sm:-right-3 lg:-right-5`}
+          className={`${glassClass} right-0 top-[10%] max-sm:px-3 max-sm:py-2 sm:-right-3 lg:-right-5`}
         >
           <Link to="/competitions" aria-label="Перейти к соревнованиям" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
           <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ function HeroCompanion({ reduceMotion }) {
           animate={float([0, -2, 0], [0, 8, 0])}
           whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: -1 }}
           transition={{ duration: 5.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          className={`${glassClass} left-0 top-[47%] sm:-left-4 lg:-left-8`}
+          className={`${glassClass} left-0 top-[47%] max-sm:px-3 max-sm:py-2 sm:-left-4 lg:-left-8`}
         >
           <Link to="/duels" aria-label="Перейти к дуэлям" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
           <div className="flex items-center gap-3">
@@ -206,7 +206,7 @@ function HeroCompanion({ reduceMotion }) {
           animate={float([0, -1, 0], [0, -10, 0])}
           whileHover={reduceMotion ? undefined : { scale: 1.05, rotate: 1.5 }}
           transition={{ duration: 4.8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          className={`${glassClass} bottom-[12%] right-1 sm:-right-2 lg:-right-4`}
+          className={`${glassClass} bottom-[8%] right-1 max-sm:px-3 max-sm:py-2 sm:bottom-[12%] sm:-right-2 lg:-right-4`}
         >
           <Link to="/ml-passport" aria-label="Перейти в ML-паспорт" className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" />
           <div className="flex items-center gap-3">
@@ -233,7 +233,7 @@ function ArenaPreview() {
 
   return (
     <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
-      <div className="flex items-center justify-between border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-2 font-medium text-foreground">
           <span className="h-2 w-2 rounded-full bg-accent" />
           Пример сезонного рейтинга
@@ -337,6 +337,20 @@ export default function Landing() {
   useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
   const enabledFeatures = appPublicSettings?.features || {};
   const featureEnabled = (name) => enabledFeatures[name] === true;
+
+  React.useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileMenuOpen]);
   const landingStats = [
     { value: publicStats.data?.users ?? "—", label: "участников", icon: Users },
     { value: publicStats.data?.active_competitions ?? "—", label: "активных соревнований", icon: Trophy },
@@ -395,9 +409,11 @@ export default function Landing() {
             )}
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] dark:border-white/10 dark:bg-white/5 dark:text-white xl:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#071A3A]/10 bg-white/35 text-[#071A3A] dark:border-white/10 dark:bg-white/5 dark:text-white xl:hidden"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Открыть меню"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="landing-mobile-navigation"
             >
               <Menu size={18} />
             </button>
@@ -405,13 +421,16 @@ export default function Landing() {
         </div>
       </motion.header>
 
+      <AnimatePresence>
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] flex justify-end bg-black/15 dark:bg-black/55" onClick={() => setMobileMenuOpen(false)}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.22 }} className="fixed inset-0 z-[60] flex justify-start bg-black/15 dark:bg-black/55" onClick={() => setMobileMenuOpen(false)}>
           <motion.div
-            initial={reduceMotion ? false : { x: 260 }}
+            initial={reduceMotion ? false : { x: -280 }}
             animate={{ x: 0 }}
+            exit={reduceMotion ? undefined : { x: -280 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full w-[280px] border-l border-black/10 bg-white/95 p-5 backdrop-blur-[40px] dark:border-white/10 dark:bg-[#070c17]/95"
+            id="landing-mobile-navigation"
+            className="h-full w-[280px] max-w-[88vw] overflow-y-auto border-r border-black/10 bg-white/95 p-5 backdrop-blur-[40px] dark:border-white/10 dark:bg-[#070c17]/95"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-10 flex items-center justify-between">
@@ -463,8 +482,9 @@ export default function Landing() {
               </div>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <main>
         <section className="relative isolate overflow-hidden bg-white text-black dark:bg-[#050914] dark:text-white">

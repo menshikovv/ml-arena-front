@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Link, useParams } from "react-router-dom";
@@ -9,6 +9,7 @@ import { PageFrame } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 
 const DIRECTIONS = [
@@ -120,9 +121,11 @@ function RatingHistory({ history }) {
 
 export default function Profile() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("directions");
-  const isOwner = !id || id === "me";
-  const profileQuery = useQuery({ queryKey: ["profile", id || "me"], queryFn: () => isOwner ? api.profiles.me() : api.profiles.get(id) });
+  const ownerIds = [user?.id, user?.user_id, user?.profile_id].filter(Boolean).map(String);
+  const isOwner = !id || id === "me" || ownerIds.includes(String(id));
+  const profileQuery = useQuery({ queryKey: ["profile", isOwner ? "me" : id], queryFn: () => isOwner ? api.profiles.me() : api.profiles.get(id) });
   const profile = profileQuery.data;
   const profileUserId = isOwner ? profile?.user_id : id;
   const badgesQuery = useQuery({ queryKey: ["profile-badges", profileUserId], queryFn: () => api.profiles.badges(profileUserId), enabled: Boolean(profileUserId) });
@@ -146,13 +149,22 @@ export default function Profile() {
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
+  const hasDirections = directionCards.some((item) => Number(item.score) > 0);
+  const hasRating = profile?.rating != null || (profile?.rating_history || []).length > 0;
+  const hasPractice = [humanDuels, duelWins, duelLosses, challengeBonus, stats.competitions_participated].some((value) => Number(value) > 0);
   const passportTabs = [
-    ["directions", "Направления", Target],
-    ["rating", "Рейтинг", Trophy],
-    ["practice", "Практика", Swords],
-    ["badges", "Бейджи", Award],
-    ...(isOwner ? [["career", "Личные данные", UserRoundSearch]] : []),
+    ...(isOwner || hasDirections ? [["directions", "Направления", Target]] : []),
+    ...(isOwner || hasRating ? [["rating", "Рейтинг", Trophy]] : []),
+    ...(isOwner || hasPractice ? [["practice", "Практика", Swords]] : []),
+    ...(isOwner || badges.length ? [["badges", "Бейджи", Award]] : []),
+    ...(isOwner ? [["career", "Профиль", UserRoundSearch]] : []),
   ];
+
+  useEffect(() => {
+    if (passportTabs.length && !passportTabs.some(([value]) => value === activeTab)) {
+      setActiveTab(passportTabs[0][0]);
+    }
+  }, [activeTab, passportTabs]);
 
   if (profileQuery.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
   if (!profile) return <div className="py-20 text-center text-muted-foreground">ML-паспорт не найден</div>;

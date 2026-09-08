@@ -122,16 +122,16 @@ function OverviewTab({ competition }) {
     <div>
       <section className="border-b border-border pb-7">
         <h2 className="font-heading text-2xl font-bold">Что нужно сделать</h2>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">{competition.description}</p>
+        <p className="mt-4 max-w-4xl whitespace-pre-line text-[15px] leading-7 text-muted-foreground">{competition.description}</p>
       </section>
 
       <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Отправок в день", competition.daily_submission_limit ?? "—", Upload],
-          ["Public leaderboard", competition.public_split_percent == null ? "—" : `${competition.public_split_percent}%`, BarChart3],
           ["Начало", competition.starts_at ? new Date(competition.starts_at).toLocaleDateString("ru-RU") : "После публикации", CalendarClock],
           ["Финальные итоги", competition.final_results_at ? new Date(competition.final_results_at).toLocaleDateString("ru-RU") : "После проверки", CheckCircle2],
-        ].map(([label, value, Icon], index) => <div key={label} className={cn("p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
+          ["Участники", competition.max_participants ? `${competition.participants_count || 0} из ${competition.max_participants}` : `${competition.participants_count || 0} · без лимита`, Users],
+        ].map(([label, value, Icon], index) => <div key={label} className={cn("border-t border-border p-5 xl:border-t-0", index % 2 === 1 && "sm:border-l", index < 2 && "sm:border-t-0", index > 0 && "xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
       </section>
 
       <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
@@ -842,13 +842,13 @@ export default function CompetitionDetail() {
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><Users size={14} /> {competition.participants_count} участников</span>
               <span className="inline-flex items-center gap-1.5"><CalendarClock size={14} /> {status === "active" ? getDeadlineLabel(competition) : statusLabel}</span>
-              <span className="inline-flex items-center gap-1.5"><Award size={14} /> {prize || "Без призового фонда"}</span>
+              <span className="inline-flex items-center gap-1.5"><Award size={14} /> {prize || (competition.rated ? "Очки сезонного рейтинга" : "Без денежного фонда")}</span>
             </div>
           </div>
           <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
             {[
               [Target, "Метрика", METRIC_LABELS[competition.metric]],
-              [Trophy, isCommunity ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : prize || "Без приза"],
+              [Trophy, isCommunity || competition.rated ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : competition.rated ? "Учитывается" : prize || "Без приза"],
               [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
               [ShieldCheck, "Итоговый результат", "После финальной проверки"],
             ].map(([Icon, label, value], index) => (
