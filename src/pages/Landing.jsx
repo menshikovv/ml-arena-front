@@ -224,26 +224,35 @@ function HeroCompanion({ reduceMotion }) {
   );
 }
 
-function ArenaPreview() {
-  const rows = [
-    { rank: "01", name: "datawizard", task: "Кредитный скоринг", score: "1846", change: "+24" },
-    { rank: "02", name: "ml_ninja", task: "Тональность отзывов", score: "1792", change: "+18" },
-    { rank: "03", name: "Участник", task: "Цены на жильё", score: "1714", change: "+31", active: true },
-  ];
+function ArenaPreview({ entries = [], isLoading = false, isError = false }) {
+  const rows = entries.slice(0, 3).map((entry, index) => {
+    const profile = entry.profile || entry.user || entry;
+    const rating = entry.rating ?? entry.overall_score ?? entry.score;
+    const change = entry.rating_change ?? entry.change;
+    return {
+      id: entry.user_id || profile.id || `${index}-${profile.user_name || profile.nickname || "participant"}`,
+      rank: String(entry.rank ?? index + 1).padStart(2, "0"),
+      name: profile.nickname || profile.user_name || profile.username || entry.nickname || "Участник",
+      task: entry.city || profile.city || "Общий рейтинг",
+      score: rating == null ? "—" : String(rating),
+      change: Number.isFinite(Number(change)) ? `${Number(change) > 0 ? "+" : ""}${change}` : null,
+      active: Boolean(entry.is_current_user),
+    };
+  });
 
   return (
     <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-2 font-medium text-foreground">
           <span className="h-2 w-2 rounded-full bg-accent" />
-          Пример сезонного рейтинга
+          Онлайн-рейтинг
         </span>
-        <span>Founder Season</span>
+        <span>Текущий сезон</span>
       </div>
       <div className="divide-y divide-border/70">
         {rows.map((row, index) => (
           <motion.div
-            key={row.name}
+            key={row.id}
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.5 }}
@@ -259,12 +268,15 @@ function ArenaPreview() {
             </div>
             <span className="hidden text-sm text-muted-foreground md:block">{row.task}</span>
             <span className="font-mono text-sm font-semibold">{row.score}</span>
-            <span className="hidden border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 md:block">{row.change}</span>
+            <span className="hidden min-w-10 text-right text-xs font-semibold text-emerald-700 dark:text-emerald-300 md:block">{row.change}</span>
           </motion.div>
         ))}
+        {isLoading && <p className="py-10 text-center text-sm text-muted-foreground">Загружаем текущий рейтинг...</p>}
+        {!isLoading && isError && <p className="py-10 text-center text-sm text-muted-foreground">Рейтинг временно недоступен.</p>}
+        {!isLoading && !isError && !rows.length && <p className="py-10 text-center text-sm text-muted-foreground">В текущем сезоне пока нет результатов.</p>}
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-        <span>Иллюстрация интерфейса рейтинга</span>
+        <span>Данные обновляются после подтверждённых результатов</span>
         <BarChart3 size={16} className="text-primary" />
       </div>
     </div>
@@ -334,9 +346,11 @@ export default function Landing() {
   const primaryTarget = isAuthenticated ? "/profile" : loginTarget;
   const reduceMotion = useReducedMotion();
   const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
+  const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
   useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
   const enabledFeatures = appPublicSettings?.features || {};
   const featureEnabled = (name) => enabledFeatures[name] === true;
+  const previewEntries = leaderboardPreview.data?.items || leaderboardPreview.data?.rows || (Array.isArray(leaderboardPreview.data) ? leaderboardPreview.data : []);
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return undefined;
@@ -723,10 +737,10 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 py-20 lg:py-24">
             <SectionTitle
               title={<>Рейтинг по результатам.<br />Без ручных оценок.</>}
-              desc="Так выглядит сезонная таблица: место меняется после подтверждённых результатов в соревнованиях и дуэлях."
+              desc="Актуальная сезонная таблица: место меняется после подтверждённых результатов в соревнованиях и дуэлях."
             />
             <div>
-              <ArenaPreview />
+              <ArenaPreview entries={previewEntries} isLoading={leaderboardPreview.isLoading} isError={leaderboardPreview.isError} />
             </div>
           </div>
         </section>
