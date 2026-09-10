@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Link, useParams } from "react-router-dom";
-import { Award, BadgeCheck, BriefcaseBusiness, CheckCircle2, Crown, Flame, Github, GraduationCap, History, Link as LinkIcon, Loader2, MapPin, Medal, Sparkles, Star, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
+import { Award, BadgeCheck, BriefcaseBusiness, CheckCircle2, Crown, ExternalLink, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, Loader2, MapPin, Medal, ShieldCheck, Sparkles, Star, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import { PageFrame } from "@/components/ml/PageFrame";
@@ -108,6 +108,46 @@ function BadgeCard({ grant }) {
   );
 }
 
+function externalAchievementUrl(achievement) {
+  const value = achievement?.source_url || achievement?.evidence_url || achievement?.url;
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function ExternalAchievementCard({ achievement }) {
+  const title = achievement.title || achievement.name || achievement.competition_name || "Внешнее достижение";
+  const source = achievement.source || achievement.platform || achievement.provider || "Внешняя площадка";
+  const place = achievement.place ?? achievement.rank;
+  const status = achievement.verification_status || achievement.status;
+  const verified = achievement.verified === true || ["verified", "approved", "confirmed"].includes(status);
+  const pending = ["pending", "review", "in_review"].includes(status);
+  const dateValue = achievement.achieved_at || achievement.awarded_at || achievement.verified_at;
+  const date = dateValue ? new Date(dateValue) : null;
+  const url = externalAchievementUrl(achievement);
+
+  return <article className="group relative flex min-h-64 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card p-6 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transform-none">
+    <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500" />
+    <div className="flex items-start justify-between gap-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"><Globe2 size={21} /></span>
+      <span className={cn("inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-semibold", verified ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : pending ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-border bg-secondary text-muted-foreground")}>
+        {verified && <ShieldCheck size={12} />}{verified ? "Подтверждено" : pending ? "На проверке" : "Не подтверждено"}
+      </span>
+    </div>
+    <p className="mt-6 text-xs font-semibold text-cyan-700 dark:text-cyan-300">{source}</p>
+    <h3 className="mt-2 break-words font-heading text-xl font-extrabold leading-snug [overflow-wrap:anywhere]">{title}</h3>
+    {achievement.description && <p className="mt-3 break-words text-sm leading-6 text-muted-foreground">{achievement.description}</p>}
+    <div className="mt-auto flex flex-wrap items-end justify-between gap-3 border-t border-border pt-5">
+      <div className="text-xs text-muted-foreground">{place != null ? <><span>Место</span><strong className="ml-2 font-heading text-lg text-foreground">#{place}</strong></> : date && !Number.isNaN(date.getTime()) ? <time dateTime={date.toISOString()}>{date.toLocaleDateString("ru-RU")}</time> : "Источник указан пользователем"}</div>
+      {url && <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Открыть <ExternalLink size={13} /></a>}
+    </div>
+  </article>;
+}
+
 function RatingHistory({ history }) {
   if (!history.length) return <EmptyState title="История рейтинга пока пуста" text="Изменения появятся после первого рейтингового результата." />;
   const validHistory = history.filter((item) => Number.isFinite(Number(item.rating)));
@@ -137,26 +177,34 @@ export default function Profile() {
   const duelsQuery = useQuery({ queryKey: ["profile-rating", "duels", season], queryFn: () => api.rating.get({ tab: "duels", season }), enabled: Boolean(isOwner && season) });
 
   const badges = list(badgesQuery.data);
+  const externalAchievements = list(profile?.external_achievements);
   const stats = profile?.stats || {};
   const skills = profile?.skills || {};
   const overall = currentRating(overallQuery.data);
   const competitionRating = currentRating(competitionsQuery.data);
   const duelRating = currentRating(duelsQuery.data);
-  const humanDuels = duelRating?.human_duel_count ?? stats.duels_count ?? null;
-  const duelWins = duelRating?.wins ?? stats.duels_won;
-  const duelLosses = duelRating?.losses ?? stats.duels_lost;
-  const challengeBonus = duelRating?.challenge_bonus;
+  const overallScore = overall?.score ?? 0;
+  const competitionScore = competitionRating?.score ?? overall?.competition_score ?? 0;
+  const duelWins = duelRating?.wins ?? overall?.wins ?? stats.duels_won ?? 0;
+  const duelLosses = duelRating?.losses ?? overall?.losses ?? stats.duels_lost ?? 0;
+  const humanDuels = duelRating?.human_duels_count ?? overall?.human_duels_count ?? (Number(duelWins) + Number(duelLosses));
+  const duelScore = Number(humanDuels) > 0 ? (duelRating?.score ?? overall?.duel_rating ?? 0) : 0;
+  const challengeBonus = duelRating?.challenge_bonus_total ?? overall?.challenge_bonus_total ?? 0;
+  const seasonalScore = overallQuery.isSuccess ? overallScore : null;
+  const seasonalCompetitionScore = competitionsQuery.isSuccess ? competitionScore : null;
+  const seasonalDuelScore = duelsQuery.isSuccess ? duelScore : null;
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
   const hasDirections = directionCards.some((item) => Number(item.score) > 0);
-  const hasRating = profile?.rating != null || (profile?.rating_history || []).length > 0;
+  const hasRating = Number(overallScore) > 0 || Number(competitionScore) > 0 || Number(humanDuels) > 0;
   const hasPractice = [humanDuels, duelWins, duelLosses, challengeBonus, stats.competitions_participated].some((value) => Number(value) > 0);
   const passportTabs = [
     ...(isOwner || hasDirections ? [["directions", "Направления", Target]] : []),
     ...(isOwner || hasRating ? [["rating", "Рейтинг", Trophy]] : []),
     ...(isOwner || hasPractice ? [["practice", "Практика", Swords]] : []),
     ...(isOwner || badges.length ? [["badges", "Бейджи", Award]] : []),
+    ...(isOwner || externalAchievements.length ? [["external", "Внешние достижения", Globe2]] : []),
     ...(isOwner ? [["career", "Профиль", UserRoundSearch]] : []),
   ];
 
@@ -189,26 +237,29 @@ export default function Profile() {
         <div className="flex min-w-0 items-center gap-5 sm:gap-7">
           <span aria-hidden="true" className="h-14 w-1 shrink-0 rounded-full bg-primary" />
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">Рейтинг профиля</p>
-            <p className="mt-2 font-heading text-4xl font-extrabold tabular-nums leading-none sm:text-5xl">{profile.rating != null && Number.isFinite(Number(profile.rating)) ? Number(profile.rating).toLocaleString("ru-RU") : "—"}</p>
+            <p className="text-xs font-semibold text-muted-foreground">Общий рейтинг сезона</p>
+            <p className="mt-2 font-heading text-4xl font-extrabold tabular-nums leading-none sm:text-5xl">{seasonalScore == null ? "—" : Number(seasonalScore).toLocaleString("ru-RU")}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">70% соревнования · 30% дуэли после нормализации</p>
           </div>
         </div>
         {overall?.rank != null && <div className="sm:text-right"><p className="text-xs text-muted-foreground">Место в текущем сезоне</p><p className="mt-2 font-heading text-2xl font-extrabold tabular-nums">#{overall.rank}</p></div>}
       </div>
     </Reveal>
 
-    <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.score ?? overall?.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status || "Завершённые матчи"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
+    <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated ?? 0} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status === "calibrated" ? "Калибровка завершена" : "Нужно 5 матчей для места"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
 
     <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="mt-8">
       <Tabs.List className="flex overflow-x-auto border border-border bg-card p-1" aria-label="Разделы ML-паспорта">{passportTabs.map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="flex min-h-11 min-w-36 flex-1 items-center justify-center gap-2 px-4 text-sm font-semibold text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Icon size={16} />{label}</Tabs.Trigger>)}</Tabs.List>
 
       <Tabs.Content value="directions" className="mt-9 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Карта компетенций</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Ваши подтверждённые результаты в машинном обучении.</p><div className="mt-7 grid gap-4 md:grid-cols-2 2xl:grid-cols-4">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
 
-      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={overall?.score ?? overall?.rating} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /><SummaryMetric icon={Target} label="Соревнования" value={competitionRating?.score ?? competitionRating?.rating} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Недостаточно результатов"} /><SummaryMetric icon={Swords} label="Дуэли" value={duelRating?.score ?? duelRating?.rating} detail={duelRating?.rank ? `Место #${duelRating.rank}` : "Место появится после калибровки"} /></div><div className="mt-6"><h2 className="mb-4 font-heading text-2xl font-extrabold">История рейтинга</h2><RatingHistory history={profile.rating_history || []} /></div></>}</Reveal></Tabs.Content>
+      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="mb-6"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Рейтинг сезона</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Компоненты берутся из сезонного рейтинга и не используют базовый Elo профиля.</p></div><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Пока без места"} /><SummaryMetric icon={Target} label="Соревнования" value={seasonalCompetitionScore} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Нет рейтинговых результатов"} /><SummaryMetric icon={Swords} label="Дуэли" value={seasonalDuelScore} detail={duelRating?.rank ? `Место #${duelRating.rank}` : Number(humanDuels) > 0 ? `Калибровка: ${humanDuels} из 5` : "Нет рейтинговых дуэлей"} /></div></>}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Практика</h2><p className="mt-2 text-sm text-muted-foreground">История рейтинговых дуэлей и результатов против заданий ML-Арены.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="В дуэлях с участниками" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="В дуэлях с участниками" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="За задания ML-Арены" /></div>{humanDuels === 0 && challengeBonus == null && <div className="mt-6"><EmptyState title="Практики пока нет" text="Завершите первую дуэль или вызов ML-Арены, чтобы здесь появилась статистика." /></div>}</Reveal></Tabs.Content>
+      <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Практика</h2><p className="mt-2 text-sm text-muted-foreground">История рейтинговых дуэлей и результатов против заданий ML-Арены.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="В дуэлях с участниками" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="В дуэлях с участниками" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="За задания ML-Арены" /><SummaryMetric icon={Target} label="Elo дуэлей" value={profile.rating} detail="Отдельная дуэльная шкала" /></div>{(profile.rating_history || []).length > 0 && <div className="mt-6"><h3 className="mb-2 font-heading text-2xl font-extrabold">История Elo дуэлей</h3><p className="mb-4 text-xs leading-5 text-muted-foreground">Это изменение дуэльного Elo, а не общего сезонного рейтинга.</p><RatingHistory history={profile.rating_history || []} /></div>}{Number(humanDuels) === 0 && Number(challengeBonus) === 0 && <div className="mt-6"><EmptyState title="Практики пока нет" text="Завершите первую дуэль или вызов ML-Арены, чтобы здесь появилась статистика." /></div>}</Reveal></Tabs.Content>
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
+
+      <Tabs.Content value="external" className="mt-7 outline-none"><Reveal><div className="mb-7"><p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">ЗА ПРЕДЕЛАМИ ML-АРЕНЫ</p><h2 className="mt-2 font-heading text-2xl font-extrabold sm:text-3xl">Внешние достижения</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Результаты с ML-площадок, соревнований и олимпиад отображаются отдельно от внутреннего рейтинга.</p></div>{externalAchievements.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{externalAchievements.map((achievement, index) => <ExternalAchievementCard key={achievement.id || `${achievement.source || achievement.platform || "external"}-${index}`} achievement={achievement} />)}</div> : <EmptyState title="Внешних достижений пока нет" text="Здесь появятся достижения, которые передаст и подтвердит ML-Арена." />}</Reveal></Tabs.Content>
 
       {isOwner && <Tabs.Content value="career" className="mt-7 outline-none"><Reveal><div className="grid gap-3 md:grid-cols-2"><Card className="border-border bg-card p-6"><BriefcaseBusiness size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Личные и карьерные данные</h2><div className="mt-5 divide-y divide-border">{[["Возраст", profile.age], ["Пол", profile.gender === "male" ? "Мужской" : profile.gender === "female" ? "Женский" : null], ["Город", profile.city], ["Университет", profile.university], ["Компания", profile.company], ["Виден работодателям", profile.visible_to_employers ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong className="text-right">{shown(value)}</strong></div>)}</div></Card><Card className="border-border bg-card p-6"><UserRoundSearch size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Публичность</h2><div className="mt-5 divide-y divide-border">{[["Публичный профиль", profile.public_profile ? "Да" : "Нет"], ["Показывать имя", profile.show_real_name ? "Да" : "Нет"], ["Показывать карьерные данные", profile.show_career_details ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong>{value}</strong></div>)}</div></Card></div></Reveal></Tabs.Content>}
     </Tabs.Root>
