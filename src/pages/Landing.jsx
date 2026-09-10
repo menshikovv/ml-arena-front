@@ -225,59 +225,128 @@ function HeroCompanion({ reduceMotion }) {
 }
 
 function ArenaPreview({ entries = [], isLoading = false, isError = false }) {
+  const reduceMotion = useReducedMotion();
   const rows = entries.slice(0, 3).map((entry, index) => {
     const profile = entry.profile || entry.user || entry;
     const rating = entry.rating ?? entry.overall_score ?? entry.score;
     const change = entry.rating_change ?? entry.change;
+    const numericRating = Number(rating);
     return {
       id: entry.user_id || profile.id || `${index}-${profile.user_name || profile.nickname || "participant"}`,
-      rank: String(entry.rank ?? index + 1).padStart(2, "0"),
+      rank: Number(entry.rank ?? index + 1),
       name: profile.nickname || profile.user_name || profile.username || entry.nickname || "Участник",
-      task: entry.city || profile.city || "Общий рейтинг",
-      score: rating == null ? "—" : String(rating),
+      task: entry.league_name || entry.league?.name || profile.league_name || entry.city || profile.city || "Общий рейтинг",
+      score: rating == null ? "—" : Number.isFinite(numericRating) ? numericRating.toLocaleString("ru-RU") : String(rating),
       change: Number.isFinite(Number(change)) ? `${Number(change) > 0 ? "+" : ""}${change}` : null,
       active: Boolean(entry.is_current_user),
     };
   });
+  const leader = rows[0];
+  const challengers = rows.slice(1);
+  const initials = (name) => name.trim().slice(0, 2).toUpperCase();
+  const rankTone = [
+    "border-amber-400/40 bg-amber-400/10 text-amber-700 dark:text-amber-300",
+    "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+    "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+  ];
 
   return (
-    <div className="relative border border-border bg-background p-4 shadow-xl shadow-primary/5 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-1 pb-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-2 font-medium text-foreground">
-          <span className="h-2 w-2 rounded-full bg-accent" />
-          Онлайн-рейтинг
-        </span>
-        <span>Текущий сезон</span>
+    <div className="relative overflow-hidden rounded-lg border border-border bg-background shadow-[0_24px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
+      <div className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+            <LineChart size={17} />
+            <motion.span
+              animate={reduceMotion ? undefined : { opacity: [0.25, 0.8, 0.25], scale: [0.8, 1.25, 0.8] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
+            />
+          </span>
+          <div>
+            <p className="font-heading text-base font-bold">Таблица лидеров</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Результаты текущего сезона</p>
+          </div>
+        </div>
+        <Link to="/rating" className="group inline-flex items-center gap-2 self-start text-xs font-bold text-primary sm:self-auto">
+          Полный рейтинг
+          <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+        </Link>
       </div>
-      <div className="divide-y divide-border/70">
-        {rows.map((row, index) => (
+
+      {isLoading && (
+        <div className="grid min-h-72 animate-pulse gap-px bg-border md:grid-cols-[1.08fr_.92fr]">
+          <div className="bg-secondary/45 p-7"><div className="h-full min-h-52 bg-background/70" /></div>
+          <div className="grid gap-px bg-border"><div className="bg-background" /><div className="bg-background" /></div>
+        </div>
+      )}
+      {!isLoading && isError && <p className="py-20 text-center text-sm text-muted-foreground">Рейтинг временно недоступен.</p>}
+      {!isLoading && !isError && !rows.length && <p className="py-20 text-center text-sm text-muted-foreground">В текущем сезоне пока нет результатов.</p>}
+
+      {!isLoading && !isError && leader && (
+        <div className="grid gap-px bg-border md:grid-cols-[1.08fr_.92fr]">
           <motion.div
-            key={row.id}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            className={`grid grid-cols-[42px_1fr_auto] md:grid-cols-[60px_1fr_1fr_auto_auto] items-center gap-3 px-2 py-4 md:px-4 ${
-              row.active ? "bg-primary/8" : ""
-            }`}
+            initial={reduceMotion ? false : { opacity: 0, x: -18 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.45 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className={`relative flex min-h-72 flex-col justify-between overflow-hidden bg-background p-6 md:p-8 ${leader.active ? "ring-2 ring-inset ring-primary/35" : ""}`}
           >
-            <span className="font-mono text-sm text-muted-foreground">{row.rank}</span>
-            <div className="min-w-0">
-              <p className="truncate font-heading font-semibold">{row.name}</p>
-              <p className="text-xs text-muted-foreground md:hidden">{row.task}</p>
+            <div className="absolute right-5 top-3 select-none font-mono text-[88px] font-black leading-none text-amber-500/[0.08] md:text-[120px]">01</div>
+            <div className="relative flex items-start justify-between gap-4">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold uppercase text-amber-700 dark:text-amber-300">
+                <Trophy size={14} /> Лидер сезона
+              </span>
+              {leader.change && <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-300">{leader.change}</span>}
             </div>
-            <span className="hidden text-sm text-muted-foreground md:block">{row.task}</span>
-            <span className="font-mono text-sm font-semibold">{row.score}</span>
-            <span className="hidden min-w-10 text-right text-xs font-semibold text-emerald-700 dark:text-emerald-300 md:block">{row.change}</span>
+            <div className="relative mt-9 flex items-end gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-amber-400/35 bg-amber-400/10 font-heading text-xl font-black text-amber-700 dark:text-amber-300 md:h-20 md:w-20 md:text-2xl">{initials(leader.name)}</div>
+              <div className="min-w-0 pb-1">
+                <p className="truncate font-heading text-xl font-extrabold md:text-2xl">{leader.name}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{leader.task}</p>
+              </div>
+            </div>
+            <div className="relative mt-7 flex items-end justify-between border-t border-border pt-5">
+              <span className="text-xs text-muted-foreground">Общий рейтинг</span>
+              <span className="font-mono text-2xl font-black md:text-3xl">{leader.score}</span>
+            </div>
           </motion.div>
-        ))}
-        {isLoading && <p className="py-10 text-center text-sm text-muted-foreground">Загружаем текущий рейтинг...</p>}
-        {!isLoading && isError && <p className="py-10 text-center text-sm text-muted-foreground">Рейтинг временно недоступен.</p>}
-        {!isLoading && !isError && !rows.length && <p className="py-10 text-center text-sm text-muted-foreground">В текущем сезоне пока нет результатов.</p>}
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-        <span>Данные обновляются после подтверждённых результатов</span>
-        <BarChart3 size={16} className="text-primary" />
+
+          <div className="grid gap-px bg-border sm:grid-cols-2 md:grid-cols-1">
+            {challengers.map((row, index) => (
+              <motion.div
+                key={row.id}
+                initial={reduceMotion ? false : { opacity: 0, x: 18 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={reduceMotion ? undefined : { x: 4 }}
+                viewport={{ once: true, amount: 0.45 }}
+                transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
+                className={`group flex min-h-36 items-center gap-4 bg-background p-5 transition-colors hover:bg-secondary/35 md:px-7 ${row.active ? "ring-2 ring-inset ring-primary/35" : ""}`}
+              >
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-black ${rankTone[index + 1]}`}>
+                  {String(row.rank).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-heading text-base font-bold">{row.name}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{row.task}</p>
+                    </div>
+                    {row.change && <span className="shrink-0 font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-300">{row.change}</span>}
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3">
+                    <span className="text-[11px] text-muted-foreground">Рейтинг</span>
+                    <span className="font-mono text-lg font-black">{row.score}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 border-t border-border bg-secondary/25 px-5 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-7">
+        <span className="flex items-center gap-2"><FileCheck2 size={14} className="text-primary" /> Только подтверждённые результаты соревнований и дуэлей</span>
+        <span>Обновляется автоматически</span>
       </div>
     </div>
   );

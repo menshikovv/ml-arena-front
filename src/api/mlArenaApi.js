@@ -212,6 +212,7 @@ export const api = {
     createTask: (body) => apiData("/api/v1/admin/tasks", { method: "POST", body: json(body) }),
     updateTask: (id, body) => apiData(`/api/v1/admin/tasks/${id}`, { method: "PATCH", body: json(body) }),
     createTaskVersion: (id, body) => apiData(`/api/v1/admin/tasks/${id}/versions`, { method: "POST", body: json(body) }),
+    updateTaskVersionPurpose: (id, versionId, purpose) => apiData(`/api/v1/admin/tasks/${id}/versions/${versionId}/purpose`, { method: "PATCH", body: json({ purpose }) }),
     releaseTaskVersion: (id, versionId, body) => apiData(`/api/v1/admin/tasks/${id}/versions/${versionId}/release`, { method: "POST", ...(body ? { body: json(body) } : {}) }),
     taskAction: (id, action) => apiData(`/api/v1/admin/tasks/${id}/${action}`, { method: "POST" }),
     publishTask: (id) => apiData(`/api/v1/admin/tasks/${id}/publish`, { method: "POST" }),
