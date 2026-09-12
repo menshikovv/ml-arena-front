@@ -254,14 +254,14 @@ function ArenaPreview({ entries = [], isLoading = false, isError = false }) {
     <div className="relative overflow-hidden rounded-lg border border-border bg-background shadow-[0_24px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
       <div className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
         <div className="flex items-center gap-3">
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
-            <LineChart size={17} />
-            <motion.span
-              animate={reduceMotion ? undefined : { opacity: [0.25, 0.8, 0.25], scale: [0.8, 1.25, 0.8] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
-            />
-          </span>
+              <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                <LineChart size={17} />
+                <motion.span
+                  animate={reduceMotion ? undefined : { opacity: [0.25, 0.8, 0.25], scale: [0.8, 1.25, 0.8] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
+                />
+              </span>
           <div>
             <p className="font-heading text-base font-bold">Таблица лидеров</p>
             <p className="mt-0.5 text-xs text-muted-foreground">Результаты текущего сезона</p>

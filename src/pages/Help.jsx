@@ -296,8 +296,6 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openItem, setOpenItem] = useState(null);
-  const [attachments, setAttachments] = useState([]);
-  const [attachmentError, setAttachmentError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mailPrepared, setMailPrepared] = useState(false);
   const [form, setForm] = useState({ category: initialSupportCategory, subject: "", message: "", reply_email: user?.email || "" });
@@ -341,28 +339,11 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   };
 
   const updateForm = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const handleAttachments = (event) => {
-    const files = [...(event.target.files || [])];
-    event.target.value = "";
-    if (files.length + attachments.length > 3) {
-      setAttachmentError("Можно приложить не больше трёх скриншотов.");
-      return;
-    }
-    const invalid = files.find((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024);
-    if (invalid) {
-      setAttachmentError("Скриншоты должны быть в JPG, PNG или WebP и весить до 5 МБ каждый.");
-      return;
-    }
-    setAttachmentError("");
-    setAttachments((current) => [...current, ...files]);
-  };
-
   const prepareMail = (event) => {
     event.preventDefault();
     setSubmitting(true);
     const categoryLabel = CATEGORY_OPTIONS.find(([value]) => value === form.category)?.[1] || "Поддержка";
-    const attachmentNames = attachments.length ? `\n\nСкриншоты для приложения: ${attachments.map((file) => file.name).join(", ")}` : "";
-    const body = `Категория: ${categoryLabel}\nEmail для ответа: ${form.reply_email}\nСтраница: ${window.location.href}\n\n${form.message}${attachmentNames}`;
+    const body = `Категория: ${categoryLabel}\nEmail для ответа: ${form.reply_email}\nСтраница: ${window.location.href}\n\n${form.message}`;
     const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`[ML-Арена] ${form.subject}`)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
     window.setTimeout(() => {
@@ -513,7 +494,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                 <div className="rounded-lg border border-border bg-card p-7 shadow-sm sm:p-8">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><CheckCircle2 size={21} /></span>
                   <h3 className="mt-5 font-heading text-2xl font-bold">Письмо подготовлено</h3>
-                  <p className="mt-3 text-sm leading-7 text-muted-foreground">Мы открыли ваше почтовое приложение с заполненным обращением. Проверьте текст, приложите выбранные скриншоты и отправьте письмо.</p>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">Мы открыли ваше почтовое приложение с заполненным обращением. Проверьте текст, при необходимости прикрепите скриншоты и отправьте письмо.</p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Button asChild><a href={`mailto:${SUPPORT_EMAIL}`}>Открыть почту ещё раз</a></Button>
                     <Button type="button" variant="outline" onClick={() => setMailPrepared(false)}>Новое обращение</Button>
@@ -538,31 +519,20 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                       <span className="mt-1 block text-right text-[11px] tabular-nums text-muted-foreground">{form.message.length}/4000</span>
                     </Field>
                     <div className="sm:col-span-2">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <Label htmlFor="support-files">Скриншоты</Label>
-                        <span className="text-[11px] text-muted-foreground">До 3 файлов по 5 МБ</span>
-                      </div>
-                      <label htmlFor="support-files" className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-secondary/20 px-4 py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/[0.03] hover:text-primary">
-                        <FileImage size={17} /> Выбрать скриншоты
-                      </label>
-                      <input id="support-files" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleAttachments} className="sr-only" />
-                      {attachments.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {attachments.map((file, index) => (
-                            <span key={`${file.name}-${file.lastModified}`} className="inline-flex max-w-full items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs">
-                              <span className="max-w-52 truncate">{file.name}</span>
-                              <button type="button" onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))} className="text-muted-foreground hover:text-destructive" title="Убрать файл"><X size={13} /></button>
-                            </span>
-                          ))}
+                      <Label>Скриншоты</Label>
+                      <div className="mt-2 flex items-start gap-3 rounded-md border border-dashed border-border bg-secondary/20 px-4 py-4">
+                        <FileImage size={18} className="mt-0.5 shrink-0 text-primary" />
+                        <div>
+                          <p className="text-sm font-semibold">Прикрепите скриншоты в письме</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">После нажатия «Открыть письмо» добавьте изображения через ваше почтовое приложение.</p>
                         </div>
-                      )}
-                      {attachmentError && <p className="mt-2 text-xs text-destructive">{attachmentError}</p>}
+                      </div>
                     </div>
                   </div>
                   {form.category === "security" && <div className="border-t border-destructive/15 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не публикуйте детали уязвимости в открытых каналах. Отправьте их только через приватное письмо.</div>}
                   <div className="flex flex-col justify-between gap-3 border-t border-border bg-secondary/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7">
                     <p className="text-xs text-muted-foreground">Ответ придёт на указанный email.</p>
-                    <Button type="submit" disabled={submitting}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Подготовить обращение</Button>
+                    <Button type="submit" disabled={submitting}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Открыть письмо</Button>
                   </div>
                 </form>
               )}

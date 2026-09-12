@@ -197,11 +197,11 @@ export default function Cooperation({ embedded = false }) {
         <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
           <Reveal viewportReveal><h2 className="max-w-5xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">Резюме показывает опыт. Практическая задача показывает, как человек работает с ML.</h2><p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground">По резюме сложно сравнить кандидатов с похожим стеком. Практическая задача ставит участников в одинаковые условия и позволяет увидеть результат на одной шкале.</p></Reveal>
           <div className="mt-10 grid border border-border lg:grid-cols-2">
-            <Reveal viewportReveal className="border-b border-border bg-secondary/25 p-6 lg:border-b-0 lg:border-r md:p-8">
+            <Reveal className="border-b border-border bg-secondary/25 p-6 lg:border-b-0 lg:border-r md:p-8">
               <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center bg-card text-muted-foreground shadow-sm"><BriefcaseBusiness size={19} /></span><h3 className="font-heading text-xl font-bold">Что написано в резюме</h3></div>
               <div className="mt-8 grid grid-cols-2 gap-px bg-border">{["Стек технологий", "Роль в команде", "Опыт в годах", "Описание проектов"].map((item) => <div key={item} className="bg-card px-4 py-5 text-sm font-semibold">{item}</div>)}</div>
             </Reveal>
-            <Reveal viewportReveal delay={0.08} className="bg-card p-6 md:p-8">
+            <Reveal className="bg-card p-6 md:p-8">
               <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center bg-primary text-primary-foreground shadow-sm"><Gauge size={19} /></span><h3 className="font-heading text-xl font-bold">Что подтверждается на практике</h3></div>
               <ul className="mt-7 space-y-4">{["Одинаковая постановка для всех участников", "Единая метрика оценки", "Скрытая часть данных для итоговой проверки", "Дополнительная проверка лучших решений"].map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary" /><span>{item}</span></li>)}</ul>
             </Reveal>
@@ -273,8 +273,8 @@ export default function Cooperation({ embedded = false }) {
                     <CooperationField id="cooperation-comment" label="Комментарий" className="sm:col-span-2"><Textarea id="cooperation-comment" value={form.comment} onChange={(event) => update("comment", event.target.value)} maxLength={2000} rows={5} placeholder="Коротко опишите задачу, направление или ожидаемый результат" className="resize-none bg-secondary/20" /><span className="mt-1 block text-right text-[11px] tabular-nums text-muted-foreground">{form.comment.length}/2000</span></CooperationField>
                     <input type="text" value={form.website} onChange={(event) => update("website", event.target.value)} tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
                     <div className="space-y-3 sm:col-span-2">
-                      <Consent checked={form.consent} onChange={(value) => update("consent", value)} error={errors.consent}>Я даю согласие на обработку персональных данных в соответствии с <Link to="/privacy" className="font-semibold text-primary hover:underline">политикой обработки данных</Link>.</Consent>
-                      <Consent checked={form.marketing} onChange={(value) => update("marketing", value)} muted>Хочу получать новости о корпоративных форматах и проектах ML-Арены.</Consent>
+                      <Consent id="cooperation-consent" checked={form.consent} onChange={(value) => update("consent", value)} error={errors.consent}>Я даю согласие на обработку персональных данных в соответствии с <Link to="/privacy" className="font-semibold text-primary hover:underline">политикой обработки данных</Link>.</Consent>
+                      <Consent id="cooperation-marketing" checked={form.marketing} onChange={(value) => update("marketing", value)} muted>Хочу получать новости о корпоративных форматах и проектах ML-Арены.</Consent>
                     </div>
                   </div>
                   {submitError && <div role="alert" className="border-t border-destructive/20 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не удалось отправить заявку. Попробуйте ещё раз или напишите нам на <a href="mailto:support@mlarena.ru?subject=Сотрудничество с ML-Ареной" className="font-semibold underline">support@mlarena.ru</a>.</div>}
@@ -297,8 +297,8 @@ function CooperationField({ id, label, error, className = "", children }) {
   return <div className={`space-y-2 ${className}`}><Label htmlFor={id}>{label}</Label>{children}{error && <p id={`${id}-error`} className="text-xs text-destructive">{error}</p>}</div>;
 }
 
-function Consent({ checked, onChange, error, muted = false, children }) {
-  return <div><label className={`flex cursor-pointer items-start gap-3 border p-3 text-sm leading-6 transition-colors ${checked ? "border-primary/25 bg-primary/[0.045]" : "border-border bg-secondary/20 hover:border-primary/20"} ${muted ? "text-muted-foreground" : "text-foreground"}`}><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="peer sr-only" /><span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card"}`}>{checked && <Check size={14} strokeWidth={3} />}</span><span>{children}</span></label>{error && <p className="mt-2 text-xs text-destructive">{error}</p>}</div>;
+function Consent({ id, checked, onChange, error, muted = false, children }) {
+  return <div><div className={`flex items-start gap-3 border p-3 text-sm leading-6 transition-colors ${checked ? "border-primary/25 bg-primary/[0.045]" : "border-border bg-secondary/20"} ${muted ? "text-muted-foreground" : "text-foreground"}`}><input id={id} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="peer sr-only" /><label htmlFor={id} className={`mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-focus-visible:ring-offset-2 ${checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:border-primary/40"}`} aria-label={checked ? "Снять отметку" : "Поставить отметку"}>{checked && <Check size={14} strokeWidth={3} />}</label><span>{children}</span></div>{error && <p className="mt-2 text-xs text-destructive">{error}</p>}</div>;
 }
 
 function PublicHeader({ isAuthenticated }) {

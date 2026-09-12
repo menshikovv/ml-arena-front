@@ -244,12 +244,6 @@ export default function Pricing() {
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
             className="group relative overflow-hidden border border-border bg-card p-5 shadow-2xl shadow-primary/10 sm:p-7"
           >
-            <div className="absolute inset-x-0 top-0 h-1 bg-primary/20" />
-            <motion.div
-              className="absolute left-0 top-0 h-1 w-24 bg-primary"
-              animate={reduceMotion ? undefined : { x: ["-100%", "520%"] }}
-              transition={{ duration: 3.4, repeat: Infinity, repeatDelay: 0.8, ease: "easeInOut" }}
-            />
             <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
               <div>
                 <p className="font-heading text-xl font-extrabold">ML-Арена Premium</p>
