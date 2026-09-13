@@ -185,9 +185,15 @@ function DuelNav({ view, className }) {
   );
 }
 
-function RatingSummary({ rating, isLoading, defaultRating }) {
+function RatingSummary({ rating, isLoading, defaultRating, calibrationMatches }) {
   const duelRating = rating?.duel_rating ?? defaultRating ?? null;
   const duelRank = rating?.duel_rank ?? rating?.rank ?? null;
+  const duelCount = Number(rating?.human_duels_count ?? rating?.human_duel_count ?? rating?.duels_count ?? 0);
+  const calibrationTarget = Number(calibrationMatches);
+  const calibrated = rating?.calibration_status === "calibrated" || (Number.isFinite(calibrationTarget) && calibrationTarget > 0 && duelCount >= calibrationTarget);
+  const calibrationProgress = Number.isFinite(calibrationTarget) && calibrationTarget > 0
+    ? Math.min(100, Math.round((duelCount / calibrationTarget) * 100))
+    : 0;
   return (
     <div className="grid min-w-0 grid-cols-2 md:grid-cols-4">
       <div className="flex min-h-28 flex-col justify-between border-b border-r border-border/80 p-5 md:border-b-0">
@@ -196,16 +202,24 @@ function RatingSummary({ rating, isLoading, defaultRating }) {
       </div>
       <div className="flex min-h-28 flex-col justify-between border-b border-border/80 p-5 md:border-b-0 md:border-r">
         <span className="text-xs font-medium text-muted-foreground">Место</span>
-        <span className="font-heading text-3xl font-bold tabular-nums">{isLoading ? "…" : duelRank ? `#${duelRank}` : "—"}</span>
+        <span className={cn("font-heading font-bold", duelRank ? "text-3xl tabular-nums" : "max-w-36 text-sm leading-5 text-muted-foreground")}>
+          {isLoading ? "…" : duelRank ? `#${duelRank}` : calibrated ? "Пока нет места" : "После калибровки"}
+        </span>
       </div>
       <div className="flex min-h-28 flex-col justify-between border-r border-border/80 p-5">
-        <span className="text-xs font-medium text-muted-foreground">Лига</span>
-        {duelRating === null ? <span className="text-sm text-muted-foreground">Не определена</span> : <LeagueBadge rating={duelRating} size="sm" />}
+        <span className="text-xs font-medium text-muted-foreground">Калибровка</span>
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {isLoading ? "…" : calibrated ? "Завершена" : Number.isFinite(calibrationTarget) && calibrationTarget > 0 ? `${duelCount} из ${calibrationTarget} матчей` : "Данные загружаются"}
+          </p>
+          <div className="mt-3 h-1.5 overflow-hidden bg-secondary" aria-hidden="true">
+            <span className="block h-full bg-primary transition-[width] duration-500" style={{ width: calibrated ? "100%" : `${calibrationProgress}%` }} />
+          </div>
+        </div>
       </div>
       <div className="flex min-h-28 flex-col justify-between p-5">
-        <span className="text-xs font-medium text-muted-foreground">Матчи сезона</span>
-        <p className="text-sm font-semibold text-accent">{rating?.calibration_status === "calibrated" ? "Рейтинг открыт" : "Калибровка"}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{rating ? `${rating.wins} побед · ${rating.losses} поражений` : "Пока нет результатов"}</p>
+        <span className="text-xs font-medium text-muted-foreground">Результаты сезона</span>
+        <p className="mt-1 text-xs text-muted-foreground">{rating ? `${rating.wins ?? 0} побед · ${rating.losses ?? 0} поражений` : "Пока нет результатов"}</p>
       </div>
     </div>
   );
@@ -561,7 +575,7 @@ function DuelGuideDialog({ open, onClose }) {
   );
 }
 
-function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId, currentRating, currentRatingRow, ratingLoading }) {
+function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isCreating, taskType, setTaskType, onChallengeAction, challengePending, currentUserId, currentRating, currentRatingRow, ratingLoading, calibrationMatches }) {
   const [searchNick, setSearchNick] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const matchedOpponent = useMemo(() => {
@@ -597,7 +611,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
               </div>
           </PageHeader>
           <DuelNav view="overview" className="mt-6" />
-          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary rating={currentRatingRow} isLoading={ratingLoading} defaultRating={currentRating} /></div>
+          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary rating={currentRatingRow} isLoading={ratingLoading} defaultRating={currentRating} calibrationMatches={calibrationMatches} /></div>
         </section>
       </Reveal>
 
@@ -676,8 +690,9 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 <p className="mt-1 text-xs text-muted-foreground">Так поиск точнее найдёт нужного участника.</p>
               </motion.div>
             ) : (
-              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 flex min-h-64 flex-col overflow-hidden border border-border bg-card">
-                <div className="flex items-start gap-4 border-b border-border p-5">
+              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="relative mt-3 flex min-h-64 flex-col overflow-hidden border border-primary/20 bg-card shadow-sm">
+                <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
+                <div className="flex items-start gap-4 border-b border-border p-5 pl-6 sm:p-6 sm:pl-7">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><UserRoundSearch size={21} /></span>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -687,14 +702,19 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">Начните вводить ник участника. После выбора вы сможете отправить ему прямой вызов в выбранном направлении.</p>
                   </div>
                 </div>
-                <div className="mt-auto grid gap-px bg-border sm:grid-cols-2">
-                  <div className="bg-secondary/25 p-4">
-                    <p className="text-[10px] text-muted-foreground">Ваш рейтинг дуэлей</p>
-                    <p className="mt-2 font-heading text-xl font-extrabold">{currentRating ?? "—"}</p>
+                <div className="mt-auto grid border-t border-border bg-card sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="flex items-end justify-between gap-4 p-5 pl-6 sm:pl-7">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ваш рейтинг дуэлей</p>
+                      <p className="mt-1 font-heading text-2xl font-extrabold tabular-nums">{currentRating ?? "—"}</p>
+                    </div>
+                    <span className="hidden max-w-40 text-right text-xs leading-5 text-muted-foreground sm:block">Подбор учитывает текущий рейтинг</span>
                   </div>
-                  <div className="bg-secondary/25 p-4">
-                    <p className="text-[10px] text-muted-foreground">Не знаете ник?</p>
-                    <Button asChild variant="ghost" size="sm" className="mt-1 h-8 px-0 text-primary hover:bg-transparent hover:text-primary/80"><Link to="/duels/matchmaking"><Zap size={14} /> Автоматический подбор</Link></Button>
+                  <div className="flex flex-col justify-center border-t border-primary/15 bg-primary/[0.035] p-5 sm:min-w-64 sm:border-l sm:border-t-0">
+                    <p className="text-xs font-medium text-muted-foreground">Не знаете ник участника?</p>
+                    <Button asChild variant="outline" size="sm" className="mt-2 justify-between border-primary/25 bg-card text-primary hover:bg-primary hover:text-primary-foreground">
+                      <Link to="/duels/matchmaking">Автоматический подбор <Zap size={14} /></Link>
+                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -1317,6 +1337,7 @@ export default function Duels() {
           currentRating={currentRating}
           currentRatingRow={currentRatingRow}
           ratingLoading={seasonsQuery.isLoading || duelRatingQuery.isLoading || methodologyQuery.isLoading}
+          calibrationMatches={methodologyQuery.data?.duel?.calibration_matches}
         />
       )}
       {view === "matchmaking" && (

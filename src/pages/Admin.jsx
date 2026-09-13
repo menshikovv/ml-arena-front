@@ -1495,16 +1495,82 @@ function ResourcesSection({ permissions, requestAction }) {
 }
 
 function RatingSeasonsSection({ requestAction }) {
-  const [form, setForm] = useState({ name: "", slug: "", start_at: "", end_at: "" });
+  const [form, setForm] = useState({ name: "", slug: "", description: "", start_at: "", end_at: "" });
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons });
   const rows = Array.isArray(query.data) ? query.data : query.data?.items || [];
   const create = useMutation({
-    mutationFn: () => api.admin.createRatingSeason({ ...form, start_at: new Date(form.start_at).toISOString(), end_at: new Date(form.end_at).toISOString() }),
-    onSuccess: () => { setForm({ name: "", slug: "", start_at: "", end_at: "" }); queryClient.invalidateQueries({ queryKey: ["rating-seasons"] }); },
+    mutationFn: () => api.admin.createRatingSeason({
+      ...form,
+      description: form.description.trim() || null,
+      start_at: new Date(form.start_at).toISOString(),
+      end_at: new Date(form.end_at).toISOString(),
+    }),
+    onSuccess: () => {
+      setForm({ name: "", slug: "", description: "", start_at: "", end_at: "" });
+      queryClient.invalidateQueries({ queryKey: ["rating-seasons"] });
+    },
   });
   const transition = (season, target) => requestAction({ title: `Перевести сезон в статус «${target}»`, description: `${season.name || season.slug}. Рейтинг будет зафиксирован на момент перехода.`, confirm: "Подтвердить переход", reason: true, run: (reason) => api.admin.transitionRatingSeason(season.id, target, { reason }), invalidate: ["rating-seasons"] });
-  return <><SectionHeading title="Сезоны рейтинга" description="Создание сезонов и аудируемые переходы draft → scheduled/active → frozen → archived." count={rows.length} /><div className="mb-6 grid gap-3 border border-border bg-card p-5 md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_auto]"><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Название сезона" /><Input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value.toLowerCase() }))} placeholder="slug" /><AdminField label="Начало"><Input type="datetime-local" value={form.start_at} onChange={(event) => setForm((current) => ({ ...current, start_at: event.target.value }))} /></AdminField><AdminField label="Окончание"><Input type="datetime-local" value={form.end_at} onChange={(event) => setForm((current) => ({ ...current, end_at: event.target.value }))} /></AdminField><Button onClick={() => create.mutate()} disabled={!form.name.trim() || !form.slug.trim() || !form.start_at || !form.end_at || create.isPending}><Plus size={15} /> Создать</Button>{create.error && <p className="text-sm text-destructive md:col-span-2 xl:col-span-5">{apiErrorMessage(create.error)}</p>}</div><TableShell loading={query.isLoading} error={query.error} empty={!rows.length}><div className="divide-y divide-border">{rows.map((season) => <div key={season.id} className="grid gap-4 p-5 md:grid-cols-[1fr_auto_auto] md:items-center"><div><p className="font-semibold">{season.name || season.slug}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(season.start_at)} — {formatDate(season.end_at)}</p></div><Status value={season.status} /><ActionMenu>{season.status === "draft" && <><ActionButton onClick={() => transition(season, "scheduled")}><CalendarClock size={13} /> Запланировать</ActionButton><ActionButton tone="primary" onClick={() => transition(season, "active")}><Play size={13} /> Активировать</ActionButton></>}{["scheduled", "active"].includes(season.status) && <ActionButton onClick={() => transition(season, "frozen")}><Pause size={13} /> Зафиксировать</ActionButton>}{season.status === "frozen" && <ActionButton tone="danger" onClick={() => transition(season, "archived")}><Archive size={13} /> В архив</ActionButton>}</ActionMenu></div>)}</div></TableShell></>;
+  return (
+    <>
+      <SectionHeading title="Сезоны рейтинга" description="Создание сезонов и аудируемые переходы draft → scheduled/active → frozen → archived." count={rows.length} />
+      <div className="mb-6 border border-border bg-card p-5 sm:p-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminField label="Название сезона">
+            <Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Например, Founder Season" />
+          </AdminField>
+          <AdminField label="Slug">
+            <Input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value.toLowerCase() }))} placeholder="founder-season" />
+          </AdminField>
+          <AdminField label="Начало">
+            <Input type="datetime-local" value={form.start_at} onChange={(event) => setForm((current) => ({ ...current, start_at: event.target.value }))} />
+          </AdminField>
+          <AdminField label="Окончание">
+            <Input type="datetime-local" value={form.end_at} onChange={(event) => setForm((current) => ({ ...current, end_at: event.target.value }))} />
+          </AdminField>
+          <AdminField label="Описание сезона" wide>
+            <Textarea
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+              maxLength={5000}
+              placeholder="Расскажите о теме сезона, его особенностях, ключевых событиях и наградах. Этот текст увидят участники в карточке сезона."
+              className="min-h-32 resize-y rounded-none"
+            />
+            <div className="mt-2 flex items-center justify-between gap-4 text-xs text-muted-foreground">
+              <span>Первые строки используются как краткий анонс, полный текст открывается в карточке.</span>
+              <span className="shrink-0 tabular-nums">{form.description.length}/5000</span>
+            </div>
+          </AdminField>
+        </div>
+        <div className="mt-5 flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>{create.error && <p className="text-sm text-destructive">{apiErrorMessage(create.error)}</p>}</div>
+          <Button onClick={() => create.mutate()} disabled={!form.name.trim() || !form.slug.trim() || !form.start_at || !form.end_at || create.isPending}>
+            <Plus size={15} /> Создать сезон
+          </Button>
+        </div>
+      </div>
+      <TableShell loading={query.isLoading} error={query.error} empty={!rows.length}>
+        <div className="divide-y divide-border">
+          {rows.map((season) => (
+            <div key={season.id} className="grid gap-4 p-5 md:grid-cols-[1fr_auto_auto] md:items-center">
+              <div className="min-w-0">
+                <p className="font-semibold">{season.name || season.slug}</p>
+                {season.description && <p className="mt-2 line-clamp-2 max-w-3xl text-xs leading-5 text-muted-foreground">{season.description}</p>}
+                <p className="mt-2 text-xs text-muted-foreground">{formatDate(season.start_at)} — {formatDate(season.end_at)}</p>
+              </div>
+              <Status value={season.status} />
+              <ActionMenu>
+                {season.status === "draft" && <><ActionButton onClick={() => transition(season, "scheduled")}><CalendarClock size={13} /> Запланировать</ActionButton><ActionButton tone="primary" onClick={() => transition(season, "active")}><Play size={13} /> Активировать</ActionButton></>}
+                {["scheduled", "active"].includes(season.status) && <ActionButton onClick={() => transition(season, "frozen")}><Pause size={13} /> Зафиксировать</ActionButton>}
+                {season.status === "frozen" && <ActionButton tone="danger" onClick={() => transition(season, "archived")}><Archive size={13} /> В архив</ActionButton>}
+              </ActionMenu>
+            </div>
+          ))}
+        </div>
+      </TableShell>
+    </>
+  );
 }
 
 function AuditSection() {

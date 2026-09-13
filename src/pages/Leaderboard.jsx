@@ -126,14 +126,58 @@ function formatSeasonDate(value, options = {}) {
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric", ...options });
 }
 
-function SeasonDetailsDialog({ open, onOpenChange, season, methodology, participants, userEvents }) {
+function SeasonDetailsDialog({ open, onOpenChange, season, methodology, participants, competitionEvents }) {
   if (!season) return null;
   const description = season.description || season.long_description || season.summary || null;
   const competitionWeight = configNumber(methodology?.overall?.competition_weight);
   const duelWeight = configNumber(methodology?.overall?.duel_weight);
   const duelStart = configNumber(methodology?.duel?.start);
   const calibrationMatches = configNumber(methodology?.duel?.calibration_matches);
-  return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/55 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-border bg-card shadow-2xl focus:outline-none"><div className="relative border-b border-border p-6 sm:p-8"><span className="absolute inset-x-0 top-0 h-1 bg-primary" aria-hidden="true" /><div className="flex items-start justify-between gap-5"><div><Dialog.Title className="font-heading text-3xl font-extrabold sm:text-4xl">{season.name || season.slug}</Dialog.Title><Dialog.Description className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{description || "Подробности, сроки и параметры рейтинга выбранного сезона."}</Dialog.Description></div><Dialog.Close className="flex h-10 w-10 shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground" aria-label="Закрыть"><X size={18} /></Dialog.Close></div></div><div className="p-6 sm:p-8"><div className="grid gap-px border border-border bg-border sm:grid-cols-2"><div className="bg-card p-4"><p className="text-xs text-muted-foreground">Начало</p><p className="mt-2 font-semibold">{formatSeasonDate(season.start_at)}</p></div><div className="bg-card p-4"><p className="text-xs text-muted-foreground">Окончание</p><p className="mt-2 font-semibold">{formatSeasonDate(season.end_at)}</p></div><div className="bg-card p-4"><p className="text-xs text-muted-foreground">Участников с активностью</p><p className="mt-2 font-heading text-2xl font-extrabold">{participants ?? "—"}</p></div><div className="bg-card p-4"><p className="text-xs text-muted-foreground">Ваших событий</p><p className="mt-2 font-heading text-2xl font-extrabold">{userEvents ?? "—"}</p></div></div><section className="mt-7"><div className="flex items-center gap-3"><BookOpenCheck size={18} className="text-primary" /><h3 className="font-heading text-xl font-extrabold">Как устроен рейтинг сезона</h3></div><div className="mt-4 grid gap-px border border-border bg-border sm:grid-cols-3"><div className="bg-secondary/25 p-4"><p className="text-xs text-muted-foreground">Соревнования</p><p className="mt-2 font-heading text-xl font-extrabold">{displayPercent(competitionWeight)}</p><p className="mt-1 text-[11px] text-muted-foreground">в общем рейтинге</p></div><div className="bg-secondary/25 p-4"><p className="text-xs text-muted-foreground">Дуэли</p><p className="mt-2 font-heading text-xl font-extrabold">{displayPercent(duelWeight)}</p><p className="mt-1 text-[11px] text-muted-foreground">в общем рейтинге</p></div><div className="bg-secondary/25 p-4"><p className="text-xs text-muted-foreground">Старт дуэлей</p><p className="mt-2 font-heading text-xl font-extrabold">{displayRating(duelStart)}</p><p className="mt-1 text-[11px] text-muted-foreground">место после {displayRating(calibrationMatches)} матчей</p></div></div></section><div className="mt-7 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end"><Button asChild variant="outline"><Link to={`/rating/methodology?season=${encodeURIComponent(season.slug)}`}><BookOpenCheck size={16} /> Полная методика</Link></Button><Dialog.Close asChild><Button>Вернуться к рейтингу</Button></Dialog.Close></div></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/55 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[101] max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-border bg-card shadow-2xl focus:outline-none">
+          <div aria-hidden="true" className="grid h-1 grid-cols-[2fr_1fr_1fr]"><span className="bg-primary" /><span className="bg-accent" /><span className="bg-primary/30" /></div>
+          <header className="border-b border-border p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-5">
+              <div>
+                <Dialog.Title className="font-heading text-3xl font-extrabold sm:text-4xl">{season.name || season.slug}</Dialog.Title>
+                <Dialog.Description className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-7 text-muted-foreground sm:text-base">
+                  {description || "Для этого сезона пока указаны только сроки и параметры рейтинга."}
+                </Dialog.Description>
+              </div>
+              <Dialog.Close className="flex h-10 w-10 shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground" aria-label="Закрыть"><X size={18} /></Dialog.Close>
+            </div>
+          </header>
+
+          <div className="p-6 sm:p-8">
+            <section className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+              <div className="bg-card p-4"><p className="text-xs text-muted-foreground">Начало</p><p className="mt-2 font-semibold">{formatSeasonDate(season.start_at)}</p></div>
+              <div className="bg-card p-4"><p className="text-xs text-muted-foreground">Окончание</p><p className="mt-2 font-semibold">{formatSeasonDate(season.end_at)}</p></div>
+              <div className="bg-card p-4"><p className="text-xs text-muted-foreground">Участников в рейтинге</p><p className="mt-2 font-heading text-2xl font-extrabold">{participants ?? "—"}</p></div>
+              <div className="bg-card p-4"><p className="text-xs text-muted-foreground">Зачтено соревнований</p><p className="mt-2 font-heading text-2xl font-extrabold">{competitionEvents ?? "—"}</p><p className="mt-1 text-[11px] text-muted-foreground">в вашем рейтинге</p></div>
+            </section>
+
+            <section className="mt-8">
+              <h3 className="font-heading text-xl font-extrabold">Как формируется место</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Соревнования и дуэли считаются отдельно, затем их позиции объединяются с весами текущего сезона.</p>
+              <div className="mt-5 grid gap-px border border-border bg-border sm:grid-cols-3">
+                <div className="bg-secondary/25 p-5"><p className="text-sm font-semibold">Соревнования</p><p className="mt-3 font-heading text-2xl font-extrabold">{displayPercent(competitionWeight)}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">доля результатов соревнований в общей позиции</p></div>
+                <div className="bg-secondary/25 p-5"><p className="text-sm font-semibold">Дуэли</p><p className="mt-3 font-heading text-2xl font-extrabold">{displayPercent(duelWeight)}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">доля дуэльной позиции после нормализации</p></div>
+                <div className="bg-secondary/25 p-5"><p className="text-sm font-semibold">Базовый рейтинг дуэлей</p><p className="mt-3 font-heading text-2xl font-extrabold">{displayRating(duelStart)}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">публичное место появится после {displayRating(calibrationMatches)} матчей</p></div>
+              </div>
+            </section>
+
+            <div className="mt-8 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
+              <Button asChild variant="outline"><Link to={`/rating/methodology?season=${encodeURIComponent(season.slug)}`}><BookOpenCheck size={16} /> Полная методика</Link></Button>
+              <Dialog.Close asChild><Button>Вернуться к рейтингу</Button></Dialog.Close>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 }
 
 function MyPosition({ row, rank, tab, direction, archived, duelStart, calibrationMatches }) {
@@ -216,7 +260,7 @@ export default function Leaderboard() {
   const seasonData = ratingPayload.season || seasons.find((item) => item.slug === season);
   const seasonEnd = seasonData?.end_at ? formatSeasonDate(seasonData.end_at, { year: undefined }) : null;
   const seasonStart = seasonData?.start_at ? formatSeasonDate(seasonData.start_at, { year: undefined }) : null;
-  const currentActivityCount = ratingPayload.current_user?.competition_events_count ?? null;
+  const competitionEventsCount = ratingPayload.current_user?.competition_events_count ?? null;
   const duelStart = configNumber(methodologyQuery.data?.duel?.start);
   const calibrationMatches = configNumber(methodologyQuery.data?.duel?.calibration_matches);
 
@@ -226,11 +270,11 @@ export default function Leaderboard() {
 
       {archived && <div className="mt-5 flex items-start gap-3 border border-border bg-secondary/50 p-4 text-sm"><History size={18} className="mt-0.5 shrink-0 text-primary" /><div><p className="font-semibold">Сезон завершён</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Рейтинг зафиксирован и доступен только для просмотра. Долгосрочные результаты сохранены в ML-паспортах участников.</p></div></div>}
 
-      {seasonData && <Reveal className="mt-6" delay={0.03}><section className="relative grid overflow-hidden border border-primary/20 bg-card md:grid-cols-[minmax(0,1fr)_auto] md:items-stretch"><span className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" /><div className="p-6 pl-7"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">{seasonData.name || seasonData.slug}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{seasonData.description || seasonData.long_description || seasonData.summary || "Откройте карточку сезона, чтобы посмотреть сроки, активность и параметры расчёта рейтинга."}</p><Button type="button" variant="outline" className="mt-5" onClick={() => setSeasonDetailsOpen(true)}>Подробнее о сезоне <ArrowRight size={15} /></Button></div><div className="grid grid-cols-2 border-t border-border bg-secondary/25 md:min-w-64 md:grid-cols-1 md:border-l md:border-t-0"><div className="p-4 md:p-5"><p className="text-[10px] text-muted-foreground">Старт</p><p className="mt-2 text-sm font-bold">{seasonStart || "—"}</p></div><div className="border-l border-border p-4 md:border-l-0 md:border-t md:p-5"><p className="text-[10px] text-muted-foreground">Финиш</p><p className="mt-2 text-sm font-bold">{seasonEnd || "—"}</p></div></div></section></Reveal>}
+      {seasonData && <Reveal className="mt-6" delay={0.03}><section className="relative grid overflow-hidden border border-primary/20 bg-card md:grid-cols-[minmax(0,1fr)_auto] md:items-stretch"><span className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" /><div className="p-6 pl-7"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">{seasonData.name || seasonData.slug}</h2><p className="mt-3 line-clamp-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-muted-foreground">{seasonData.description || seasonData.long_description || seasonData.summary || "Описание сезона пока не добавлено."}</p><Button type="button" variant="outline" className="mt-5" onClick={() => setSeasonDetailsOpen(true)}>Подробнее о сезоне <ArrowRight size={15} /></Button></div><div className="grid grid-cols-2 border-t border-border bg-secondary/25 md:min-w-64 md:grid-cols-1 md:border-l md:border-t-0"><div className="p-4 md:p-5"><p className="text-[10px] text-muted-foreground">Старт</p><p className="mt-2 text-sm font-bold">{seasonStart || "—"}</p></div><div className="border-l border-border p-4 md:border-l-0 md:border-t md:p-5"><p className="text-[10px] text-muted-foreground">Финиш</p><p className="mt-2 text-sm font-bold">{seasonEnd || "—"}</p></div></div></section></Reveal>}
 
-      <Reveal className="mt-4" delay={0.04}><div className="grid gap-px border border-border bg-border sm:grid-cols-3">{[[Users, "Участников", ratingPayload.total ?? "—", "с рейтинговой активностью"], [Trophy, "Ваших событий", currentActivityCount ?? "—", currentActivityCount === null ? "пока нет результата" : "учтено в рейтинге"], [Clock3, "Начало сезона", seasonStart || "—", seasonData?.status === "active" ? "сезон активен" : seasonData?.status || "статус неизвестен"]].map(([Icon, label, value, detail]) => <div key={label} className="bg-card p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={14} className="text-primary" />{label}</div><p className="mt-3 font-heading text-xl font-extrabold">{value}</p><p className="mt-1 text-[10px] text-muted-foreground">{detail}</p></div>)}</div></Reveal>
+      <Reveal className="mt-4" delay={0.04}><div className="grid gap-px border border-border bg-border sm:grid-cols-3">{[[Users, "Участников", ratingPayload.total ?? "—", "с рейтинговой активностью"], [Trophy, "Зачтено соревнований", competitionEventsCount ?? "—", competitionEventsCount === null ? "у вас пока нет финального результата" : "в вашем рейтинге этого сезона"], [Clock3, "Начало сезона", seasonStart || "—", seasonData?.status === "active" ? "сезон активен" : seasonData?.status || "статус неизвестен"]].map(([Icon, label, value, detail]) => <div key={label} className="bg-card p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={14} className="text-primary" />{label}</div><p className="mt-3 font-heading text-xl font-extrabold">{value}</p><p className="mt-1 text-[10px] text-muted-foreground">{detail}</p></div>)}</div></Reveal>
 
-      <SeasonDetailsDialog open={seasonDetailsOpen} onOpenChange={setSeasonDetailsOpen} season={seasonData} methodology={methodologyQuery.data} participants={ratingPayload.total} userEvents={currentActivityCount} />
+      <SeasonDetailsDialog open={seasonDetailsOpen} onOpenChange={setSeasonDetailsOpen} season={seasonData} methodology={methodologyQuery.data} participants={ratingPayload.total} competitionEvents={competitionEventsCount} />
 
       <section className="mt-7">
         <div className="flex overflow-x-auto border border-border bg-card p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{Object.entries(TAB_META).map(([value, item]) => <button key={value} type="button" onClick={() => updateParam("tab", value, "overall")} className={cn("flex min-h-12 min-w-[180px] flex-1 items-center justify-center gap-2 px-5 text-sm font-semibold text-muted-foreground transition-colors sm:min-w-0", tab === value ? "bg-primary text-primary-foreground" : "hover:bg-secondary hover:text-foreground")}><item.icon size={17} />{item.label}</button>)}</div>
