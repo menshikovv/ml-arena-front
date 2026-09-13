@@ -343,6 +343,43 @@
   @media (min-width: 640px) {
     .blog-article { font-size: 1.1875rem; }
   }
+
+  @media (max-width: 639px) {
+    .blog-article {
+      overflow-wrap: anywhere;
+      font-size: 1rem;
+      line-height: 1.75;
+    }
+
+    .blog-article h1 { font-size: 1.875rem; }
+    .blog-article h2 { font-size: 1.625rem; }
+    .blog-article h3 { font-size: 1.375rem; }
+    .blog-article h4 { font-size: 1.125rem; }
+
+    .blog-article h1,
+    .blog-article h2,
+    .blog-article h3,
+    .blog-article h4 {
+      margin-top: 2rem;
+    }
+
+    .blog-article blockquote {
+      margin: 1.4rem 0;
+      padding: 0.8rem 0.9rem;
+    }
+
+    .blog-article .blog-media-frame {
+      min-height: 0;
+      max-height: 70vh;
+    }
+
+    .blog-article table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
 }
 
 @layer components {

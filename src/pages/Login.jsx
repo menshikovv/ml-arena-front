@@ -43,7 +43,7 @@ export default function Login() {
         navigate(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
         return;
       }
-      setError(loginError.code === "NETWORK_ERROR" ? "Бэкенд ML Арены недоступен" : "Неверный email или пароль");
+      setError(loginError.code === "NETWORK_ERROR" ? "Не удалось связаться с ML-Ареной" : "Неверный email или пароль");
     } finally {
       setLoading(false);
     }

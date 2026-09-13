@@ -24,7 +24,7 @@ export default function ForgotPassword() {
       setDevToken(result.dev_token || "");
       setSent(true);
     } catch (requestError) {
-      setError(requestError.code === "NETWORK_ERROR" ? "Сервер временно недоступен. Попробуйте ещё раз позже." : requestError.message || "Не удалось отправить письмо.");
+      setError(requestError.code === "NETWORK_ERROR" ? "Не удалось связаться с ML-Ареной. Попробуйте ещё раз позже." : requestError.message || "Не удалось отправить письмо.");
     } finally {
       setLoading(false);
     }

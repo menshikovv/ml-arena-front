@@ -10,7 +10,7 @@ import LeagueBadge from "@/components/ml/LeagueBadge";
 import StatCard from "@/components/ml/StatCard";
 import { Trophy, Users, Send, Plus, Eye, Filter } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
-import { toast } from "react-hot-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 

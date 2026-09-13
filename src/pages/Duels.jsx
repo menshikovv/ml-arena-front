@@ -24,7 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { toast } from "react-hot-toast";
+import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
@@ -185,8 +185,8 @@ function DuelNav({ view, className }) {
   );
 }
 
-function RatingSummary({ rating, isLoading }) {
-  const duelRating = rating?.duel_rating ?? null;
+function RatingSummary({ rating, isLoading, defaultRating }) {
+  const duelRating = rating?.duel_rating ?? defaultRating ?? null;
   const duelRank = rating?.duel_rank ?? rating?.rank ?? null;
   return (
     <div className="grid min-w-0 grid-cols-2 md:grid-cols-4">
@@ -332,7 +332,7 @@ function OpponentCard({ opponent, onChallenge, pending, currentRating }) {
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
         <span className={cn("text-xs", withinRatingRange ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400")}>
-          {ratingGap === null ? "Рейтинг определит сервер" : `Разница ${ratingGap} Elo`}
+          {ratingGap === null ? "Рейтинг пока не определён" : `Разница ${ratingGap} Elo`}
         </span>
         <Button
           size="sm"
@@ -509,7 +509,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
               </div>
           </PageHeader>
           <DuelNav view="overview" className="mt-6" />
-          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary rating={currentRatingRow} isLoading={ratingLoading} /></div>
+          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary rating={currentRatingRow} isLoading={ratingLoading} defaultRating={currentRating} /></div>
         </section>
       </Reveal>
 
@@ -520,7 +520,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
           <div>
             <h2 className="font-heading text-xl font-bold md:text-2xl">Выбери направление</h2>
           </div>
-          <span className="hidden text-xs text-muted-foreground md:block">Диапазон подбора расширяет сервер</span>
+          <span className="hidden text-xs text-muted-foreground md:block">Диапазон поиска постепенно расширяется</span>
         </div>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4" role="radiogroup" aria-label="Направление дуэли">
           {Object.entries(TASKS).map(([key, task]) => (
@@ -584,7 +584,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
               </motion.div>
             ) : (
               <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-xs text-muted-foreground">
-                Доступность вызова и допустимую разницу рейтинга проверяет сервер.
+                Вызов доступен подходящим соперникам с учётом текущего рейтинга.
               </motion.p>
             )}
           </AnimatePresence>
@@ -643,7 +643,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
   );
 }
 
-function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge, canPlay, currentRating }) {
+function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, openChallenge, canPlay, currentRating, currentUser }) {
   const [status, setStatus] = useState("idle");
   const [opponent, setOpponent] = useState(null);
   const [ticket, setTicket] = useState(null);
@@ -703,21 +703,45 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
       toast.error(error.message || "Не удалось продолжить поиск");
     }
   };
+  const currentUserName = currentUser?.profile?.user_name || currentUser?.user_name || currentUser?.username || currentUser?.email || "Вы";
+  const currentUserAvatar = currentUser?.profile?.avatar_url || currentUser?.avatar_url;
 
   return (
     <Reveal>
-      <div className="mx-auto max-w-3xl py-4 md:py-10">
+      <div className="mx-auto max-w-4xl py-4 md:py-10">
         <Button asChild variant="ghost" size="sm" className="mb-6">
           <Link to="/duels"><ArrowLeft size={15} /> К дуэлям</Link>
         </Button>
-        <div className="border-y border-border bg-card px-5 py-8 text-center md:px-10 md:py-12">
-          <motion.div
-            animate={status === "searching" ? { rotate: 360 } : { rotate: 0 }}
-            transition={status === "searching" ? { duration: 2, repeat: Infinity, ease: "linear" } : {}}
-            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary"
-          >
-            {status === "found" ? <Check size={28} /> : status === "cancelled" ? <X size={28} /> : <Target size={28} />}
-          </motion.div>
+        <div className="relative overflow-hidden border border-border bg-card px-5 py-9 text-center shadow-[0_18px_60px_hsl(var(--foreground)/0.06)] md:px-12 md:py-12">
+          <span className="absolute inset-x-0 top-0 h-1 bg-primary" aria-hidden="true" />
+          <div className="mx-auto mb-5 flex w-fit items-center gap-2 border border-primary/20 bg-primary/[0.06] px-3 py-1.5 text-[11px] font-semibold text-primary">
+            <Swords size={14} /> Дуэль 1×1
+          </div>
+          <div className="mx-auto grid max-w-lg grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_140px_minmax(0,1fr)] sm:gap-4">
+            <div className="min-w-0">
+              <div className="mx-auto w-fit border-2 border-primary/20 p-1 shadow-[5px_5px_0_hsl(var(--primary)/0.1)]"><Avatar name={currentUserName} src={currentUserAvatar} size={58} /></div>
+              <p className="mt-3 truncate text-xs font-bold">Вы</p>
+              <p className="mt-1 truncate text-[10px] text-muted-foreground">{currentRating == null ? "Рейтинг сезона" : `${currentRating} очков`}</p>
+            </div>
+            <div className="flex items-center" aria-hidden="true">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent to-primary/45" />
+              <motion.span
+                animate={status === "searching" ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                transition={status === "searching" ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : {}}
+                className="flex h-11 w-11 shrink-0 items-center justify-center border border-primary/25 bg-primary text-primary-foreground shadow-[5px_5px_0_hsl(var(--primary)/0.12)]"
+              >
+                {status === "found" ? <Check size={20} /> : status === "cancelled" ? <X size={20} /> : <Swords size={20} />}
+              </motion.span>
+              <span className="h-px flex-1 bg-gradient-to-l from-transparent to-primary/45" />
+            </div>
+            <div className="min-w-0">
+              {status === "found" && opponent
+                ? <div className="mx-auto w-fit border-2 border-primary/20 p-1 shadow-[5px_5px_0_hsl(var(--primary)/0.1)]"><Avatar name={opponent.name} src={opponent.avatar} size={58} /></div>
+                : <motion.div animate={status === "searching" ? { opacity: [0.45, 1, 0.45] } : { opacity: 1 }} transition={status === "searching" ? { duration: 1.8, repeat: Infinity } : {}} className="mx-auto flex h-[68px] w-[68px] items-center justify-center border-2 border-dashed border-primary/30 bg-primary/[0.045] text-primary"><UserRoundSearch size={25} /></motion.div>}
+              <p className="mt-3 truncate text-xs font-bold">{status === "found" && opponent ? opponent.name : "Соперник"}</p>
+              <p className="mt-1 truncate text-[10px] text-muted-foreground">{status === "searching" ? "Идёт поиск" : status === "found" ? "Пара найдена" : "Ожидает поиска"}</p>
+            </div>
+          </div>
           <h1 className="mt-6 font-heading text-2xl font-bold md:text-3xl">
             {status === "searching"
               ? "Ищем равного соперника"
@@ -729,27 +753,37 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
             {status === "searching"
-              ? `${currentRating === null ? "Сервер подбирает доступного участника" : "Сервер учитывает текущий рейтинг"}${secondsUntilFallback == null ? "" : ` · вариант вызова через ${secondsUntilFallback} сек.`}`
+              ? `${currentRating === null ? "Ищем доступного участника" : "Подбираем соперника по текущему рейтингу"}${secondsUntilFallback == null ? "" : ` · вариант вызова через ${secondsUntilFallback} сек.`}`
               : status === "empty"
                 ? "Можно оставить поиск активным или сразу получить новую задачу против эталонного результата ML-Арены."
               : "Выбери направление. Условия, таймер и лимиты одинаковы для обоих участников."}
           </p>
 
           {status !== "searching" && status !== "found" && (
-            <div className="mx-auto mt-7 grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="mx-auto mt-8 max-w-2xl border-t border-border pt-6">
+              <div className="mb-4 flex items-center justify-between gap-4 text-left">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Направление задачи</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Выбери область, в которой хочешь соревноваться</p>
+                </div>
+                <span className="hidden text-xs font-semibold text-primary sm:block">{TASKS[taskType]?.label}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {Object.entries(TASKS).map(([key, task]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setTaskType(key)}
                   className={cn(
-                    "min-h-11 border px-3 text-xs font-medium transition-colors",
-                    taskType === key ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50",
+                    "relative min-h-12 border px-3 text-xs font-semibold transition-[border-color,background-color,color,transform] active:scale-[0.98]",
+                    taskType === key ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:border-primary/50 hover:bg-primary/[0.035]",
                   )}
                 >
+                  {taskType === key && <Check size={13} className="absolute right-2 top-2" />}
                   {task.label}
                 </button>
               ))}
+              </div>
             </div>
           )}
 
@@ -774,7 +808,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
             )}
           </AnimatePresence>
 
-          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             {status === "searching" ? (
               <Button variant="outline" onClick={cancel}><X size={16} /> Отменить поиск</Button>
             ) : status === "found" ? (
@@ -794,18 +828,6 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
               <Button onClick={start} disabled={startMutation.isPending}>{startMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />} Найти соперника</Button>
             )}
           </div>
-        </div>
-        <div className="grid grid-cols-3 border-b border-border">
-          {[
-            ["Сервер", "подбор соперника"],
-            ["ZIP", "данные задачи"],
-            ["Одна", "финальная отправка"],
-          ].map(([value, label], index) => (
-            <div key={value} className={cn("p-4 text-center", index > 0 && "border-l border-border")}>
-              <p className="font-heading text-lg font-bold">{value}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
-            </div>
-          ))}
         </div>
       </div>
     </Reveal>
@@ -869,9 +891,9 @@ function ArenaChallengeView() {
     catch (error) { toast.error(error.message || "Не удалось завершить вызов"); }
   };
 
-  if (!canPlay || attemptId === "new") return <div className="py-16 text-center"><Target className="mx-auto text-primary" /><h2 className="mt-4 font-heading text-2xl font-bold">Сначала запустите поиск</h2><p className="mt-2 text-sm text-muted-foreground">Вызов ML-Арены создаётся сервером после ожидания соперника.</p><Button asChild className="mt-5"><Link to="/duels">Перейти к дуэлям</Link></Button></div>;
+  if (!canPlay || attemptId === "new") return <div className="py-16 text-center"><Target className="mx-auto text-primary" /><h2 className="mt-4 font-heading text-2xl font-bold">Сначала запустите поиск</h2><p className="mt-2 text-sm text-muted-foreground">Вызов ML-Арены станет доступен после ожидания соперника.</p><Button asChild className="mt-5"><Link to="/duels">Перейти к дуэлям</Link></Button></div>;
   if (challengeQuery.isLoading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
-  if (challengeQuery.error || !challenge) return <div className="py-16 text-center"><Target className="mx-auto text-primary" /><h2 className="mt-4 font-heading text-2xl font-bold">Вызов не найден</h2><p className="mt-2 text-sm text-muted-foreground">{challengeQuery.error?.message || "Сервер не вернул данные вызова."}</p><Button asChild variant="outline" className="mt-5"><Link to="/duels">Вернуться к дуэлям</Link></Button></div>;
+  if (challengeQuery.error || !challenge) return <div className="py-16 text-center"><Target className="mx-auto text-primary" /><h2 className="mt-4 font-heading text-2xl font-bold">Вызов не найден</h2><p className="mt-2 text-sm text-muted-foreground">{challengeQuery.error?.message || "Данные вызова пока недоступны."}</p><Button asChild variant="outline" className="mt-5"><Link to="/duels">Вернуться к дуэлям</Link></Button></div>;
 
   if (finished) {
     const rawBonus = challenge.rating_bonus ?? challenge.bonus_awarded;
@@ -1074,8 +1096,15 @@ export default function Duels() {
     enabled: canReadPersonalDuels && Boolean(activeSeason),
     retry: false,
   });
+  const methodologyQuery = useQuery({
+    queryKey: ["rating-methodology", activeSeason],
+    queryFn: () => api.rating.methodology({ season: activeSeason }),
+    enabled: canReadPersonalDuels && Boolean(activeSeason),
+    staleTime: 60000,
+    retry: false,
+  });
   const currentRatingRow = duelRatingQuery.data?.current_user || null;
-  const currentRating = currentRatingRow?.duel_rating ?? null;
+  const currentRating = currentRatingRow?.duel_rating ?? methodologyQuery.data?.duel?.start ?? null;
   const duelRatingsByUser = useMemo(() => new Map((duelRatingQuery.data?.items || []).map((row) => [row.user_id, row])), [duelRatingQuery.data?.items]);
   const profilesQuery = useQuery({
     queryKey: ["duel-opponents"],
@@ -1176,7 +1205,7 @@ export default function Duels() {
           currentUserId={user?.id}
           currentRating={currentRating}
           currentRatingRow={currentRatingRow}
-          ratingLoading={seasonsQuery.isLoading || duelRatingQuery.isLoading}
+          ratingLoading={seasonsQuery.isLoading || duelRatingQuery.isLoading || methodologyQuery.isLoading}
         />
       )}
       {view === "matchmaking" && (
@@ -1189,6 +1218,7 @@ export default function Duels() {
           openChallenge={(ticket) => { setChallengeTicket(ticket); setChallengeOpen(true); }}
           canPlay={canReadPersonalDuels}
           currentRating={currentRating}
+          currentUser={user}
         />
       )}
       {view === "history" && <HistoryView duels={duels} isLoading={duelsQuery.isLoading} rating={currentRatingRow} />}

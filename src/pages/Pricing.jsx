@@ -32,12 +32,12 @@ import { cn } from "@/lib/utils";
 
 function PricingReveal({ children, className, index = 0, direction = "up" }) {
   const reduceMotion = useReducedMotion();
-  const offset = direction === "left" ? { x: -34, y: 0 } : direction === "right" ? { x: 34, y: 0 } : { x: 0, y: 34 };
+  const offset = direction === "left" ? { x: -18, y: 0 } : direction === "right" ? { x: 18, y: 0 } : { x: 0, y: 16 };
   return <motion.div className={className}
-    initial={reduceMotion ? false : { opacity: 0, filter: "blur(8px)", scale: 0.985, ...offset }}
-    whileInView={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)", scale: 1 }}
-    viewport={{ once: true, amount: 0.18 }}
-    transition={{ duration: reduceMotion ? 0 : 0.78, delay: reduceMotion ? 0 : Math.min(index, 4) * 0.09, ease: [0.16, 1, 0.3, 1] }}
+    initial={reduceMotion ? false : { opacity: 0, ...offset }}
+    whileInView={{ opacity: 1, x: 0, y: 0 }}
+    viewport={{ once: true, amount: 0.12, margin: "0px 0px -50px" }}
+    transition={{ duration: reduceMotion ? 0 : 0.52, delay: reduceMotion ? 0 : Math.min(index, 4) * 0.06, ease: [0.22, 1, 0.36, 1] }}
   >{children}</motion.div>;
 }
 
@@ -164,7 +164,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "Почему годовой тариф дешевле?",
-    answer: "Если для годового плана предусмотрена скидка, актуальная стоимость отображается в карточке тарифа и приходит с сервера.",
+    answer: "Если для годового плана предусмотрена скидка, актуальная стоимость отображается в карточке тарифа.",
   },
   {
     question: "Есть ли денежные призы для Premium?",
@@ -217,8 +217,12 @@ export default function Pricing() {
   return (
     <PageFrame>
       <Reveal>
-        <section className="grid items-center gap-10 border-b border-border pb-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:gap-16 lg:pb-16">
-          <div className="max-w-3xl">
+        <section className="relative -mx-4 grid items-center gap-10 overflow-hidden border-y border-primary/15 bg-primary/[0.045] px-5 py-9 sm:-mx-6 sm:px-8 sm:py-11 lg:-mx-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:gap-16 lg:px-12 lg:py-14">
+          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
+          <div className="relative max-w-3xl">
+            <div className="inline-flex items-center gap-2 border border-primary/20 bg-background/80 px-3 py-2 text-xs font-bold text-primary shadow-sm">
+              <Target size={15} /> Персональная траектория развития
+            </div>
             <h1 className="mt-6 font-heading text-4xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">
               Разбирайте результаты глубже. Развивайтесь точнее.
             </h1>
@@ -242,7 +246,7 @@ export default function Pricing() {
           <motion.div
             whileHover={reduceMotion ? undefined : { y: -6, scale: 1.008 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="group relative overflow-hidden border border-border bg-card p-5 shadow-2xl shadow-primary/10 sm:p-7"
+            className="group relative overflow-hidden border border-primary/20 bg-background p-5 shadow-2xl shadow-primary/10 sm:p-7"
           >
             <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
               <div>
@@ -395,7 +399,7 @@ export default function Pricing() {
               <motion.div animate={reduceMotion ? undefined : { rotate: [0, -7, 7, 0] }} transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.6 }}><CalendarCheck2 size={22} className="text-primary" /></motion.div>
             </div>
             <div className="grid gap-3 py-5 sm:grid-cols-3">
-              {["Новые подтверждения", "Изменение стабильности", "Следующие шаги"].map((label, index) => <motion.div key={label} initial={reduceMotion ? false : { opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} whileHover={reduceMotion ? undefined : { y: -4 }} transition={{ duration: 0.45, delay: index * 0.12 }} className="relative overflow-hidden bg-secondary/55 p-4"><CheckCircle2 size={17} className="text-primary" /><p className="mt-3 text-sm font-semibold">{label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Значение рассчитывается по данным вашего профиля.</p><motion.span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 bg-primary" initial={{ width: 0 }} whileInView={{ width: `${58 + index * 16}%` }} viewport={{ once: true }} transition={{ duration: reduceMotion ? 0 : 0.8, delay: 0.35 + index * 0.12 }} /></motion.div>)}
+              {["Новые подтверждения", "Изменение стабильности", "Следующие шаги"].map((label, index) => <motion.div key={label} initial={reduceMotion ? false : { opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} whileHover={reduceMotion ? undefined : { y: -4 }} transition={{ duration: 0.45, delay: index * 0.12 }} className="relative overflow-hidden bg-secondary/55 p-4"><CheckCircle2 size={17} className="text-primary" /><p className="mt-3 text-sm font-semibold">{label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Сводка обновляется вместе с вашим прогрессом.</p><motion.span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 bg-primary" initial={{ width: 0 }} whileInView={{ width: `${58 + index * 16}%` }} viewport={{ once: true }} transition={{ duration: reduceMotion ? 0 : 0.8, delay: 0.35 + index * 0.12 }} /></motion.div>)}
             </div>
             <motion.div whileHover={reduceMotion ? undefined : { x: 4 }} className="mt-6 flex items-start gap-3 border border-primary/15 bg-primary/5 p-4"><motion.span animate={reduceMotion ? undefined : { scale: [1, 1.14, 1] }} transition={{ duration: 2, repeat: Infinity }} className="mt-0.5 shrink-0 text-primary"><Target size={19} /></motion.span><div><p className="text-sm font-bold">Рекомендуемый следующий шаг</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Закрепить временную валидацию в тренировочной задаче без влияния на рейтинг.</p></div></motion.div>
           </PricingReveal>

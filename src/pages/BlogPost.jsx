@@ -229,8 +229,8 @@ export default function BlogPost() {
             </nav>
             <div className="mt-8 max-w-4xl">
               {post.categoryName && <span className="inline-flex rounded-sm bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{post.categoryName}</span>}
-              <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">{post.title}</h1>
-              <p className="mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">{post.excerpt}</p>
+              <h1 className="mt-5 break-words font-heading text-3xl font-extrabold leading-[1.08] [overflow-wrap:anywhere] sm:text-5xl lg:text-6xl">{post.title}</h1>
+              <p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground sm:mt-6 sm:text-lg sm:leading-8">{post.excerpt}</p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-2"><CalendarDays size={16} /> {formatBlogDate(post.publishedAt)}</span>
                 {post.readingTime != null && <span className="flex items-center gap-2"><Clock3 size={16} /> {post.readingTime} мин</span>}
@@ -241,7 +241,7 @@ export default function BlogPost() {
         </section>
 
         <Reveal className="mx-auto max-w-[1040px] px-4 pt-8 sm:px-6 md:pt-12">
-          <BlogCover visual={post.visual} className="aspect-video max-h-[540px] min-h-64 w-full" />
+          <BlogCover visual={post.visual} className="aspect-[4/3] max-h-[540px] w-full sm:aspect-video" />
         </Reveal>
 
         <div className="mx-auto max-w-[900px] px-4 py-12 sm:px-6 lg:py-16">

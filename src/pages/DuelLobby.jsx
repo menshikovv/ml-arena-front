@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { toast } from "react-hot-toast";
+import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
@@ -208,7 +208,7 @@ function LobbyView({ duel, onStart, onLeave, starting, leaving }) {
             {starting ? <Loader2 className="animate-spin" /> : duel.player1_ready ? <CheckCircle2 /> : <ShieldCheck />}
             {duel.player1_ready ? "Готовность подтверждена" : "Я готов"}
           </Button>
-          <p className="mt-3 text-xs text-muted-foreground">Старт и таймер синхронизируются сервером.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Старт и таймер одинаковы для обоих участников.</p>
         </div>
       </div>
     </motion.div>
@@ -346,7 +346,7 @@ function SubmissionUploader({ duel, currentUserId, locked, onFinished }) {
         </motion.div>
       )}
 
-      <p className="mt-5 border-y border-border py-4 text-xs text-muted-foreground">В дуэли сервер принимает одну финальную отправку от каждого участника.</p>
+      <p className="mt-5 border-y border-border py-4 text-xs text-muted-foreground">В дуэли у каждого участника один финальный набор данных.</p>
     </section>
   );
 }
@@ -428,7 +428,7 @@ function LiveView({ duel, currentUserId, onFinished }) {
               <p className="text-xs font-semibold">Данные задачи</p>
               {duel.dataset_bundle_url
                 ? <Button asChild variant="outline" size="sm" className="mt-3"><a href={duel.dataset_bundle_url}><Download size={14} /> Скачать ZIP</a></Button>
-                : <p className="mt-2 text-xs text-muted-foreground">Сервер не вернул доступный ZIP для этой дуэли.</p>}
+                : <p className="mt-2 text-xs text-muted-foreground">Файл для этой дуэли пока недоступен.</p>}
             </div>
           </section>
 
@@ -500,7 +500,7 @@ function ResultView({ duel }) {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
           {isDraw
-            ? "Сервер зафиксировал ничью."
+            ? "Участники показали одинаковый результат."
             : userWon
               ? "Твой лучший результат оказался выше результата соперника."
               : "Посмотри итоговое сравнение и попробуй ещё раз."}
@@ -558,7 +558,7 @@ function ResultView({ duel }) {
         </div>
         <div className="border-l-0 border-border lg:border-l lg:pl-8">
           <h2 className="font-heading text-xl font-bold">
-            {isDraw ? "Ничья" : "Победитель определён сервером"}
+            {isDraw ? "Ничья" : "Победитель определён по итоговому результату"}
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Метрика матча: {METRIC_LABELS[duel.metric] || duel.metric}. Оба решения прошли проверку формата и оценку на одной скрытой выборке.

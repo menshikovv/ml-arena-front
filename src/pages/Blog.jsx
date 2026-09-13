@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CalendarDays, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
 import BlogCover, { blogCoverVisual } from "@/components/ml/BlogCover";
-import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
+import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/api/mlArenaApi";
@@ -59,6 +59,29 @@ function ArticleCard({ post }) {
   );
 }
 
+function BlogLoading() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Загружаем статьи">
+      <div className="grid overflow-hidden rounded-md border border-border bg-card lg:grid-cols-[1.12fr_0.88fr]">
+        <div className="aspect-[4/3] bg-secondary/55 sm:aspect-video lg:min-h-[390px]" />
+        <div className="space-y-5 p-6 sm:p-8 lg:p-10">
+          <div className="h-6 w-32 rounded-sm bg-secondary" />
+          <div className="h-9 w-4/5 rounded-sm bg-secondary" />
+          <div className="h-4 w-full rounded-sm bg-secondary/80" />
+          <div className="h-4 w-2/3 rounded-sm bg-secondary/80" />
+        </div>
+      </div>
+      <div className="mt-14 border-b border-border pb-6">
+        <div className="h-8 w-56 rounded-sm bg-secondary" />
+        <div className="mt-3 h-4 w-20 rounded-sm bg-secondary/80" />
+      </div>
+      <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((item) => <div key={item} className="h-80 rounded-md border border-border bg-card"><div className="aspect-video bg-secondary/55" /><div className="space-y-4 p-5"><div className="h-4 w-24 rounded-sm bg-secondary" /><div className="h-6 w-4/5 rounded-sm bg-secondary" /><div className="h-4 w-full rounded-sm bg-secondary/80" /></div></div>)}
+      </div>
+    </div>
+  );
+}
+
 export default function Blog() {
   const { appPublicSettings } = useAuth();
   const telegramUrl = appPublicSettings?.telegram_url;
@@ -69,9 +92,9 @@ export default function Blog() {
   const [search, setSearch] = useState(queryParam);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const postsQuery = useQuery({
-    queryKey: ["blog-posts", activeCategory, queryParam, visibleCount],
-    queryFn: () => api.blog.posts({ category: activeCategory === "all" ? undefined : activeCategory, q: queryParam.trim().length >= 2 ? queryParam.trim() : undefined, limit: Math.min(50, visibleCount + 1), offset: 0 }),
-    staleTime: 30000,
+    queryKey: ["blog-posts", activeCategory, queryParam],
+    queryFn: () => api.blog.posts({ category: activeCategory === "all" ? undefined : activeCategory, q: queryParam.trim().length >= 2 ? queryParam.trim() : undefined, limit: 50, offset: 0 }),
+    staleTime: 300000,
   });
   const categoriesQuery = useQuery({ queryKey: ["blog-categories"], queryFn: api.blog.categories, staleTime: 300000 });
   const responsePosts = postsQuery.data?.data || postsQuery.data?.items || [];
@@ -169,7 +192,7 @@ export default function Blog() {
       <section className="border-b border-border bg-secondary/25">
         <Reveal className="mx-auto grid max-w-[1380px] gap-8 px-4 py-12 sm:px-6 lg:px-8 lg:grid-cols-[1fr_0.78fr] lg:items-end">
           <div>
-            <h1 className="mt-5 max-w-3xl font-heading text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">Новости ML-Арены</h1>
+            <h1 className="mt-5 max-w-3xl font-heading text-3xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">Новости ML-Арены</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Разборы ML-задач, подготовка к соревнованиям, новости платформы и практические материалы без лишней теории.</p>
           </div>
           <form onSubmit={submitSearch} className="relative lg:mb-1">
@@ -182,16 +205,23 @@ export default function Blog() {
       </section>
 
       <main className="mx-auto max-w-[1380px] px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+        {postsQuery.isPending ? <BlogLoading /> : postsQuery.isError ? (
+          <div className="border border-destructive/25 bg-destructive/5 px-5 py-14 text-center">
+            <h2 className="font-heading text-2xl font-extrabold">Не удалось загрузить статьи</h2>
+            <p className="mt-3 text-sm text-muted-foreground">{postsQuery.error?.message || "Повторите попытку немного позже."}</p>
+            <Button type="button" variant="outline" className="mt-6" onClick={() => postsQuery.refetch()}><RotateCcw size={15} /> Повторить</Button>
+          </div>
+        ) : <>
         {showFeatured && featured && (
-          <Reveal>
+          <div>
             <Link to={`/blog/${featured.slug}`} className="group grid overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:grid-cols-[1.12fr_0.88fr]">
-              <BlogCover visual={featured.visual} className="min-h-72 lg:min-h-[390px]" />
-              <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
+              <BlogCover visual={featured.visual} className="aspect-[4/3] sm:aspect-video lg:min-h-[390px]" />
+              <div className="flex flex-col justify-center p-5 sm:p-8 lg:p-10">
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <span className="rounded-sm bg-primary/10 px-2.5 py-1.5 font-semibold text-primary">Главный материал</span>
                   {featured.categoryName && <span className="font-semibold text-muted-foreground">{featured.categoryName}</span>}
                 </div>
-                <h2 className="mt-6 font-heading text-3xl font-extrabold leading-tight transition-colors group-hover:text-primary sm:text-4xl">{featured.title}</h2>
+                <h2 className="mt-5 font-heading text-2xl font-extrabold leading-tight transition-colors group-hover:text-primary sm:mt-6 sm:text-4xl">{featured.title}</h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground">{featured.excerpt}</p>
                 <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {formatBlogDate(featured.publishedAt)}</span>
@@ -200,7 +230,7 @@ export default function Blog() {
                 <span className="mt-7 inline-flex items-center gap-2 font-semibold text-primary">Читать материал <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
               </div>
             </Link>
-          </Reveal>
+          </div>
         )}
 
         <section id="blog-results" className={`${showFeatured ? "mt-14 " : ""}scroll-mt-24`}>
@@ -218,9 +248,9 @@ export default function Blog() {
 
           {visiblePosts.length ? (
             <>
-              <Stagger key={`${activeCategory}-${queryParam}`} className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {visiblePosts.map((post) => <StaggerItem key={post.slug}><ArticleCard post={post} /></StaggerItem>)}
-              </Stagger>
+              <div key={`${activeCategory}-${queryParam}`} className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {visiblePosts.map((post) => <ArticleCard key={post.slug} post={post} />)}
+              </div>
               {visibleCount < listPosts.length && <div className="mt-10 text-center"><Button type="button" variant="outline" size="lg" onClick={() => setVisibleCount((count) => count + 3)}>Показать ещё <ArrowRight size={16} /></Button></div>}
             </>
           ) : (
@@ -232,6 +262,7 @@ export default function Blog() {
             </Reveal>
           )}
         </section>
+        </>}
       </main>
 
       <section className="border-y border-primary/20 bg-primary text-primary-foreground">

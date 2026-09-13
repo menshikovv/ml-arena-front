@@ -7,7 +7,6 @@ import {
   ChevronDown,
   CircleHelp,
   Copy,
-  FileImage,
   LifeBuoy,
   Loader2,
   Mail,
@@ -112,7 +111,7 @@ const FAQ_ITEMS = [
     category: "activities",
     title: "Как отправляется решение в ML-соревновании?",
     keywords: ["решение", "csv", "отправка", "загрузка", "предсказания"],
-    body: "Формат зависит от задачи. В большинстве классических ML-соревнований пользователь скачивает данные, обучает модель в удобной среде, формирует файл с предсказаниями и загружает его на ML-Арену. После загрузки система проверяет формат и рассчитывает результат по правилам задачи.",
+    body: "Формат зависит от задачи. В большинстве классических ML-соревнований пользователь скачивает данные, обучает модель в удобной среде, формирует файл с предсказаниями и загружает его на ML-Арену. После загрузки вы увидите результат по правилам задачи.",
   },
   {
     id: "source-code",
@@ -134,7 +133,7 @@ const FAQ_ITEMS = [
     category: "activities",
     title: "Почему итоговый результат может отличаться от результата во время соревнования?",
     keywords: ["итоговый результат", "скрытые данные", "публичная таблица", "финальная оценка"],
-    body: "В некоторых задачах промежуточный результат рассчитывается только на части проверочных данных, а финальная оценка — на другой, заранее скрытой части. Это уменьшает влияние случайного подбора решения под промежуточный результат и точнее оценивает итоговый подход. Конкретный порядок всегда указан в правилах активности.",
+    body: "В некоторых задачах для промежуточного и финального результата используются разные части проверочных данных. Финальная часть заранее скрыта, чтобы итог лучше отражал качество решения. Конкретный порядок всегда указан в правилах активности.",
   },
   {
     id: "attempt-limit",
@@ -483,7 +482,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
           <div className="grid gap-9 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
             <Reveal viewportReveal>
               <h2 className="font-heading text-3xl font-bold sm:text-4xl">Не нашли ответ? Напишите нам</h2>
-              <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">Опишите вопрос как можно точнее. Если проблема техническая, приложите скриншот без секретных данных.</p>
+              <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">Опишите вопрос как можно точнее: что произошло, на какой странице и после какого действия.</p>
               <div className="mt-7 border-l-2 border-primary bg-secondary/35 px-5 py-4 text-sm leading-6 text-muted-foreground">
                 Не отправляйте пароль, cookie, токены доступа, секретные ключи и полные дампы браузера.
               </div>
@@ -494,7 +493,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                 <div className="rounded-lg border border-border bg-card p-7 shadow-sm sm:p-8">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><CheckCircle2 size={21} /></span>
                   <h3 className="mt-5 font-heading text-2xl font-bold">Письмо подготовлено</h3>
-                  <p className="mt-3 text-sm leading-7 text-muted-foreground">Мы открыли ваше почтовое приложение с заполненным обращением. Проверьте текст, при необходимости прикрепите скриншоты и отправьте письмо.</p>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">Мы открыли ваше почтовое приложение с заполненным обращением. Проверьте текст и отправьте письмо.</p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Button asChild><a href={`mailto:${SUPPORT_EMAIL}`}>Открыть почту ещё раз</a></Button>
                     <Button type="button" variant="outline" onClick={() => setMailPrepared(false)}>Новое обращение</Button>
@@ -518,21 +517,11 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                       <Textarea id="support-message" value={form.message} onChange={(event) => updateForm("message", event.target.value)} minLength={20} maxLength={4000} rows={7} placeholder="Что произошло, где и после какого действия?" className="resize-none bg-secondary/25 shadow-none focus-visible:ring-2 focus-visible:ring-primary/15" required />
                       <span className="mt-1 block text-right text-[11px] tabular-nums text-muted-foreground">{form.message.length}/4000</span>
                     </Field>
-                    <div className="sm:col-span-2">
-                      <Label>Скриншоты</Label>
-                      <div className="mt-2 flex items-start gap-3 rounded-md border border-dashed border-border bg-secondary/20 px-4 py-4">
-                        <FileImage size={18} className="mt-0.5 shrink-0 text-primary" />
-                        <div>
-                          <p className="text-sm font-semibold">Прикрепите скриншоты в письме</p>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">После нажатия «Открыть письмо» добавьте изображения через ваше почтовое приложение.</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                   {form.category === "security" && <div className="border-t border-destructive/15 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не публикуйте детали уязвимости в открытых каналах. Отправьте их только через приватное письмо.</div>}
                   <div className="flex flex-col justify-between gap-3 border-t border-border bg-secondary/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7">
                     <p className="text-xs text-muted-foreground">Ответ придёт на указанный email.</p>
-                    <Button type="submit" disabled={submitting}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Открыть письмо</Button>
+                    <Button type="submit" disabled={submitting}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Написать в поддержку</Button>
                   </div>
                 </form>
               )}

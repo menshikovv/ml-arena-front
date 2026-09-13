@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 300;
+const DEFAULT_TOAST_DURATION = 5000;
+const ERROR_TOAST_DURATION = 8000;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -19,6 +21,7 @@ function genId() {
 }
 
 const toastTimeouts = new Map();
+const autoDismissTimeouts = new Map();
 
 const addToRemoveQueue = (toastId) => {
   if (toastTimeouts.has(toastId)) {
@@ -110,17 +113,25 @@ function dispatch(action) {
   });
 }
 
-function toast({ ...props }) {
+function toast(input) {
+  const normalized = typeof input === "string" ? { title: input } : { ...input };
+  const { duration: requestedDuration, ...props } = normalized;
   const id = genId();
+
+  const dismiss = () => {
+    const timeout = autoDismissTimeouts.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      autoDismissTimeouts.delete(id);
+    }
+    dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
+  };
 
   const update = (props) =>
     dispatch({
       type: actionTypes.UPDATE_TOAST,
       toast: { ...props, id },
     });
-
-  const dismiss = () =>
-    dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
 
   dispatch({
     type: actionTypes.ADD_TOAST,
@@ -134,12 +145,20 @@ function toast({ ...props }) {
     },
   });
 
+  const duration = requestedDuration ?? (props.variant === "destructive" ? ERROR_TOAST_DURATION : DEFAULT_TOAST_DURATION);
+  if (Number.isFinite(duration) && duration > 0) {
+    autoDismissTimeouts.set(id, setTimeout(dismiss, duration));
+  }
+
   return {
     id,
     dismiss,
     update,
   };
 }
+
+toast.success = (message, props = {}) => toast({ ...props, title: message });
+toast.error = (message, props = {}) => toast({ ...props, title: message, variant: "destructive" });
 
 function useToast() {
   const [state, setState] = useState(memoryState);
@@ -161,4 +180,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast }; 
+export { useToast, toast };

@@ -171,10 +171,11 @@ export default function Profile() {
   const badgesQuery = useQuery({ queryKey: ["profile-badges", profileUserId], queryFn: () => api.profiles.badges(profileUserId), enabled: Boolean(profileUserId) });
   const seasonsQuery = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons, staleTime: 60000, enabled: isOwner });
   const seasons = list(seasonsQuery.data);
-  const season = seasons.find((item) => item.status === "active")?.slug || seasons[0]?.slug || null;
+  const season = seasons.find((item) => item.status === "active")?.slug || null;
   const overallQuery = useQuery({ queryKey: ["profile-rating", "overall", season], queryFn: () => api.rating.get({ tab: "overall", season }), enabled: Boolean(isOwner && season) });
   const competitionsQuery = useQuery({ queryKey: ["profile-rating", "competitions", season], queryFn: () => api.rating.get({ tab: "competitions", season }), enabled: Boolean(isOwner && season) });
   const duelsQuery = useQuery({ queryKey: ["profile-rating", "duels", season], queryFn: () => api.rating.get({ tab: "duels", season }), enabled: Boolean(isOwner && season) });
+  const methodologyQuery = useQuery({ queryKey: ["profile-rating-methodology", season], queryFn: () => api.rating.methodology({ season }), enabled: Boolean(isOwner && season), staleTime: 60000 });
 
   const badges = list(badgesQuery.data);
   const externalAchievements = list(profile?.external_achievements);
@@ -188,16 +189,26 @@ export default function Profile() {
   const duelWins = duelRating?.wins ?? overall?.wins ?? stats.duels_won ?? 0;
   const duelLosses = duelRating?.losses ?? overall?.losses ?? stats.duels_lost ?? 0;
   const humanDuels = duelRating?.human_duels_count ?? overall?.human_duels_count ?? (Number(duelWins) + Number(duelLosses));
-  const duelScore = Number(humanDuels) > 0 ? (duelRating?.score ?? overall?.duel_rating ?? 0) : 0;
+  const duelStart = methodologyQuery.data?.duel?.start ?? null;
+  const duelScore = duelRating?.duel_rating ?? duelRating?.score ?? overall?.duel_rating ?? (Number(humanDuels) === 0 ? duelStart : null);
   const challengeBonus = duelRating?.challenge_bonus_total ?? overall?.challenge_bonus_total ?? 0;
   const seasonalScore = overallQuery.isSuccess ? overallScore : null;
   const seasonalCompetitionScore = competitionsQuery.isSuccess ? competitionScore : null;
   const seasonalDuelScore = duelsQuery.isSuccess ? duelScore : null;
+  const competitionWeight = methodologyQuery.data?.overall?.competition_weight == null
+    ? methodologyQuery.data?.competition_weight_percent
+    : Math.round(Number(methodologyQuery.data.overall.competition_weight) * 100);
+  const duelWeight = methodologyQuery.data?.overall?.duel_weight == null
+    ? methodologyQuery.data?.duel_weight_percent
+    : Math.round(Number(methodologyQuery.data.overall.duel_weight) * 100);
+  const ratingComposition = competitionWeight != null && duelWeight != null
+    ? `${competitionWeight}% соревнования · ${duelWeight}% дуэли после нормализации`
+    : "Вес компонентов задаётся методикой активного сезона";
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
   const hasDirections = directionCards.some((item) => Number(item.score) > 0);
-  const hasRating = Number(overallScore) > 0 || Number(competitionScore) > 0 || Number(humanDuels) > 0;
+  const hasRating = Number(overallScore) > 0 || Number(competitionScore) > 0 || Number(duelScore) > 0 || Number(humanDuels) > 0;
   const hasPractice = [humanDuels, duelWins, duelLosses, challengeBonus, stats.competitions_participated].some((value) => Number(value) > 0);
   const passportTabs = [
     ...(isOwner || hasDirections ? [["directions", "Направления", Target]] : []),
@@ -233,17 +244,6 @@ export default function Profile() {
         </div>
         {isOwner && <Button asChild variant="outline" className="shrink-0 self-start lg:self-auto"><Link to="/profile/edit">Редактировать профиль</Link></Button>}
       </header>
-      <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5 border-b border-border py-7">
-        <div className="flex min-w-0 items-center gap-5 sm:gap-7">
-          <span aria-hidden="true" className="h-14 w-1 shrink-0 rounded-full bg-primary" />
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground">Общий рейтинг сезона</p>
-            <p className="mt-2 font-heading text-4xl font-extrabold tabular-nums leading-none sm:text-5xl">{seasonalScore == null ? "—" : Number(seasonalScore).toLocaleString("ru-RU")}</p>
-            <p className="mt-2 text-[11px] text-muted-foreground">70% соревнования · 30% дуэли после нормализации</p>
-          </div>
-        </div>
-        {overall?.rank != null && <div className="sm:text-right"><p className="text-xs text-muted-foreground">Место в текущем сезоне</p><p className="mt-2 font-heading text-2xl font-extrabold tabular-nums">#{overall.rank}</p></div>}
-      </div>
     </Reveal>
 
     <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated ?? 0} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status === "calibrated" ? "Калибровка завершена" : "Нужно 5 матчей для места"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
@@ -253,9 +253,9 @@ export default function Profile() {
 
       <Tabs.Content value="directions" className="mt-9 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Карта компетенций</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Ваши подтверждённые результаты в машинном обучении.</p><div className="mt-7 grid gap-4 md:grid-cols-2 2xl:grid-cols-4">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
 
-      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="mb-6"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Рейтинг сезона</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Компоненты берутся из сезонного рейтинга и не используют базовый Elo профиля.</p></div><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Пока без места"} /><SummaryMetric icon={Target} label="Соревнования" value={seasonalCompetitionScore} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Нет рейтинговых результатов"} /><SummaryMetric icon={Swords} label="Дуэли" value={seasonalDuelScore} detail={duelRating?.rank ? `Место #${duelRating.rank}` : Number(humanDuels) > 0 ? `Калибровка: ${humanDuels} из 5` : "Нет рейтинговых дуэлей"} /></div></>}</Reveal></Tabs.Content>
+      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="mb-6"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Рейтинг сезона</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Компоненты берутся из сезонного рейтинга. {ratingComposition}.</p></div><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Пока без места"} /><SummaryMetric icon={Target} label="Соревнования" value={seasonalCompetitionScore} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Ваш рейтинг начнётся после первого финального результата"} /><SummaryMetric icon={Swords} label="Дуэли" value={seasonalDuelScore} detail={duelRating?.rank ? `Место #${duelRating.rank}` : Number(humanDuels) > 0 ? `Калибровка: ${humanDuels} из ${methodologyQuery.data?.duel?.calibration_matches ?? "—"}` : Number(challengeBonus) > 0 ? `Бонус вызовов: ${challengeBonus}` : `Старт сезона: ${duelStart ?? "—"}`} /></div></>}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Практика</h2><p className="mt-2 text-sm text-muted-foreground">История рейтинговых дуэлей и результатов против заданий ML-Арены.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="В дуэлях с участниками" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="В дуэлях с участниками" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="За задания ML-Арены" /><SummaryMetric icon={Target} label="Elo дуэлей" value={profile.rating} detail="Отдельная дуэльная шкала" /></div>{(profile.rating_history || []).length > 0 && <div className="mt-6"><h3 className="mb-2 font-heading text-2xl font-extrabold">История Elo дуэлей</h3><p className="mb-4 text-xs leading-5 text-muted-foreground">Это изменение дуэльного Elo, а не общего сезонного рейтинга.</p><RatingHistory history={profile.rating_history || []} /></div>}{Number(humanDuels) === 0 && Number(challengeBonus) === 0 && <div className="mt-6"><EmptyState title="Практики пока нет" text="Завершите первую дуэль или вызов ML-Арены, чтобы здесь появилась статистика." /></div>}</Reveal></Tabs.Content>
+      <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Практика</h2><p className="mt-2 text-sm text-muted-foreground">История рейтинговых дуэлей и результатов против заданий ML-Арены.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="В дуэлях с участниками" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="В дуэлях с участниками" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="За задания ML-Арены" /><SummaryMetric icon={Target} label="Рейтинг дуэлей сезона" value={seasonalDuelScore} detail={Number(humanDuels) > 0 ? "Текущее значение" : `Начинается с ${duelStart ?? "—"}`} /></div>{(profile.rating_history || []).length > 0 && <div className="mt-6"><h3 className="mb-2 font-heading text-2xl font-extrabold">История рейтинга дуэлей</h3><p className="mb-4 text-xs leading-5 text-muted-foreground">Изменения рейтинга в завершённых матчах.</p><RatingHistory history={profile.rating_history || []} /></div>}{Number(humanDuels) === 0 && Number(challengeBonus) === 0 && <div className="mt-6"><EmptyState title="Практики пока нет" text="Завершите первую дуэль или вызов ML-Арены, чтобы здесь появилась статистика." /></div>}</Reveal></Tabs.Content>
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
 

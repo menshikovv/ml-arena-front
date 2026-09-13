@@ -29,7 +29,7 @@ import {
   Upload,
   Users,
 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import { Button } from "@/components/ui/button";
@@ -157,7 +157,7 @@ function OverviewTab({ competition }) {
           <span className="text-sm font-semibold text-accent">{higher ? "Чем выше, тем лучше" : "Чем ниже, тем лучше"}</span>
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Результат рассчитывается на скрытой части тестовой выборки. Используй локальную валидацию, чтобы не подстраиваться под текущий рейтинг.
+          Скрытая часть тестовой выборки используется только для итоговой оценки. Используй локальную валидацию, чтобы не подстраиваться под текущий рейтинг.
         </p>
       </section>
 
@@ -372,16 +372,16 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
       await onSubmitted(score);
     } catch (submitError) {
       setStatus("failed");
-      setError(submitError.message || "Системная ошибка scoring. Попытка не списана.");
+      setError(submitError.message || "Не удалось проверить решение. Попытка не списана.");
     }
   };
 
   const statusMeta = {
     uploading: ["Загружаем файл", `${progress}%`],
     validating: ["Проверяем CSV", "Колонки, id, пропуски и типы значений"],
-    queued: ["Решение принято", "Ожидает обработки сервером"],
-    scoring: ["Считаем public score", "Обычно это занимает меньше минуты"],
-    scored: ["Score рассчитан", "Leaderboard обновлён"],
+    queued: ["Решение принято", "Ожидает проверки"],
+    scoring: ["Проверяем результат", "Обычно это занимает меньше минуты"],
+    scored: ["Результат готов", "Таблица обновлена"],
     invalid: ["Файл не принят", error],
     failed: ["Ошибка проверки", error],
   };
@@ -738,7 +738,7 @@ export default function CompetitionDetail() {
         }
       }
       const rules = await api.competitions.rules(id);
-      if (!rules.version) throw new Error("Сервер не вернул актуальную версию правил");
+      if (!rules.version) throw new Error("Не удалось получить актуальные правила");
       await api.competitions.join(id, rules.version);
       setJoined(true);
       await queryClient.invalidateQueries({ queryKey: ["competition-participation", id] });
@@ -767,7 +767,7 @@ export default function CompetitionDetail() {
 
   const onSubmitted = async (score) => {
     await queryClient.invalidateQueries({ queryKey: ["submissions", id] });
-    toast.success(`Score рассчитан: ${safeScore(score, competition.metric)}`);
+    toast.success(`Результат: ${safeScore(score, competition.metric)}`);
   };
 
   if (isLoading) {

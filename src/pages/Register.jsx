@@ -74,7 +74,7 @@ export default function Register() {
       setError(submitError.code === "RESOURCE_CONFLICT"
         ? "Email или никнейм уже используются. Войдите, восстановите пароль или выберите другой никнейм."
         : submitError.code === "NETWORK_ERROR"
-          ? "Бэкенд ML Арены недоступен. Проверьте, что он запущен."
+          ? "Не удалось связаться с ML-Ареной. Попробуйте ещё раз позже."
           : submitError.message || "Не удалось создать аккаунт. Попробуйте ещё раз.");
     } finally {
       setLoading(false);
