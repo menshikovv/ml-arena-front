@@ -823,7 +823,8 @@ export default function CompetitionDetail() {
         <div className="grid lg:grid-cols-[minmax(0,1fr)_390px]">
           <div className="flex min-h-[260px] flex-col justify-between p-6 md:p-8">
             <div>
-              <div className="flex flex-wrap items-center gap-2">
+              <h1 className="max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
                 <span className={cn("inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] font-semibold", isCommunity ? "border-violet-500/25 bg-violet-500/5 text-violet-600 dark:text-violet-400" : "border-primary/20 bg-primary/5 text-primary")}>
                   {isCommunity ? <CircleUserRound size={10} /> : <ShieldCheck size={10} />}
                   {isCommunity ? "Сообщество" : competition.origin === "official_partner" ? "Партнёрское" : "Официальное"}
@@ -836,7 +837,6 @@ export default function CompetitionDetail() {
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{competition.difficulty || "Не указана"}</span>
                 {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {access === "application" ? "По заявке" : "По приглашению"}</span>}
               </div>
-              <h1 className="mt-5 max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.short_description || competition.description}</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">

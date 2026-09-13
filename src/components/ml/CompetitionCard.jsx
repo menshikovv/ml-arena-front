@@ -95,52 +95,6 @@ export default function CompetitionCard({ competition, status, meta, userState, 
             )}
           >
             <div>
-              <div
-                className={cn(
-                  "mb-7 flex flex-col items-start gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-                  featured ? "border-background/15" : "border-border",
-                )}
-              >
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase", featured ? "text-background" : isCommunity ? "text-violet-600 dark:text-violet-400" : "text-primary")}>
-                    {isCommunity ? <CircleUserRound size={11} /> : <ShieldCheck size={11} />}
-                    {isCommunity ? "Сообщество" : competition.origin === "official_partner" ? "Партнёрское" : "Официальное"}
-                  </span>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase",
-                      featured ? "text-background" : statusMeta.className,
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 rounded-full bg-current",
-                        status === "active" && "animate-pulse",
-                      )}
-                    />
-                    {statusMeta.label}
-                  </span>
-                  <span className={cn("text-[10px] font-semibold uppercase", featured ? "text-background/60" : "text-muted-foreground")}>
-                    {TASK_TYPE_LABELS[competition.task_type] || competition.task_type}
-                  </span>
-                  <span className={cn("text-[10px] font-semibold uppercase", featured ? "text-background/60" : "text-muted-foreground")}>
-                    {meta.difficulty}
-                  </span>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] font-semibold uppercase",
-                      featured ? "text-background/60" : "text-muted-foreground",
-                    )}
-                  >
-                    {isRestricted && <Lock size={10} />}
-                    {meta.access}
-                  </span>
-                </div>
-                <span className={cn("font-mono text-xs", featured ? "text-background/40" : "text-muted-foreground")}>
-                  Событие {sequenceLabel}
-                </span>
-              </div>
-
               <h2
                 className={cn(
                   "max-w-4xl font-heading font-bold leading-tight transition-colors",
@@ -151,6 +105,29 @@ export default function CompetitionCard({ competition, status, meta, userState, 
               >
                 {competition.title}
               </h2>
+              <div
+                className={cn(
+                  "mt-5 flex flex-col items-start gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+                  featured ? "border-background/15" : "border-border",
+                )}
+              >
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase", featured ? "text-background" : isCommunity ? "text-violet-600 dark:text-violet-400" : "text-primary")}>
+                    {isCommunity ? <CircleUserRound size={11} /> : <ShieldCheck size={11} />}
+                    {isCommunity ? "Сообщество" : competition.origin === "official_partner" ? "Партнёрское" : "Официальное"}
+                  </span>
+                  <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase", featured ? "text-background" : statusMeta.className)}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full bg-current", status === "active" && "animate-pulse")} />
+                    {statusMeta.label}
+                  </span>
+                  <span className={cn("text-[10px] font-semibold uppercase", featured ? "text-background/60" : "text-muted-foreground")}>{TASK_TYPE_LABELS[competition.task_type] || competition.task_type}</span>
+                  <span className={cn("text-[10px] font-semibold uppercase", featured ? "text-background/60" : "text-muted-foreground")}>{meta.difficulty}</span>
+                  <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold uppercase", featured ? "text-background/60" : "text-muted-foreground")}>
+                    {isRestricted && <Lock size={10} />}{meta.access}
+                  </span>
+                </div>
+                <span className={cn("font-mono text-xs", featured ? "text-background/40" : "text-muted-foreground")}>Событие {sequenceLabel}</span>
+              </div>
               <p
                 className={cn(
                   "mt-4 max-w-3xl leading-7",

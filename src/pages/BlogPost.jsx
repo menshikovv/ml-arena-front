@@ -16,8 +16,8 @@ function RelatedCard({ post }) {
     <Link to={`/blog/${post.slug}`} className="group grid overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
       <BlogCover visual={post.visual} compact className="aspect-[16/8]" />
       <div className="p-5">
-        {post.categoryName && <span className="text-xs font-semibold text-primary">{post.categoryName}</span>}
-        <h3 className="mt-3 line-clamp-3 font-heading text-lg font-extrabold leading-tight group-hover:text-primary">{post.title}</h3>
+        <h3 className="line-clamp-3 font-heading text-lg font-extrabold leading-tight group-hover:text-primary">{post.title}</h3>
+        {post.categoryName && <span className="mt-3 block text-xs font-semibold text-primary">{post.categoryName}</span>}
         <span className="mt-5 flex items-center gap-1.5 text-xs font-semibold text-primary">Читать <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" /></span>
       </div>
     </Link>
@@ -228,8 +228,8 @@ export default function BlogPost() {
               <span className="max-w-md truncate text-foreground">{post.title}</span>
             </nav>
             <div className="mt-8 max-w-4xl">
-              {post.categoryName && <span className="inline-flex rounded-sm bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{post.categoryName}</span>}
-              <h1 className="mt-5 break-words font-heading text-3xl font-extrabold leading-[1.08] [overflow-wrap:anywhere] sm:text-5xl lg:text-6xl">{post.title}</h1>
+              <h1 className="break-words font-heading text-3xl font-extrabold leading-[1.08] [overflow-wrap:anywhere] sm:text-5xl lg:text-6xl">{post.title}</h1>
+              {post.categoryName && <span className="mt-5 inline-flex rounded-sm bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{post.categoryName}</span>}
               <p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground sm:mt-6 sm:text-lg sm:leading-8">{post.excerpt}</p>
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-2"><CalendarDays size={16} /> {formatBlogDate(post.publishedAt)}</span>

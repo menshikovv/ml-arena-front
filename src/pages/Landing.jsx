@@ -579,24 +579,7 @@ export default function Landing() {
                 transition={{ duration: 0.9, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                 className="flex max-w-[680px] flex-col items-start justify-center text-left lg:col-span-6 lg:pr-4"
               >
-                <div className="flex w-fit items-center gap-3 rounded-full border border-black/5 bg-black/5 px-3 py-1.5 shadow-sm dark:border-white/10 dark:bg-white/5">
-                  <div className="flex -space-x-2">
-                    {["B", "S", "G", "P"].map((letter, index) => (
-                      <span
-                        key={letter}
-                        className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white transition-transform hover:-translate-y-1 dark:border-[#050914]"
-                        style={{ backgroundColor: ["#B7794B", "#8E9AA8", "#D4A928", "#7167E8"][index] }}
-                      >
-                        {letter}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="font-[var(--font-sans)] text-[12px] text-black/75 dark:text-slate-300">
-                    ML-Арена Founder Season · <strong className="text-neutral-900 dark:text-white">регистрация открыта</strong>
-                  </span>
-                </div>
-
-                <h1 className="mt-6 select-none font-[var(--font-science)] text-[42px] font-black leading-[1.08] text-black dark:text-white sm:text-[50px] lg:text-[60px]">
+                <h1 className="select-none font-[var(--font-science)] text-[42px] font-black leading-[1.08] text-black dark:text-white sm:text-[50px] lg:text-[60px]">
                   ML-Арена
                 </h1>
                 <p className="mt-3 font-[var(--font-science)] text-[29px] font-bold leading-[1.1] text-black dark:text-white sm:text-[34px] lg:text-[41px]">
@@ -760,11 +743,10 @@ export default function Landing() {
                   transition={{ ...transition, delay: index * 0.05 }}
                   className="group relative border-b border-r border-border p-6 md:p-7"
                 >
-                  <div className="mb-8 flex items-center justify-between">
+                  <div className="mb-8 flex items-center">
                     <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                       <step.icon size={21} />
                     </div>
-                    <span className="font-mono text-xs text-muted-foreground">0{index + 1}</span>
                   </div>
                   <h3 className="font-heading text-xl font-semibold mb-2">{step.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>

@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import ThemeToggle from "@/components/ml/ThemeToggle";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -297,7 +298,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   const [openItem, setOpenItem] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [mailPrepared, setMailPrepared] = useState(false);
-  const [form, setForm] = useState({ category: initialSupportCategory, subject: "", message: "", reply_email: user?.email || "" });
+  const [form, setForm] = useState({ category: initialSupportCategory, subject: "", message: "", reply_email: user?.email || "", consent: false });
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search), 200);
@@ -340,6 +341,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   const updateForm = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const prepareMail = (event) => {
     event.preventDefault();
+    if (!form.consent) return;
     setSubmitting(true);
     const categoryLabel = CATEGORY_OPTIONS.find(([value]) => value === form.category)?.[1] || "Поддержка";
     const body = `Категория: ${categoryLabel}\nEmail для ответа: ${form.reply_email}\nСтраница: ${window.location.href}\n\n${form.message}`;
@@ -496,7 +498,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                   <p className="mt-3 text-sm leading-7 text-muted-foreground">Мы открыли ваше почтовое приложение с заполненным обращением. Проверьте текст и отправьте письмо.</p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Button asChild><a href={`mailto:${SUPPORT_EMAIL}`}>Открыть почту ещё раз</a></Button>
-                    <Button type="button" variant="outline" onClick={() => setMailPrepared(false)}>Новое обращение</Button>
+                    <Button type="button" variant="outline" onClick={() => { setMailPrepared(false); updateForm("consent", false); }}>Новое обращение</Button>
                   </div>
                 </div>
               ) : (
@@ -517,11 +519,18 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                       <Textarea id="support-message" value={form.message} onChange={(event) => updateForm("message", event.target.value)} minLength={20} maxLength={4000} rows={7} placeholder="Что произошло, где и после какого действия?" className="resize-none bg-secondary/25 shadow-none focus-visible:ring-2 focus-visible:ring-primary/15" required />
                       <span className="mt-1 block text-right text-[11px] tabular-nums text-muted-foreground">{form.message.length}/4000</span>
                     </Field>
+                    <div className="flex items-start gap-3 rounded-md border border-border bg-secondary/20 p-4 sm:col-span-2">
+                      <Checkbox id="support-consent" checked={form.consent} onCheckedChange={(checked) => updateForm("consent", checked === true)} className="mt-0.5" />
+                      <div className="text-xs leading-5 text-muted-foreground">
+                        <label htmlFor="support-consent" className="cursor-pointer">Я даю согласие на обработку персональных данных в соответствии с </label>
+                        <Link to="/privacy" className="font-semibold text-primary hover:underline">политикой обработки данных</Link>.
+                      </div>
+                    </div>
                   </div>
                   {form.category === "security" && <div className="border-t border-destructive/15 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не публикуйте детали уязвимости в открытых каналах. Отправьте их только через приватное письмо.</div>}
                   <div className="flex flex-col justify-between gap-3 border-t border-border bg-secondary/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7">
                     <p className="text-xs text-muted-foreground">Ответ придёт на указанный email.</p>
-                    <Button type="submit" disabled={submitting}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Написать в поддержку</Button>
+                    <Button type="submit" disabled={submitting || !form.consent}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Написать в поддержку</Button>
                   </div>
                 </form>
               )}

@@ -44,11 +44,11 @@ function ArticleCard({ post }) {
     <Link to={`/blog/${post.slug}`} className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
       <BlogCover visual={post.visual} compact className="aspect-video shrink-0" />
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <h2 className="line-clamp-3 font-heading text-xl font-extrabold leading-tight transition-colors group-hover:text-primary">{post.title}</h2>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
           {post.categoryName && <span className="font-semibold text-primary">{post.categoryName}</span>}
           {post.readingTime != null && <span className="flex items-center gap-1.5 text-muted-foreground"><Clock3 size={13} /> {post.readingTime} мин</span>}
         </div>
-        <h2 className="mt-4 line-clamp-3 font-heading text-xl font-extrabold leading-tight transition-colors group-hover:text-primary">{post.title}</h2>
         <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
         <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
           <span>{formatBlogDate(post.publishedAt)}</span>
@@ -217,11 +217,8 @@ export default function Blog() {
             <Link to={`/blog/${featured.slug}`} className="group grid overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:grid-cols-[1.12fr_0.88fr]">
               <BlogCover visual={featured.visual} className="aspect-[4/3] sm:aspect-video lg:min-h-[390px]" />
               <div className="flex flex-col justify-center p-5 sm:p-8 lg:p-10">
-                <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="rounded-sm bg-primary/10 px-2.5 py-1.5 font-semibold text-primary">Главный материал</span>
-                  {featured.categoryName && <span className="font-semibold text-muted-foreground">{featured.categoryName}</span>}
-                </div>
-                <h2 className="mt-5 font-heading text-2xl font-extrabold leading-tight transition-colors group-hover:text-primary sm:mt-6 sm:text-4xl">{featured.title}</h2>
+                <h2 className="font-heading text-2xl font-extrabold leading-tight transition-colors group-hover:text-primary sm:text-4xl">{featured.title}</h2>
+                {featured.categoryName && <span className="mt-4 text-xs font-semibold text-primary">{featured.categoryName}</span>}
                 <p className="mt-4 text-base leading-7 text-muted-foreground">{featured.excerpt}</p>
                 <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {formatBlogDate(featured.publishedAt)}</span>

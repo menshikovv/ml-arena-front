@@ -397,10 +397,48 @@ function RecentDuels({ duels, isLoading }) {
 
 function DuelGuideDialog({ open, onClose }) {
   const steps = [
-    { number: "01", icon: Target, title: "Выбери направление", text: "Определи тип задачи и начни быструю дуэль или вызови конкретного соперника." },
-    { number: "02", icon: Swords, title: "Получи общий старт", text: "Оба участника получают одну задачу, одинаковые условия и одинаковый лимит времени." },
-    { number: "03", icon: Upload, title: "Загрузи решение", text: "На решение даётся 60 минут. Загрузи CSV, после чего платформа проверит формат и результат." },
-    { number: "04", icon: Trophy, title: "Получи результат", text: "Итог меняет рейтинг, а завершённая дуэль пополняет ML-паспорт подтверждённым результатом." },
+    {
+      number: "01",
+      title: "Выбери формат матча",
+      text: "Укажи направление и реши, как начать: через быстрый подбор или прямой вызов участника по нику.",
+      details: [
+        "Быстрый подбор ищет доступного соперника в выбранном направлении.",
+        "В прямом вызове матч начнётся после того, как второй участник его примет.",
+      ],
+    },
+    {
+      number: "02",
+      title: "Получи одинаковые условия",
+      text: "После старта оба участника видят одну версию задачи, один набор данных, общую метрику и одинаковое время на решение.",
+      details: [
+        "Описание задачи и формат целевого CSV доступны прямо в матче.",
+        "Результат соперника остаётся скрытым до завершения дуэли.",
+      ],
+    },
+    {
+      number: "03",
+      title: "Собери и отправь решение",
+      text: "Скачай данные, подготовь решение локально и загрузи CSV. Перед оценкой платформа проверит файл и покажет статус отправки.",
+      details: [
+        "Таймер, число доступных отправок и правило зачёта указаны в окне конкретного матча.",
+        "Ошибку формата можно увидеть сразу и исправить, пока матч ещё идёт.",
+      ],
+    },
+    {
+      number: "04",
+      title: "Зафиксируй итог",
+      text: "Когда матч завершится, результаты сравниваются по метрике задачи. Ты увидишь итог дуэли и изменение рейтинга.",
+      details: [
+        "Засчитываются только принятые системой отправки в рамках условий матча.",
+        "Завершённая дуэль сохраняется в истории и дополняет ML-паспорт.",
+      ],
+    },
+  ];
+
+  const principles = [
+    { title: "Один старт", text: "Таймер и условия запускаются для обоих участников одновременно." },
+    { title: "Одна задача", text: "Версия задания, данные и метрика не различаются между соперниками." },
+    { title: "Честный итог", text: "Результат открывается после финиша и фиксируется в истории матча." },
   ];
 
   useEffect(() => {
@@ -431,40 +469,90 @@ function DuelGuideDialog({ open, onClose }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="duel-guide-title"
+            aria-describedby="duel-guide-description"
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-5xl overflow-y-auto rounded-lg border border-border bg-card shadow-2xl"
           >
-            <div className="flex items-start justify-between gap-6 border-b border-border p-5 md:p-6">
+            <div aria-hidden="true" className="grid h-1 grid-cols-4">
+              <span className="bg-primary" />
+              <span className="bg-accent" />
+              <span className="bg-primary/55" />
+              <span className="bg-foreground/15" />
+            </div>
+
+            <div className="flex items-start justify-between gap-6 border-b border-border p-5 sm:p-7">
               <div>
-                <h2 id="duel-guide-title" className="font-heading text-2xl font-bold">Как проходит дуэль</h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Короткий рейтинговый матч, в котором условия одинаковы для обоих участников.</p>
+                <h2 id="duel-guide-title" className="font-heading text-2xl font-bold sm:text-3xl">Как проходит дуэль</h2>
+                <p id="duel-guide-description" className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                  От выбора направления до итогового рейтинга: четыре этапа короткого матча на равных условиях.
+                </p>
               </div>
               <button type="button" onClick={onClose} title="Закрыть" aria-label="Закрыть инструкцию" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="grid gap-px bg-border sm:grid-cols-2">
-              {steps.map((step) => {
-                const Icon = step.icon;
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="divide-y divide-border">
+                {steps.map((step, index) => (
+                  <motion.article
+                    key={step.number}
+                    className="grid gap-4 px-5 py-6 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-6 sm:px-7 sm:py-7"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.04 + index * 0.045, duration: 0.22 }}
+                  >
+                    <div className="flex items-start gap-3 sm:block">
+                      <span className="font-heading text-4xl font-black leading-none text-primary/25 sm:text-5xl">{step.number}</span>
+                      <span aria-hidden="true" className="mt-2 h-px flex-1 bg-primary/30 sm:mt-4 sm:block sm:w-12" />
+                    </div>
 
-                return (
-                  <div key={step.number} className="relative min-h-44 bg-card p-5 md:p-6">
-                    <span className="absolute right-5 top-5 font-mono text-[11px] text-muted-foreground">{step.number}</span>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon size={19} /></span>
-                    <h3 className="mt-5 font-heading text-base font-bold">{step.title}</h3>
-                    <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{step.text}</p>
+                    <div>
+                      <h3 className="font-heading text-lg font-bold sm:text-xl">{step.title}</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{step.text}</p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {step.details.map((detail) => (
+                          <p key={detail} className="border-l-2 border-primary/25 pl-3 text-xs leading-5 text-muted-foreground sm:text-sm">
+                            {detail}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
+
+              <aside className="border-t border-border bg-secondary/35 lg:border-l lg:border-t-0">
+                <div className="p-5 sm:p-7 lg:sticky lg:top-0">
+                  <h3 className="font-heading text-lg font-bold">Основа каждого матча</h3>
+                  <div className="mt-5 divide-y divide-border border-y border-border">
+                    {principles.map((principle, index) => (
+                      <div key={principle.title} className="grid grid-cols-[1.75rem_1fr] gap-3 py-4">
+                        <span className="font-mono text-xs font-semibold text-primary">{String(index + 1).padStart(2, "0")}</span>
+                        <div>
+                          <h4 className="text-sm font-semibold text-foreground">{principle.title}</h4>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{principle.text}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
+                  <p className="mt-5 text-xs leading-5 text-muted-foreground">
+                    Точные ограничения и доступные действия всегда показаны внутри активной дуэли.
+                  </p>
+                </div>
+              </aside>
             </div>
 
-            <div className="flex items-start gap-3 border-t border-border bg-secondary/45 p-5 text-sm leading-6 text-muted-foreground md:px-6">
-              <ShieldCheck size={19} className="mt-0.5 shrink-0 text-accent" />
-              Premium не даёт преимущества в подборе соперника, числе попыток или результате матча.
+            <div className="flex flex-col gap-4 border-t border-border bg-card px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+              <p className="max-w-2xl text-xs leading-5 text-muted-foreground sm:text-sm">
+                Premium не влияет на подбор соперника, условия задачи или результат матча.
+              </p>
+              <Button type="button" variant="outline" className="shrink-0" onClick={onClose}>
+                Понятно
+              </Button>
             </div>
           </motion.div>
         </motion.div>
@@ -582,10 +670,34 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 <p className="text-sm font-medium">Соперник не найден</p>
                 <p className="mt-1 text-xs text-muted-foreground">Проверь ник или выбери игрока из списка справа.</p>
               </motion.div>
+            ) : searchNick.trim().length === 1 ? (
+              <motion.div key="continue" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 border border-dashed border-border px-4 py-5 text-center">
+                <p className="text-sm font-medium">Введите ещё хотя бы один символ</p>
+                <p className="mt-1 text-xs text-muted-foreground">Так поиск точнее найдёт нужного участника.</p>
+              </motion.div>
             ) : (
-              <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 text-xs text-muted-foreground">
-                Вызов доступен подходящим соперникам с учётом текущего рейтинга.
-              </motion.p>
+              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 flex min-h-64 flex-col overflow-hidden border border-border bg-card">
+                <div className="flex items-start gap-4 border-b border-border p-5">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><UserRoundSearch size={21} /></span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-heading text-lg font-bold">Вызов конкретного игрока</h3>
+                      <span className="border border-primary/20 bg-primary/[0.06] px-2 py-1 text-[10px] font-semibold text-primary">{TASKS[taskType]?.label}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">Начните вводить ник участника. После выбора вы сможете отправить ему прямой вызов в выбранном направлении.</p>
+                  </div>
+                </div>
+                <div className="mt-auto grid gap-px bg-border sm:grid-cols-2">
+                  <div className="bg-secondary/25 p-4">
+                    <p className="text-[10px] text-muted-foreground">Ваш рейтинг дуэлей</p>
+                    <p className="mt-2 font-heading text-xl font-extrabold">{currentRating ?? "—"}</p>
+                  </div>
+                  <div className="bg-secondary/25 p-4">
+                    <p className="text-[10px] text-muted-foreground">Не знаете ник?</p>
+                    <Button asChild variant="ghost" size="sm" className="mt-1 h-8 px-0 text-primary hover:bg-transparent hover:text-primary/80"><Link to="/duels/matchmaking"><Zap size={14} /> Автоматический подбор</Link></Button>
+                  </div>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </Reveal>
@@ -626,11 +738,10 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
       <section className="border-t border-border py-9">
       <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><h2 className="mt-2 font-heading text-2xl font-extrabold">Один матч. Равные условия.</h2></div><Button variant="ghost" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
       <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
-        {RULES.map((rule, index) => {
+        {RULES.map((rule) => {
           return (
             <StaggerItem key={rule.title} className="min-w-0">
-              <div aria-hidden="true" className="flex items-center gap-3"><span className="font-mono text-xs font-semibold text-primary">0{index + 1}</span><span className="h-px flex-1 bg-border" /></div>
-              <h3 className={cn("mt-4 font-heading text-xl font-bold", index === 0 && "text-primary")}>{rule.title}</h3>
+              <h3 className="font-heading text-xl font-bold">{rule.title}</h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">{rule.text}</p>
             </StaggerItem>
           );
@@ -950,11 +1061,11 @@ function ArenaChallengeView() {
         <div className="grid gap-6 pt-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <main className="min-w-0 space-y-5">
             <section className="rounded-lg border border-border bg-card p-5 md:p-7">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
+              <h1 className="font-heading text-2xl font-bold md:text-4xl">{task.title}</h1>
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">{task.label}</span>
                 <span className="rounded-full bg-secondary px-3 py-1 font-semibold">{level.label}</span>
               </div>
-              <h1 className="mt-5 font-heading text-2xl font-bold md:text-4xl">{task.title}</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{task.description}</p>
               <div className="mt-6 grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
                 <div className="bg-background p-4"><p className="text-xs text-muted-foreground">Метрика</p><p className="mt-2 text-sm font-semibold">{task.metric.toUpperCase()}</p></div>

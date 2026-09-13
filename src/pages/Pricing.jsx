@@ -220,10 +220,7 @@ export default function Pricing() {
         <section className="relative -mx-4 grid items-center gap-10 overflow-hidden border-y border-primary/15 bg-primary/[0.045] px-5 py-9 sm:-mx-6 sm:px-8 sm:py-11 lg:-mx-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:gap-16 lg:px-12 lg:py-14">
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
           <div className="relative max-w-3xl">
-            <div className="inline-flex items-center gap-2 border border-primary/20 bg-background/80 px-3 py-2 text-xs font-bold text-primary shadow-sm">
-              <Target size={15} /> Персональная траектория развития
-            </div>
-            <h1 className="mt-6 font-heading text-4xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">
+            <h1 className="font-heading text-4xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">
               Разбирайте результаты глубже. Развивайтесь точнее.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">

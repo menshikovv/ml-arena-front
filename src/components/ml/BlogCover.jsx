@@ -71,8 +71,8 @@ export default function BlogCover({ visual, compact = false, className = "" }) {
           </span>
         </div>
         <div className={compact ? "mt-8" : "mt-14"}>
-          <p className="text-[11px] font-bold uppercase text-[var(--cover-accent)]">{visual.label}</p>
-          <p className={`${compact ? "mt-2 text-xl" : "mt-3 text-2xl sm:text-3xl"} max-w-md font-heading font-extrabold leading-tight`}>{visual.detail}</p>
+          <p className={`${compact ? "text-xl" : "text-2xl sm:text-3xl"} max-w-md font-heading font-extrabold leading-tight`}>{visual.detail}</p>
+          <p className="mt-3 text-[11px] font-bold uppercase text-[var(--cover-accent)]">{visual.label}</p>
         </div>
       </div>
     </div>

@@ -173,11 +173,11 @@ function LobbyView({ duel, onStart, onLeave, starting, leaving }) {
         К дуэлям
       </Link>
       <div className="mt-6 border-y border-border bg-card px-5 py-8 md:px-10 md:py-10">
-        <div className="flex items-center justify-center gap-2 text-xs font-medium text-accent">
+        <h1 className="text-center font-heading text-2xl font-bold md:text-3xl">Дуэль принята. Приготовься.</h1>
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-accent">
           <Wifi size={14} />
           Соединение установлено
         </div>
-        <h1 className="mt-3 text-center font-heading text-2xl font-bold md:text-3xl">Дуэль принята. Приготовься.</h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">
           {duel.player1_ready ? "Готовность подтверждена. Ожидаем соперника." : "Подтверди готовность к началу матча."}
         </p>
@@ -414,7 +414,8 @@ function LiveView({ duel, currentUserId, onFinished }) {
       <div className="mt-5 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <main className="min-w-0">
           <section>
-            <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-heading text-2xl font-bold">{duel.task_title}</h2>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">
                 {TASK_TYPE_LABELS[duel.task_type] || duel.task_type}
               </span>
@@ -422,7 +423,6 @@ function LiveView({ duel, currentUserId, onFinished }) {
                 {METRIC_LABELS[duel.metric] || duel.metric}
               </span>
             </div>
-            <h2 className="mt-4 font-heading text-2xl font-bold">{duel.task_title}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{duel.task_description}</p>
             <div className="mt-5 border-y border-border py-4">
               <p className="text-xs font-semibold">Данные задачи</p>
