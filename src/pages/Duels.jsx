@@ -94,6 +94,8 @@ const RULES = [
   { icon: ShieldCheck, title: "Равные правила", text: "Результат соперника скрыт до завершения матча." },
 ];
 
+const RULE_ACCENTS = ["bg-primary", "bg-accent", "bg-amber-500", "bg-foreground/45"];
+
 const CHALLENGE_LEVELS = {
   easy: {
     label: "Лёгкий",
@@ -219,7 +221,10 @@ function RatingSummary({ rating, isLoading, defaultRating, calibrationMatches })
       </div>
       <div className="flex min-h-28 flex-col justify-between p-5">
         <span className="text-xs font-medium text-muted-foreground">Результаты сезона</span>
-        <p className="mt-1 text-xs text-muted-foreground">{rating ? `${rating.wins ?? 0} побед · ${rating.losses ?? 0} поражений` : "Пока нет результатов"}</p>
+        <div>
+          <p className="text-sm font-semibold text-foreground">{rating ? `${rating.wins ?? 0} побед · ${rating.losses ?? 0} поражений` : "Матчей пока нет"}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{rating ? "Рейтинговые дуэли этого сезона" : "Статистика появится после первой дуэли"}</p>
+        </div>
       </div>
     </div>
   );
@@ -646,7 +651,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
       </Reveal>
 
       <section className="grid gap-8 border-t border-border py-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,.85fr)]">
-        <Reveal delay={0.08}>
+        <Reveal delay={0.08} className="flex min-w-0 flex-col">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="font-heading text-xl font-bold">Найти соперника</h2>
@@ -690,7 +695,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 <p className="mt-1 text-xs text-muted-foreground">Так поиск точнее найдёт нужного участника.</p>
               </motion.div>
             ) : (
-              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="relative mt-3 flex min-h-64 flex-col overflow-hidden border border-primary/20 bg-card shadow-sm">
+              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="relative mt-3 flex min-h-64 flex-col overflow-hidden border border-primary/20 bg-card shadow-sm lg:flex-1">
                 <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
                 <div className="flex items-start gap-4 border-b border-border p-5 pl-6 sm:p-6 sm:pl-7">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><UserRoundSearch size={21} /></span>
@@ -756,13 +761,14 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
       </section>
 
       <section className="border-t border-border py-9">
-      <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><h2 className="mt-2 font-heading text-2xl font-extrabold">Один матч. Равные условия.</h2></div><Button variant="ghost" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
-      <Stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
-        {RULES.map((rule) => {
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Один матч. Равные условия.</h2><Button variant="outline" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
+      <Stagger className="grid gap-px border-y border-border bg-border sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
+        {RULES.map((rule, index) => {
           return (
-            <StaggerItem key={rule.title} className="min-w-0">
-              <h3 className="font-heading text-xl font-bold">{rule.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{rule.text}</p>
+            <StaggerItem key={rule.title} className="relative min-w-0 bg-background p-5 sm:min-h-44 sm:p-6">
+              <span aria-hidden="true" className={cn("block h-1 w-12", RULE_ACCENTS[index])} />
+              <h3 className="mt-6 font-heading text-lg font-bold xl:text-xl">{rule.title}</h3>
+              <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">{rule.text}</p>
             </StaggerItem>
           );
         })}

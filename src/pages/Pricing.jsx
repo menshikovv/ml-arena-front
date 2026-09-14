@@ -376,7 +376,7 @@ export default function Pricing() {
       </Reveal>
 
       <Reveal className="mt-16" delay={0.02} y={10} viewportReveal>
-        <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+        <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
           <div>
             <SectionTitle title="План, который меняется вместе с результатами" description="Не бесконечная лента рекомендаций, а несколько приоритетных действий, пересчитанных после значимых новых подтверждений." />
             <div className="relative space-y-3">
@@ -390,7 +390,7 @@ export default function Pricing() {
             </div>
           </div>
 
-          <PricingReveal direction="right" className="relative overflow-hidden border border-border bg-card p-5 shadow-sm sm:p-7">
+          <PricingReveal direction="right" className="relative flex h-full flex-col overflow-hidden border border-border bg-card p-5 shadow-sm sm:p-7">
             <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
               <div><p className="font-heading text-lg font-extrabold">Еженедельный прогресс</p><p className="mt-1 text-xs text-muted-foreground">Обновлено сегодня</p></div>
               <motion.div animate={reduceMotion ? undefined : { rotate: [0, -7, 7, 0] }} transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.6 }}><CalendarCheck2 size={22} className="text-primary" /></motion.div>
@@ -398,7 +398,7 @@ export default function Pricing() {
             <div className="grid gap-3 py-5 sm:grid-cols-3">
               {["Новые подтверждения", "Изменение стабильности", "Следующие шаги"].map((label, index) => <motion.div key={label} initial={reduceMotion ? false : { opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} whileHover={reduceMotion ? undefined : { y: -4 }} transition={{ duration: 0.45, delay: index * 0.12 }} className="relative overflow-hidden bg-secondary/55 p-4"><CheckCircle2 size={17} className="text-primary" /><p className="mt-3 text-sm font-semibold">{label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Сводка обновляется вместе с вашим прогрессом.</p><motion.span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 bg-primary" initial={{ width: 0 }} whileInView={{ width: `${58 + index * 16}%` }} viewport={{ once: true }} transition={{ duration: reduceMotion ? 0 : 0.8, delay: 0.35 + index * 0.12 }} /></motion.div>)}
             </div>
-            <motion.div whileHover={reduceMotion ? undefined : { x: 4 }} className="mt-6 flex items-start gap-3 border border-primary/15 bg-primary/5 p-4"><motion.span animate={reduceMotion ? undefined : { scale: [1, 1.14, 1] }} transition={{ duration: 2, repeat: Infinity }} className="mt-0.5 shrink-0 text-primary"><Target size={19} /></motion.span><div><p className="text-sm font-bold">Рекомендуемый следующий шаг</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Закрепить временную валидацию в тренировочной задаче без влияния на рейтинг.</p></div></motion.div>
+            <div className="mt-auto pt-6"><motion.div whileHover={reduceMotion ? undefined : { x: 4 }} className="flex items-start gap-3 border border-primary/15 bg-primary/5 p-4"><motion.span animate={reduceMotion ? undefined : { scale: [1, 1.14, 1] }} transition={{ duration: 2, repeat: Infinity }} className="mt-0.5 shrink-0 text-primary"><Target size={19} /></motion.span><div><p className="text-sm font-bold">Рекомендуемый следующий шаг</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Закрепить временную валидацию в тренировочной задаче без влияния на рейтинг.</p></div></motion.div></div>
           </PricingReveal>
         </section>
       </Reveal>
