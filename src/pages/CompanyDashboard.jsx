@@ -183,7 +183,7 @@ export default function CompanyDashboard() {
               <div className="flex items-center gap-3 mb-3">
                 <Avatar name={p.user_name} src={p.avatar_url} size={40} />
                 <div className="flex-1 min-w-0">
-                  <Link to={`/profile/${p.id}`} className="font-medium text-sm truncate block hover:text-primary">{p.user_name}</Link>
+                  <Link to={`/profile/${p.user_id || p.id}`} className="font-medium text-sm truncate block hover:text-primary">{p.user_name}</Link>
                   <LeagueBadge rating={p.rating} size="sm" />
                 </div>
               </div>
@@ -194,7 +194,7 @@ export default function CompanyDashboard() {
               </div>
               <div className="flex gap-2">
                 <Button asChild variant="outline" size="sm" className="flex-1">
-                  <Link to={`/profile/${p.id}`}><Eye size={12} className="mr-1" /> Профиль</Link>
+                  <Link to={`/profile/${p.user_id || p.id}`}><Eye size={12} className="mr-1" /> Профиль</Link>
                 </Button>
                 <Button size="sm" className="flex-1" onClick={() => setInviteModal(p)}>
                   <Send size={12} className="mr-1" /> Пригласить

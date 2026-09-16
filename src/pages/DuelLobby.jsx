@@ -511,6 +511,7 @@ function ResultView({ duel }) {
         {[
           {
             name: duel.player1_name,
+            avatar: duel.player1_avatar,
             rating: duel.player1_rating,
             score: duel.player1_score,
             time: duel.player1_submitted_at,
@@ -518,6 +519,7 @@ function ResultView({ duel }) {
           },
           {
             name: duel.player2_name,
+            avatar: duel.player2_avatar,
             rating: duel.player2_rating,
             score: duel.player2_score,
             time: duel.player2_submitted_at,
@@ -532,7 +534,7 @@ function ResultView({ duel }) {
             )}
             <div className={cn("p-6 text-center md:p-8", player.winner && "bg-primary/5")}>
               <div className="relative mx-auto w-fit">
-                <Avatar name={player.name} size={54} />
+                <Avatar name={player.name} src={player.avatar} size={54} />
                 {player.winner && <span className="absolute -right-2 -top-2 rounded-full bg-primary p-1 text-primary-foreground"><Trophy size={13} /></span>}
               </div>
               <p className="mt-3 font-semibold">{player.name}</p>

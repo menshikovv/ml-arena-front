@@ -548,7 +548,7 @@ function LeaderboardTab({ competition }) {
         <div className="mt-4 grid grid-cols-[48px_1fr_auto] items-center gap-3 border border-primary/35 bg-primary/5 p-3">
           <span className="font-heading text-lg font-bold">#{currentUser.rank}</span>
           <div className="flex items-center gap-3">
-            <Avatar name="Ты" size={32} />
+            <Avatar name="Ты" src={currentUser.user_avatar} size={32} />
             <div><p className="text-sm font-semibold">Ты</p><p className="text-xs text-muted-foreground">Закреплённая позиция</p></div>
           </div>
           <span className="font-heading font-bold text-primary">{safeScore(currentUser.score, competition.metric)}</span>

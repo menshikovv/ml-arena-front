@@ -1,6 +1,7 @@
 import React from "react";
 
 export default function Avatar({ name, src, size = 40, className = "" }) {
+  const [failedSrc, setFailedSrc] = React.useState(null);
   const initials = (name || "?")
     .split(/\s|_/)
     .map((p) => p[0])
@@ -12,8 +13,8 @@ export default function Avatar({ name, src, size = 40, className = "" }) {
   const colorIdx = (name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
   const color = colors[colorIdx];
 
-  if (src) {
-    return <img src={src} alt={name} width={size} height={size} loading="lazy" decoding="async" className={`rounded-full object-cover ${className}`} style={{ width: size, height: size }} />;
+  if (src && failedSrc !== src) {
+    return <img src={src} alt={name} width={size} height={size} loading="lazy" decoding="async" onError={() => setFailedSrc(src)} className={`rounded-full object-cover ${className}`} style={{ width: size, height: size }} />;
   }
 
   return (

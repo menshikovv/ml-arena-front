@@ -52,11 +52,11 @@ const TAB_META = {
 function adaptRatingRow(entry, currentUserId) {
   const profile = entry.profile || entry.user || entry;
   const duelCount = entry.human_duels_count ?? entry.human_duel_count ?? entry.duels_count ?? null;
-  const id = entry.user_id || profile.id;
+  const id = entry.user_id || profile.user_id || profile.id;
   return {
     id,
     name: profile.nickname || profile.user_name || profile.username || entry.nickname || "Участник",
-    avatar: profile.avatar_url || entry.avatar_url,
+    avatar: profile.avatar_url || profile.user_avatar || entry.avatar_url || entry.user_avatar,
     rank: entry.rank ?? null,
     score: entry.score == null ? null : Number(entry.score),
     overall: entry.overall_score ?? entry.score ?? entry.rating ?? null,

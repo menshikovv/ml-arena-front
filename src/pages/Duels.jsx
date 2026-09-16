@@ -128,6 +128,18 @@ function getWinRate(opponent) {
   return matches ? Math.round((Number(opponent.wins) / matches) * 100) : null;
 }
 
+function OpponentAvatar({ opponent, size, className = "" }) {
+  const profileQuery = useQuery({
+    queryKey: ["profile", opponent?.id],
+    queryFn: () => api.profiles.get(opponent.id),
+    enabled: Boolean(opponent?.id) && !opponent?.avatar,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+
+  return <Avatar name={opponent?.name} src={opponent?.avatar || profileQuery.data?.avatar_url} size={size} className={className} />;
+}
+
 function getDuelDate(duel) {
   const value = duel.created_date || duel.started_at;
   return value ? new Date(value).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) : "—";
@@ -339,7 +351,7 @@ function OpponentCard({ opponent, onChallenge, pending, currentRating }) {
     <Card className="group h-full border-border bg-card p-4 transition-colors hover:border-primary/40">
       <div className="flex items-start gap-3">
         <div className="relative">
-          <Avatar name={opponent.name} src={opponent.avatar} size={42} />
+          <OpponentAvatar opponent={opponent} size={42} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{opponent.name}</p>
@@ -391,7 +403,7 @@ function RecentDuels({ duels, isLoading }) {
           >
             <span className="hidden text-xs text-muted-foreground sm:block">{getDuelDate(duel)}</span>
             <div className="flex min-w-0 items-center gap-3">
-              <Avatar name={opponent} size={34} />
+              <Avatar name={opponent} src={duel.opponent_avatar_url} size={34} />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{opponent}</p>
                 <p className="truncate text-xs text-muted-foreground">{duel.task_title}</p>
@@ -620,7 +632,27 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
         </section>
       </Reveal>
 
-      {challenges.length > 0 && <Reveal delay={0.04} className="border-b border-border py-7"><div className="mb-4 flex items-center justify-between"><h2 className="font-heading text-xl font-bold">Ожидающие вызовы</h2><span className="text-xs text-muted-foreground">{challenges.length}</span></div><div className="space-y-2">{challenges.map((challenge) => { const outgoing = challenge.direction === "outgoing" || challenge.challenger_id === currentUserId || challenge.challenger?.id === currentUserId; const opponent = outgoing ? challenge.opponent : challenge.challenger; const name = opponent?.nickname || (outgoing ? challenge.opponent_name : challenge.challenger_name) || "Соперник"; return <div key={challenge.id} className="flex flex-col gap-4 border border-border bg-card p-4 sm:flex-row sm:items-center"><Avatar name={name} size={40} /><div className="min-w-0 flex-1"><p className="font-semibold">{name}</p><p className="mt-1 text-xs text-muted-foreground">{outgoing ? "Исходящий вызов" : "Входящий вызов"} · {TASKS[challenge.task_type]?.label || challenge.task_type} · {challenge.rated === false ? "без рейтинга" : "рейтинговая"}</p></div><div className="flex gap-2">{outgoing ? <Button size="sm" variant="outline" onClick={() => onChallengeAction(challenge.id, "withdraw")} disabled={challengePending}>Отозвать</Button> : <><Button size="sm" onClick={() => onChallengeAction(challenge.id, "accept")} disabled={challengePending}>Принять</Button><Button size="sm" variant="outline" onClick={() => onChallengeAction(challenge.id, "decline")} disabled={challengePending}>Отклонить</Button></>}</div></div>; })}</div></Reveal>}
+      {challenges.length > 0 && (
+        <Reveal delay={0.04} className="border-b border-border py-7">
+          <div className="mb-4 flex items-center justify-between"><h2 className="font-heading text-xl font-bold">Ожидающие вызовы</h2><span className="text-xs text-muted-foreground">{challenges.length}</span></div>
+          <div className="space-y-2">
+            {challenges.map((challenge) => {
+              const outgoing = challenge.direction === "outgoing" || challenge.challenger_id === currentUserId || challenge.challenger?.id === currentUserId || challenge.player1?.user_id === currentUserId;
+              const duelOpponent = challenge.player1?.user_id === currentUserId ? challenge.player2 : challenge.player1;
+              const opponent = (outgoing ? challenge.opponent : challenge.challenger) || duelOpponent;
+              const name = opponent?.user_name || opponent?.nickname || (outgoing ? challenge.opponent_name : challenge.challenger_name) || "Соперник";
+              const avatar = opponent?.avatar_url || (outgoing ? challenge.opponent_avatar_url : challenge.challenger_avatar_url);
+              return (
+                <div key={challenge.id} className="flex flex-col gap-4 border border-border bg-card p-4 sm:flex-row sm:items-center">
+                  <Avatar name={name} src={avatar} size={40} />
+                  <div className="min-w-0 flex-1"><p className="font-semibold">{name}</p><p className="mt-1 text-xs text-muted-foreground">{outgoing ? "Исходящий вызов" : "Входящий вызов"} · {TASKS[challenge.task_type]?.label || challenge.task_type} · {challenge.rated === false ? "без рейтинга" : "рейтинговая"}</p></div>
+                  <div className="flex gap-2">{outgoing ? <Button size="sm" variant="outline" onClick={() => onChallengeAction(challenge.id, "withdraw")} disabled={challengePending}>Отозвать</Button> : <><Button size="sm" onClick={() => onChallengeAction(challenge.id, "accept")} disabled={challengePending}>Принять</Button><Button size="sm" variant="outline" onClick={() => onChallengeAction(challenge.id, "decline")} disabled={challengePending}>Отклонить</Button></>}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Reveal>
+      )}
 
       <Reveal delay={0.06} className="py-9">
         <div className="mb-4 flex items-end justify-between gap-4">
@@ -873,7 +905,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
             </div>
             <div className="min-w-0">
               {status === "found" && opponent
-                ? <div className="mx-auto w-fit border-2 border-primary/20 p-1 shadow-[5px_5px_0_hsl(var(--primary)/0.1)]"><Avatar name={opponent.name} src={opponent.avatar} size={58} /></div>
+                ? <div className="mx-auto w-fit border-2 border-primary/20 p-1 shadow-[5px_5px_0_hsl(var(--primary)/0.1)]"><OpponentAvatar opponent={opponent} size={58} /></div>
                 : <motion.div animate={status === "searching" ? { opacity: [0.45, 1, 0.45] } : { opacity: 1 }} transition={status === "searching" ? { duration: 1.8, repeat: Infinity } : {}} className="mx-auto flex h-[68px] w-[68px] items-center justify-center border-2 border-dashed border-primary/30 bg-primary/[0.045] text-primary"><UserRoundSearch size={25} /></motion.div>}
               <p className="mt-3 truncate text-xs font-bold">{status === "found" && opponent ? opponent.name : "Соперник"}</p>
               <p className="mt-1 truncate text-[10px] text-muted-foreground">{status === "searching" ? "Идёт поиск" : status === "found" ? "Пара найдена" : "Ожидает поиска"}</p>
@@ -933,7 +965,7 @@ function MatchmakingView({ onCreate, opponents, pending, taskType, setTaskType, 
                 className="mx-auto mt-7 max-w-md border-y border-border py-5"
               >
                 <div className="flex items-center gap-4 text-left">
-                  <Avatar name={opponent.name} size={50} />
+                  <OpponentAvatar opponent={opponent} size={50} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{opponent.name}</p>
                     <div className="mt-1 flex items-center gap-2">
