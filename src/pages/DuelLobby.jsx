@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import html2canvas from "html2canvas";
 import {
   AlertCircle,
   ArrowLeft,
@@ -477,6 +476,7 @@ function ResultView({ duel }) {
   const exportCard = async () => {
     if (!resultRef.current) return;
     try {
+      const { default: html2canvas } = await import("html2canvas");
       const canvas = await html2canvas(resultRef.current, { scale: 2, backgroundColor: "#ffffff" });
       const anchor = document.createElement("a");
       anchor.download = `ml-arena-duel-${duel.id}.png`;

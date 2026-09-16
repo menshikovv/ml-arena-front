@@ -11,27 +11,27 @@ import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { api } from "@/api/mlArenaApi";
 import PageNotFound from "@/lib/PageNotFound";
 import { queryClientInstance } from "@/lib/query-client";
-import ForgotPassword from "@/pages/ForgotPassword";
-import Blog from "@/pages/Blog";
-import BlogPost from "@/pages/BlogPost";
-import CompanyDashboard from "@/pages/CompanyDashboard";
-import CommunityCompetitionCreate from "@/pages/CommunityCompetitionCreate";
-import CompetitionDetail from "@/pages/CompetitionDetail";
-import Competitions from "@/pages/Competitions";
-import Cooperation from "@/pages/Cooperation";
-import DuelLobby from "@/pages/DuelLobby";
-import Duels from "@/pages/Duels";
-import Help from "@/pages/Help";
-import Landing from "@/pages/Landing";
-import Leaderboard, { RatingMethodology } from "@/pages/Leaderboard";
-import LegalNotice from "@/pages/LegalNotice";
-import Login from "@/pages/Login";
-import ProfileEdit from "@/pages/ProfileEdit";
-import Pricing from "@/pages/Pricing";
-import Profile from "@/pages/Profile";
-import ResetPassword from "@/pages/ResetPassword";
-import VerifyEmail from "@/pages/VerifyEmail";
-
+const Blog = lazy(() => import("@/pages/Blog"));
+const BlogPost = lazy(() => import("@/pages/BlogPost"));
+const CompanyDashboard = lazy(() => import("@/pages/CompanyDashboard"));
+const CommunityCompetitionCreate = lazy(() => import("@/pages/CommunityCompetitionCreate"));
+const CompetitionDetail = lazy(() => import("@/pages/CompetitionDetail"));
+const Competitions = lazy(() => import("@/pages/Competitions"));
+const Cooperation = lazy(() => import("@/pages/Cooperation"));
+const DuelLobby = lazy(() => import("@/pages/DuelLobby"));
+const Duels = lazy(() => import("@/pages/Duels"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const Help = lazy(() => import("@/pages/Help"));
+const Landing = lazy(() => import("@/pages/Landing"));
+const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
+const RatingMethodology = lazy(() => import("@/pages/Leaderboard").then((module) => ({ default: module.RatingMethodology })));
+const LegalNotice = lazy(() => import("@/pages/LegalNotice"));
+const Login = lazy(() => import("@/pages/Login"));
+const ProfileEdit = lazy(() => import("@/pages/ProfileEdit"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
 const Admin = lazy(() => import("@/pages/Admin"));
 
 const defaultMeta = {
@@ -81,7 +81,11 @@ function PageMetadata() {
 function AdminEntry() {
   const { user } = useAuth();
   if (user?.role !== "admin") return <Navigate to="/" replace />;
-  return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>}><Admin /></Suspense>;
+  return <Admin />;
+}
+
+function RouteFallback() {
+  return <div className="flex min-h-[50vh] items-center justify-center bg-background" role="status" aria-label="Загрузка страницы"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
 }
 
 function CompetitionInviteAccept() {
@@ -95,15 +99,12 @@ function CompetitionInviteAccept() {
 }
 
 function AppRoutes() {
-  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
-
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return <div className="fixed inset-0 flex items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
-  }
+  const { authError } = useAuth();
   if (authError?.type === "user_not_registered") return <UserNotRegisteredError />;
 
   return (
-    <Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
@@ -151,8 +152,9 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 

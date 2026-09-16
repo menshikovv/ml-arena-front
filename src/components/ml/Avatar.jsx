@@ -13,7 +13,7 @@ export default function Avatar({ name, src, size = 40, className = "" }) {
   const color = colors[colorIdx];
 
   if (src) {
-    return <img src={src} alt={name} width={size} height={size} className={`rounded-full object-cover ${className}`} style={{ width: size, height: size }} />;
+    return <img src={src} alt={name} width={size} height={size} loading="lazy" decoding="async" className={`rounded-full object-cover ${className}`} style={{ width: size, height: size }} />;
   }
 
   return (

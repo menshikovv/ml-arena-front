@@ -150,6 +150,7 @@ function HeroCompanion({ reduceMotion }) {
           muted
           playsInline
           preload="auto"
+          poster="/hero_robo_poster.webp"
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
@@ -159,8 +160,8 @@ function HeroCompanion({ reduceMotion }) {
           onCanPlay={resumeVideo}
           onEnded={restartVideo}
         >
-          <source src="/hero_robo.webm" type="video/webm" />
           <source src="/hero_robo_video.mp4" type="video/mp4" />
+          <source src="/hero_robo.webm" type="video/webm" />
         </video>
 
         <motion.div
@@ -416,7 +417,6 @@ export default function Landing() {
   const reduceMotion = useReducedMotion();
   const publicStats = useQuery({ queryKey: ["public-platform-stats"], queryFn: api.public.stats, staleTime: 60000 });
   const leaderboardPreview = useQuery({ queryKey: ["public-leaderboard-preview"], queryFn: api.public.leaderboard, staleTime: 30000 });
-  useQuery({ queryKey: ["public-blog-config"], queryFn: api.public.blogConfig, staleTime: 300000 });
   const enabledFeatures = appPublicSettings?.features || {};
   const featureEnabled = (name) => enabledFeatures[name] === true;
   const previewEntries = leaderboardPreview.data?.items || leaderboardPreview.data?.rows || (Array.isArray(leaderboardPreview.data) ? leaderboardPreview.data : []);

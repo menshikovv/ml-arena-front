@@ -24,14 +24,12 @@ function mapUser(account = {}, profile = {}) {
 }
 
 async function loadUser(account) {
-  const freshAccount = await api.auth.me();
-  const authUser = { ...(account || {}), ...freshAccount };
-  let profile = {};
-  try {
-    profile = await api.profiles.me();
-  } catch (error) {
+  const profileRequest = api.profiles.me().catch((error) => {
     if (error.status !== 404 && error.code !== "RESOURCE_NOT_FOUND") throw error;
-  }
+    return {};
+  });
+  const [freshAccount, profile] = await Promise.all([api.auth.me(), profileRequest]);
+  const authUser = { ...(account || {}), ...freshAccount };
   return mapUser(authUser, profile);
 }
 
