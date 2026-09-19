@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { api } from "@/api/mlArenaApi";
+import { api, uploadFile } from "@/api/mlArenaApi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
 import StatCard from "@/components/ml/StatCard";
-import { Trophy, Users, Send, Plus, Eye, Filter } from "lucide-react";
+import { Trophy, Users, Send, Plus, Eye, Filter, Gauge, Upload, Loader2, Play, FileCode2 } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { toast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
@@ -18,8 +18,14 @@ export default function CompanyDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     task_version_id: "", title: "", description: "",
-    prize_fund: 0, deadline: "", rules: "",
+    prize_type: "none", cash_prize_amount_rub: 0, prize_description: "", deadline: "", rules: "",
   });
+  const [showMetricCreate, setShowMetricCreate] = useState(false);
+  const [metricVersionTarget, setMetricVersionTarget] = useState(null);
+  const [metricHistoryTarget, setMetricHistoryTarget] = useState(null);
+  const [metricPending, setMetricPending] = useState(false);
+  const [metricFile, setMetricFile] = useState(null);
+  const [metricForm, setMetricForm] = useState({ code: "", name: "", description: "", direction: "maximize", display_format: "0.0000", input_contract: "tabular_v1", allowed_task_types: "classification", visibility: "owner_only" });
   const [skillFilter, setSkillFilter] = useState("all");
   const [inviteModal, setInviteModal] = useState(null);
   const [inviteMsg, setInviteMsg] = useState("");
@@ -33,6 +39,18 @@ export default function CompanyDashboard() {
     enabled: Boolean(organization?.id),
   });
   const competitions = competitionsQuery.data?.data || competitionsQuery.data?.items || [];
+  const metricsQuery = useQuery({
+    queryKey: ["company-metrics", organization?.id],
+    queryFn: () => api.organizations.metrics(organization.id),
+    enabled: Boolean(organization?.id),
+  });
+  const metrics = Array.isArray(metricsQuery.data) ? metricsQuery.data : metricsQuery.data?.items || metricsQuery.data?.data || [];
+  const metricHistoryQuery = useQuery({
+    queryKey: ["company-metric-versions", organization?.id, metricHistoryTarget?.id],
+    queryFn: () => api.organizations.metricVersions(organization.id, metricHistoryTarget.id),
+    enabled: Boolean(organization?.id && metricHistoryTarget?.id),
+  });
+  const metricHistory = Array.isArray(metricHistoryQuery.data) ? metricHistoryQuery.data : metricHistoryQuery.data?.items || metricHistoryQuery.data?.data || [];
 
   const profilesQuery = useQuery({
     queryKey: ["visible-profiles"],
@@ -61,13 +79,61 @@ export default function CompanyDashboard() {
         title: form.title.trim(),
         description: form.description.trim(),
         submission_deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
-        prize_amount: Math.round((Number(form.prize_fund) || 0) * 100),
+        prize_type: form.prize_type,
+        cash_prize_amount_rub: form.prize_type === "cash" ? Math.round(Number(form.cash_prize_amount_rub) || 0) : null,
+        prize_description: form.prize_type === "non_cash" ? form.prize_description.trim() : null,
         rules: form.rules.trim() || null,
       });
       toast.success("Соревнование создано!");
       setShowCreate(false);
-      setForm({ task_version_id: "", title: "", description: "", prize_fund: 0, deadline: "", rules: "" });
+      setForm({ task_version_id: "", title: "", description: "", prize_type: "none", cash_prize_amount_rub: 0, prize_description: "", deadline: "", rules: "" });
       queryClient.invalidateQueries({ queryKey: ["company-competitions"] });
+    } catch (err) {
+      toast.error("Ошибка: " + (err.message || "неизвестная"));
+    }
+  };
+
+  const handleCreateMetric = async () => {
+    if (!metricFile || (!metricVersionTarget && (!metricForm.code.trim() || !metricForm.name.trim()))) {
+      toast.error(metricVersionTarget ? "Выберите новый Python-файл метрики" : "Укажите код, название и Python-файл метрики");
+      return;
+    }
+    if (!metricFile.name.toLowerCase().endsWith(".py") || metricFile.size > 128 * 1024) {
+      toast.error("Нужен файл .py размером не больше 128 КБ");
+      return;
+    }
+    setMetricPending(true);
+    try {
+      const upload = await uploadFile(metricFile, "metric_source", { organization_id: organization.id });
+      const versionBody = { direction: metricForm.direction, display_format: metricForm.display_format, source_upload_id: upload.id, input_contract: metricForm.input_contract, allowed_task_types: metricForm.allowed_task_types.split(",").map((value) => value.trim()).filter(Boolean) };
+      const metric = metricVersionTarget
+        ? metricVersionTarget
+        : await api.organizations.createMetric(organization.id, { ...versionBody, code: metricForm.code.trim().toLowerCase(), name: metricForm.name.trim(), description: metricForm.description.trim() || null, visibility: metricForm.visibility });
+      const version = metricVersionTarget ? await api.organizations.createMetricVersion(organization.id, metric.id, versionBody) : metric.current_version;
+      const versionId = version?.id || metric.current_version_id;
+      if (versionId) await api.organizations.submitMetricVersion(organization.id, metric.id, versionId);
+      toast.success(versionId ? "Метрика отправлена на проверку" : "Метрика создана");
+      setShowMetricCreate(false);
+      setMetricVersionTarget(null);
+      setMetricFile(null);
+      setMetricForm({ code: "", name: "", description: "", direction: "maximize", display_format: "0.0000", input_contract: "tabular_v1", allowed_task_types: "classification", visibility: "owner_only" });
+      queryClient.invalidateQueries({ queryKey: ["company-metrics"] });
+    } catch (err) {
+      toast.error("Ошибка: " + (err.message || "неизвестная"));
+    } finally {
+      setMetricPending(false);
+    }
+  };
+
+  const submitMetric = async (metric) => {
+    const versions = await api.organizations.metricVersions(organization.id, metric.id);
+    const rows = Array.isArray(versions) ? versions : versions?.items || versions?.data || [];
+    const candidate = rows.find((version) => ["draft", "changes_requested", "tests_failed"].includes(version.moderation_status));
+    if (!candidate) return toast.error("Нет версии, которую можно отправить на проверку");
+    try {
+      await api.organizations.submitMetricVersion(organization.id, metric.id, candidate.id);
+      toast.success("Версия отправлена на проверку");
+      queryClient.invalidateQueries({ queryKey: ["company-metrics"] });
     } catch (err) {
       toast.error("Ошибка: " + (err.message || "неизвестная"));
     }
@@ -113,9 +179,15 @@ export default function CompanyDashboard() {
             <Input placeholder="Название" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <Textarea placeholder="Описание задачи" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid sm:grid-cols-2 gap-3">
-              <Input type="number" placeholder="Призовой фонд (₽)" value={form.prize_fund} onChange={(e) => setForm({ ...form, prize_fund: e.target.value })} />
+              <select value={form.prize_type} onChange={(e) => setForm({ ...form, prize_type: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="none">Без призов</option>
+                <option value="cash">Денежный приз</option>
+                <option value="non_cash">Неденежные призы</option>
+              </select>
               <Input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
             </div>
+            {form.prize_type === "cash" && <Input type="number" min="1" step="1" placeholder="Общий призовой фонд, ₽" value={form.cash_prize_amount_rub} onChange={(e) => setForm({ ...form, cash_prize_amount_rub: e.target.value })} />}
+            {form.prize_type === "non_cash" && <Textarea maxLength={500} placeholder="Опишите призы: техника, стажировка, менторство и другое" rows={2} value={form.prize_description} onChange={(e) => setForm({ ...form, prize_description: e.target.value })} />}
             <Textarea placeholder="Правила (опционально)" rows={2} value={form.rules} onChange={(e) => setForm({ ...form, rules: e.target.value })} />
             <div className="flex gap-2">
               <Button onClick={handleCreate}>Создать</Button>
@@ -125,6 +197,29 @@ export default function CompanyDashboard() {
           </Card>
         </Reveal>
       )}
+
+      <Reveal className="mb-3 flex items-center justify-between gap-3" delay={0.1}>
+        <div><h3 className="font-heading font-semibold">Метрики организации</h3><p className="mt-1 text-xs text-muted-foreground">Собственные Python-метрики для задач вашей организации.</p></div>
+        <Button variant="outline" size="sm" onClick={() => { setMetricVersionTarget(null); setShowMetricCreate((value) => !value); }}><Gauge size={14} className="mr-1.5" /> Новая метрика</Button>
+      </Reveal>
+      {showMetricCreate && <Card className="mb-4 border-primary/30 bg-card p-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {metricVersionTarget ? <div className="border-l-2 border-primary bg-primary/5 p-3 text-sm sm:col-span-2"><span className="font-semibold">Новая версия: {metricVersionTarget.name}</span><span className="ml-2 font-mono text-xs text-muted-foreground">{metricVersionTarget.code}</span></div> : <><Input placeholder="Код, например business_cost" value={metricForm.code} onChange={(e) => setMetricForm({ ...metricForm, code: e.target.value.replace(/[^a-zA-Z0-9_-]/g, "") })} /><Input placeholder="Название" value={metricForm.name} onChange={(e) => setMetricForm({ ...metricForm, name: e.target.value })} /><Textarea className="sm:col-span-2" rows={2} placeholder="Что измеряет метрика" value={metricForm.description} onChange={(e) => setMetricForm({ ...metricForm, description: e.target.value })} /></>}
+          <select value={metricForm.direction} onChange={(e) => setMetricForm({ ...metricForm, direction: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="maximize">Максимизировать</option><option value="minimize">Минимизировать</option></select>
+          <select value={metricForm.input_contract} onChange={(e) => setMetricForm({ ...metricForm, input_contract: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="tabular_v1">Табличные данные</option><option value="ranking_v1">Ранжирование</option></select>
+          <Input placeholder="Формат результата, например 0.0000" value={metricForm.display_format} onChange={(e) => setMetricForm({ ...metricForm, display_format: e.target.value })} />
+          <Input placeholder="Типы задач через запятую" value={metricForm.allowed_task_types} onChange={(e) => setMetricForm({ ...metricForm, allowed_task_types: e.target.value })} />
+          {!metricVersionTarget && <select value={metricForm.visibility} onChange={(e) => setMetricForm({ ...metricForm, visibility: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="owner_only">Только организации</option><option value="public">Публичная после одобрения</option></select>}
+          <label className="flex min-h-20 cursor-pointer items-center gap-3 border border-dashed border-border px-4 text-sm sm:col-span-2 hover:border-primary/40"><Upload size={18} className="text-primary" /><span className="min-w-0"><span className="block font-semibold">{metricFile?.name || "Выберите metric.py"}</span><span className="mt-1 block text-xs text-muted-foreground">Python 3.12, до 128 КБ</span></span><input type="file" accept=".py,text/x-python,text/plain" className="sr-only" onChange={(e) => setMetricFile(e.target.files?.[0] || null)} /></label>
+        </div>
+        <div className="mt-4 flex gap-2"><Button onClick={handleCreateMetric} disabled={metricPending}>{metricPending ? <Loader2 size={15} className="mr-1.5 animate-spin" /> : <FileCode2 size={15} className="mr-1.5" />} Загрузить и отправить</Button><Button variant="outline" onClick={() => { setShowMetricCreate(false); setMetricVersionTarget(null); }} disabled={metricPending}>Отмена</Button></div>
+      </Card>}
+      <div className="mb-8 grid gap-2 sm:grid-cols-2">{metrics.map((metric) => {
+        const version = metric.current_version;
+        const moderation = version?.moderation_status || (metric.status === "active" ? "approved" : "draft");
+        return <Card key={metric.id} className="border-border bg-card/50 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{metric.name}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{metric.code} · v{version?.version || 1}</p></div><span className="shrink-0 border border-border px-2 py-1 text-[10px] font-semibold">{{ approved: "Одобрена", pending_review: "На модерации", pending_tests: "Тестируется", tests_failed: "Тесты не пройдены", changes_requested: "Нужны изменения", rejected: "Отклонена", disabled: "Отключена", draft: "Черновик" }[moderation] || moderation}</span></div>{version?.rejection_reason && <p className="mt-3 text-xs text-destructive">{version.rejection_reason}</p>}<div className="mt-3 flex flex-wrap gap-2">{["draft", "changes_requested", "tests_failed"].includes(moderation) && <Button variant="outline" size="sm" onClick={() => submitMetric(metric)}><Play size={13} className="mr-1.5" /> Отправить версию</Button>}<Button variant="outline" size="sm" onClick={() => setMetricHistoryTarget(metric)}><Eye size={13} className="mr-1.5" /> История</Button><Button variant="outline" size="sm" onClick={() => { setMetricVersionTarget(metric); setMetricForm((current) => ({ ...current, direction: version?.direction || "maximize", display_format: version?.display_format || "0.0000", input_contract: version?.input_contract || "tabular_v1", allowed_task_types: (version?.allowed_task_types || []).join(", ") })); setShowMetricCreate(true); }}><Plus size={13} className="mr-1.5" /> Новая версия</Button></div></Card>;
+      })}{!metricsQuery.isLoading && metrics.length === 0 && <Card className="p-5 text-sm text-muted-foreground sm:col-span-2">Собственных метрик пока нет.</Card>}</div>
+      {metricHistoryTarget && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setMetricHistoryTarget(null)}><Card className="max-h-[80vh] w-full max-w-xl overflow-y-auto border-border bg-card p-5" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-3"><div><h3 className="font-heading text-lg font-semibold">История версий</h3><p className="mt-1 text-xs text-muted-foreground">{metricHistoryTarget.name} · {metricHistoryTarget.code}</p></div><Button variant="outline" size="sm" onClick={() => setMetricHistoryTarget(null)}>Закрыть</Button></div><div className="mt-4 divide-y divide-border border border-border">{metricHistoryQuery.isLoading ? <p className="p-4 text-sm text-muted-foreground">Загружаем версии...</p> : metricHistory.map((version) => <div key={version.id} className="p-4"><div className="flex items-center justify-between gap-3"><span className="font-semibold">Версия {version.version}</span><span className="border border-border px-2 py-1 text-[10px] font-semibold">{version.moderation_status}</span></div><p className="mt-2 text-xs text-muted-foreground">{version.input_contract} · {version.direction === "minimize" ? "меньше — лучше" : "больше — лучше"} · {version.source_checksum_sha256?.slice(0, 12) || "checksum недоступен"}</p>{version.rejection_reason && <p className="mt-2 text-xs text-destructive">{version.rejection_reason}</p>}</div>)}{!metricHistoryQuery.isLoading && metricHistory.length === 0 && <p className="p-4 text-sm text-muted-foreground">Версий пока нет.</p>}</div></Card></div>}
 
       {/* My competitions */}
       <Reveal delay={0.14}>

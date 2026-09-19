@@ -50,6 +50,10 @@ export default function CompetitionCard({ competition, status, meta, userState, 
   const isRestricted = competition.is_private || ["application", "invite_only", "partner", "premium"].includes(competition.access_type || competition.access);
   const isCommunity = competition.origin === "community";
   const isRated = !isCommunity && competition.rated !== false;
+  const cashPrize = Number(competition.cash_prize_amount_rub ?? competition.prize_fund ?? 0);
+  const prizeLabel = competition.prize_type === "non_cash" && competition.prize_description
+    ? competition.prize_description
+    : cashPrize > 0 ? `${cashPrize.toLocaleString("ru-RU")} ₽` : null;
   const sequenceLabel = String(sequence).padStart(2, "0");
 
   const cta = status === "finished"
@@ -164,16 +168,16 @@ export default function CompetitionCard({ competition, status, meta, userState, 
                 <Trophy size={featured ? 34 : 24} className={featured ? "text-background" : "text-primary"} />
               </div>
               <p className={cn("text-[10px] font-medium uppercase", featured ? "text-background/45" : "text-muted-foreground")}>
-                {isCommunity ? "Статус результата" : competition.prize_fund > 0 ? "Призовой фонд" : "Формат"}
+                {isCommunity ? "Статус результата" : prizeLabel ? "Призы" : "Формат"}
               </p>
               <p className={cn("mt-2 font-heading font-bold", featured ? "text-3xl text-background md:text-4xl" : "text-2xl")}>
-                {isCommunity ? "Практика" : competition.prize_fund > 0 ? `${competition.prize_fund.toLocaleString("ru-RU")} ₽` : isRated ? "Рейтинговое" : "Тренировочное"}
+                {isCommunity ? "Практика" : prizeLabel || (isRated ? "Рейтинговое" : "Тренировочное")}
               </p>
               <div className={cn("mt-6 border-t pt-5 text-xs leading-5", featured ? "border-background/15 text-background/60" : "border-border text-muted-foreground")}>
                 {isCommunity
                   ? "Без денежных призов и сезонных очков. Результат сохранится отдельно в истории сообщества."
-                  : competition.prize_fund > 0
-                  ? "Денежные призы получают лучшие участники. Сильный результат также заметят компании-партнёры."
+                  : prizeLabel
+                  ? "Награды получают участники, занявшие лучшие места по итогам соревнования."
                   : isRated ? "Результат влияет на рейтинг, лигу и подтверждённую часть ML-паспорта." : "Практика не влияет на сезонный рейтинг и положение в лиге."}
               </div>
             </div>

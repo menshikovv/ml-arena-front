@@ -80,13 +80,15 @@ function safeScore(score, metric) {
 }
 
 function formatPrize(competition) {
-  const amount = Number(competition.prize_amount);
+  if (competition.prize_type === "non_cash" && competition.prize_description) return competition.prize_description;
+  const amount = competition.cash_prize_amount_rub != null
+    ? Number(competition.cash_prize_amount_rub)
+    : Number(competition.prize_amount) / 100;
   if (!Number.isFinite(amount) || amount <= 0) return null;
-  const currency = competition.prize_currency || "RUB";
   try {
-    return new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount / 100);
+    return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(amount);
   } catch {
-    return `${Math.round(amount / 100).toLocaleString("ru-RU")} ${currency}`;
+    return `${Math.round(amount).toLocaleString("ru-RU")} ₽`;
   }
 }
 
