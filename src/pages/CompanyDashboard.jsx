@@ -158,9 +158,14 @@ export default function CompanyDashboard() {
           <h1 className="font-heading text-2xl md:text-3xl font-bold">Кабинет компании</h1>
           <p className="text-muted-foreground text-sm mt-1">Управляй соревнованиями и находи таланты</p>
         </div>
-        <Button onClick={() => setShowCreate(!showCreate)}>
-          <Plus size={16} className="mr-1.5" /> Создать соревнование
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => { setMetricVersionTarget(null); setShowMetricCreate(true); }}>
+            <Gauge size={16} className="mr-1.5" /> Создать метрику
+          </Button>
+          <Button onClick={() => setShowCreate(!showCreate)}>
+            <Plus size={16} className="mr-1.5" /> Создать соревнование
+          </Button>
+        </div>
       </Reveal>
 
       {/* Stats */}

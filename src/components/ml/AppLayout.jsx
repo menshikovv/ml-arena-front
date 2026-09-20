@@ -47,11 +47,14 @@ export default function AppLayout({ children }) {
   const adminAccess = useQuery({ queryKey: ["admin", "me"], queryFn: api.admin.me, enabled: user?.role === "admin", retry: false, staleTime: 60000 });
   const isSuperAdmin = adminAccess.data?.roles?.includes("super_admin");
   const publicNavItems = NAV_ITEMS.filter((item) => !item.feature || appPublicSettings?.features?.[item.feature] === true);
+  const roleNavItems = user?.role === "organization"
+    ? [...publicNavItems, { to: "/company/dashboard", label: "Кабинет компании", icon: BriefcaseBusiness }]
+    : publicNavItems;
   const navItems = user?.role === "admin"
-    ? [...publicNavItems.flatMap((item) => item.to === "/support" && isSuperAdmin
+    ? [...roleNavItems.flatMap((item) => item.to === "/support" && isSuperAdmin
       ? [{ to: "/pricing", label: "Тарифы", icon: Crown }, item]
       : [item]), { to: "/admin", label: "Админка", icon: ShieldCheck }]
-    : publicNavItems;
+    : roleNavItems;
   const isActive = (path) => {
     if (path === "/ml-passport") {
       return location.pathname === path
