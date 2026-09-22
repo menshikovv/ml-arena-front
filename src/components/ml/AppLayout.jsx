@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, Crown, Gauge, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRoundCheck, X } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, ChartNoAxesColumnIncreasing, ChevronLeft, Crown, LifeBuoy, LogIn, LogOut, Menu, Pencil, ShieldCheck, Swords, Trophy, UserRoundCheck, X } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import ThemeToggle from "@/components/ml/ThemeToggle";
@@ -53,7 +53,7 @@ export default function AppLayout({ children }) {
   const navItems = user?.role === "admin"
     ? [...roleNavItems.flatMap((item) => item.to === "/support" && isSuperAdmin
       ? [{ to: "/pricing", label: "Тарифы", icon: Crown }, item]
-      : [item]), { to: "/admin?section=resources&resource=metrics", label: "Метрики", icon: Gauge }, { to: "/admin", label: "Админка", icon: ShieldCheck }]
+      : [item]), { to: "/admin", label: "Админка", icon: ShieldCheck }]
     : roleNavItems;
   const isActive = (path) => {
     if (path.includes("?")) {
