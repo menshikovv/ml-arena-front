@@ -84,6 +84,13 @@ function AdminEntry() {
   return <Admin />;
 }
 
+function CompanyEntry() {
+  const { user } = useAuth();
+  if (user?.role === "admin") return <Navigate to="/admin?section=resources&resource=metrics" replace />;
+  if (user?.role !== "organization") return <Navigate to="/" replace />;
+  return <CompanyDashboard />;
+}
+
 function RouteFallback() {
   return <div className="flex min-h-[50vh] items-center justify-center bg-background" role="status" aria-label="Загрузка страницы"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>;
 }
@@ -147,7 +154,7 @@ function AppRoutes() {
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route path="/profile/edit" element={<ProfileEdit />} />
-          <Route path="/company/dashboard" element={<CompanyDashboard />} />
+          <Route path="/company/dashboard" element={<CompanyEntry />} />
           <Route path="/admin" element={<AdminEntry />} />
         </Route>
       </Route>

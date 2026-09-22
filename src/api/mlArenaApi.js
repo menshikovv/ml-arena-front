@@ -193,6 +193,7 @@ export const api = {
     metrics: (params) => apiRequest(`/api/v1/admin/metrics${queryString(params)}`),
     metric: (id) => apiData(`/api/v1/admin/metrics/${id}`),
     createMetric: (body) => apiData("/api/v1/admin/metrics", { method: "POST", body: json(body) }),
+    createCustomMetric: (body) => apiData("/api/v1/admin/metrics/custom", { method: "POST", body: json(body) }),
     updateMetric: (id, body) => apiData(`/api/v1/admin/metrics/${id}`, { method: "PATCH", body: json(body) }),
     createMetricVersion: (id, body) => apiData(`/api/v1/admin/metrics/${id}/versions`, { method: "POST", body: json(body) }),
     metricAction: (id, action, body) => apiData(`/api/v1/admin/metrics/${id}/${action}`, { method: "POST", ...(body ? { body: json(body) } : {}) }),
