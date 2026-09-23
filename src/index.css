@@ -590,10 +590,31 @@
   to { opacity: 0; }
 }
 
+.arena-account__chevron {
+  transition: transform 180ms ease;
+}
+
+.arena-account[open] .arena-account__chevron {
+  transform: rotate(180deg);
+}
+
+.arena-account[open] .arena-account__menu {
+  transform-origin: top right;
+  animation: arena-account-menu-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes arena-account-menu-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [role="dialog"][data-state] {
     animation-duration: 1ms;
   }
+
+  .arena-account__chevron { transition: none; }
+  .arena-account[open] .arena-account__menu { animation: none; }
 }
 
 

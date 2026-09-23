@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BriefcaseBusiness,
+  CalendarDays,
   Camera,
   Check,
   CircleAlert,
@@ -25,8 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
-
-const INPUT_CLASS = "h-10 rounded-md bg-secondary/20 px-3.5 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15";
+import "./ProfileEdit.css";
 
 const ML_INTERESTS = [
   ["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"],
@@ -34,50 +34,39 @@ const ML_INTERESTS = [
   ["ranking", "Ранжирование"], ["clustering", "Кластеризация"], ["recsys", "RecSys"],
 ];
 
-const SECTIONS = [
-  { id: "profile-main", label: "Профиль", icon: UserRound },
-  { id: "profile-contacts", label: "Контакты", icon: Mail },
-  { id: "profile-location", label: "Личные данные", icon: MapPin },
-  { id: "profile-education", label: "Образование", icon: GraduationCap },
-  { id: "profile-work", label: "Работа", icon: BriefcaseBusiness },
-  { id: "profile-visibility", label: "Видимость", icon: ShieldCheck },
-];
-
 export default function ProfileEdit() {
   const { user, updateProfile, updateAvatar, deleteAvatar } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
-  const initial = useMemo(() => {
-    return {
-      nickname: user?.nickname || "",
-      first_name: user?.first_name || "",
-      last_name: user?.last_name || "",
-      age: user?.age ?? "",
-      gender: user?.gender || "",
-      interests: Array.isArray(user?.interests) ? user.interests : [],
-      city: user?.city || "",
-      education_status: user?.education_status || "",
-      organization: user?.organization || "",
-      github_url: user?.github_url || "",
-      kaggle_url: user?.kaggle_url || "",
-      bio: user?.bio || "",
-      visible_to_employers: Boolean(user?.visible_to_employers),
-      public_profile: user?.public_profile ?? true,
-      show_real_name: user?.show_real_name ?? true,
-      show_career_details: user?.show_career_details ?? true,
-    };
-  }, [user]);
+  const initial = useMemo(() => ({
+    nickname: user?.nickname || "",
+    first_name: user?.first_name || "",
+    last_name: user?.last_name || "",
+    age: user?.age ?? "",
+    gender: user?.gender || "",
+    interests: Array.isArray(user?.interests) ? user.interests : [],
+    city: user?.city || "",
+    education_status: user?.education_status || "",
+    organization: user?.organization || "",
+    github_url: user?.github_url || "",
+    kaggle_url: user?.kaggle_url || "",
+    bio: user?.bio || "",
+    visible_to_employers: Boolean(user?.visible_to_employers),
+    public_profile: user?.public_profile ?? true,
+    show_real_name: user?.show_real_name ?? true,
+    show_career_details: user?.show_career_details ?? true,
+  }), [user]);
   const [form, setForm] = useState(initial);
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || "");
   const [avatarFile, setAvatarFile] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [draggingAvatar, setDraggingAvatar] = useState(false);
-  const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(initial) || Boolean(avatarFile) || removeAvatar;
-  const completionFields = [form.first_name, form.last_name, form.city, form.education_status, form.organization, form.github_url, form.bio, form.interests.length];
-  const completion = Math.round((completionFields.filter(Boolean).length / completionFields.length) * 100);
+  const displayName = [form.first_name, form.last_name].filter(Boolean).join(" ") || form.nickname || "Новый участник";
+  const registeredAt = user?.registered_at ? new Date(user.registered_at) : null;
+  const joinedYear = registeredAt && !Number.isNaN(registeredAt.getTime()) ? registeredAt.getFullYear() : null;
 
   useEffect(() => {
     setForm(initial);
@@ -94,16 +83,6 @@ export default function ProfileEdit() {
     return () => window.removeEventListener("beforeunload", preventClose);
   }, [dirty]);
 
-  useEffect(() => {
-    const sections = SECTIONS.map(({ id }) => document.getElementById(id)).filter(Boolean);
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (visible) setActiveSection(visible.target.id);
-    }, { rootMargin: "-18% 0px -62%", threshold: [0.05, 0.35, 0.7] });
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, []);
-
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const toggleInterest = (interest) => setForm((current) => ({
     ...current,
@@ -113,10 +92,6 @@ export default function ProfileEdit() {
   }));
   const goBack = () => {
     if (!dirty || window.confirm("Уйти без сохранения изменений?")) navigate("/profile");
-  };
-  const scrollToSection = (id) => {
-    setActiveSection(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const selectAvatar = (file) => {
     if (!file) return;
@@ -166,204 +141,115 @@ export default function ProfileEdit() {
     }
   };
 
-  return (
-    <div className="min-h-full bg-secondary/15">
-      <div className="mx-auto w-full max-w-[1380px] px-4 py-6 md:px-6 lg:px-8 lg:py-10">
-        <button type="button" onClick={goBack} className="mb-4 inline-flex h-9 items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
-          <ArrowLeft size={16} /> Вернуться в профиль
-        </button>
-
-        <form onSubmit={handleSubmit} className="overflow-hidden border border-border bg-card shadow-[0_18px_60px_hsl(var(--foreground)/0.06)]">
-          <div className="grid lg:grid-cols-[230px_minmax(0,1fr)]">
-            <aside className="border-b border-border bg-secondary/20 lg:border-b-0 lg:border-r">
-              <nav className="flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-4 lg:block lg:space-y-1 lg:overflow-visible lg:p-3" aria-label="Разделы профиля">
-                {SECTIONS.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => scrollToSection(id)}
-                    className={`flex h-11 shrink-0 items-center gap-3 px-3 text-sm font-semibold transition-colors lg:w-full ${activeSection === id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-card hover:text-foreground"}`}
-                  >
-                    <Icon size={17} /> {label}
-                  </button>
-                ))}
-              </nav>
-
-              <div className="hidden border-t border-border p-5 lg:block">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-muted-foreground">Профиль заполнен</span>
-                  <span className="tabular-nums">{completion}%</span>
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden bg-border">
-                  <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${completion}%` }} />
-                </div>
-              </div>
-            </aside>
-
-            <main className="min-w-0">
-              <header className="sticky top-0 z-30 flex min-h-[76px] items-center justify-between gap-4 border-b border-border bg-card/95 px-5 py-4 backdrop-blur md:px-8">
-                <div className="min-w-0">
-                  <h1 className="truncate font-heading text-xl font-extrabold sm:text-2xl">Ваш профиль</h1>
-                  <p className={`mt-1 flex items-center gap-1.5 text-xs ${dirty ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>
-                    {dirty ? <CircleAlert size={13} /> : <Check size={13} className="text-emerald-600" />}
-                    {dirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
-                  </p>
-                </div>
-                <div className="hidden shrink-0 gap-2 sm:flex">
-                  <Button type="button" variant="outline" onClick={goBack}>Отмена</Button>
-                  <Button type="submit" disabled={loading || !dirty} className="min-w-32">
-                    {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Сохранить
-                  </Button>
-                </div>
-              </header>
-
-              <div className="mx-auto max-w-[980px] px-5 md:px-8">
-                <FormSection id="profile-main" icon={UserRound} title="Профиль">
-                  <div
-                    className={`flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-center ${draggingAvatar ? "bg-primary/[0.035]" : ""}`}
-                    onDragEnter={(event) => { event.preventDefault(); setDraggingAvatar(true); }}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDragLeave={() => setDraggingAvatar(false)}
-                    onDrop={handleAvatarDrop}
-                  >
-                    <button type="button" onClick={() => fileRef.current?.click()} className="group relative w-fit rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4" title="Изменить фото">
-                      <Avatar name={[form.first_name, form.last_name].filter(Boolean).join(" ") || form.nickname} src={avatarPreview} size={100} className="ring-4 ring-secondary/60 shadow-lg" />
-                      <span className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/60 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"><Camera size={23} /></span>
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-heading text-xl font-bold">{[form.first_name, form.last_name].filter(Boolean).join(" ") || form.nickname || "Новый участник"}</p>
-                      <p className="mt-1 truncate text-sm text-muted-foreground">@{form.nickname || "nickname"}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Camera size={15} /> Изменить фото</Button>
-                        {avatarPreview && <Button type="button" variant="ghost" size="sm" onClick={clearAvatar} className="text-destructive hover:text-destructive"><Trash2 size={15} /> Удалить</Button>}
-                      </div>
-                      <p className="mt-2 text-[11px] text-muted-foreground">JPG, PNG или WebP · до 5 МБ</p>
-                    </div>
-                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
-                  </div>
-
-                  <div className="mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    <Field label="Никнейм" required>
-                      <Input value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="username" maxLength={30} className={INPUT_CLASS} required />
-                    </Field>
-                    <Field label="Имя">
-                      <Input value={form.first_name} onChange={(event) => update("first_name", event.target.value)} autoComplete="given-name" maxLength={60} className={INPUT_CLASS} />
-                    </Field>
-                    <Field label="Фамилия">
-                      <Input value={form.last_name} onChange={(event) => update("last_name", event.target.value)} autoComplete="family-name" maxLength={60} className={INPUT_CLASS} />
-                    </Field>
-                    <div className="space-y-2 sm:col-span-2 xl:col-span-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="bio">О себе</Label>
-                        <span className="text-[11px] tabular-nums text-muted-foreground">{form.bio.length}/1000</span>
-                      </div>
-                      <Textarea id="bio" value={form.bio} onChange={(event) => update("bio", event.target.value)} maxLength={1000} rows={4} placeholder="Расскажите о своём опыте и интересах" className="resize-none rounded-md bg-secondary/20 px-3.5 py-3 shadow-none transition-[background-color,border-color,box-shadow] hover:border-primary/25 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/15" />
-                    </div>
-                  </div>
-                </FormSection>
-
-                <FormSection id="profile-contacts" icon={Mail} title="Контакты">
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="Email" icon={Mail} className="sm:col-span-2">
-                      <Input type="email" value={user?.email || ""} readOnly disabled className={`${INPUT_CLASS} cursor-not-allowed opacity-70`} />
-                    </Field>
-                    <Field label="GitHub" icon={Link2}>
-                      <Input type="url" value={form.github_url} onChange={(event) => update("github_url", event.target.value)} autoComplete="url" placeholder="https://github.com/username" className={INPUT_CLASS} />
-                    </Field>
-                    <Field label="Kaggle" icon={Link2}>
-                      <Input type="url" value={form.kaggle_url} onChange={(event) => update("kaggle_url", event.target.value)} autoComplete="url" placeholder="https://kaggle.com/username" className={INPUT_CLASS} />
-                    </Field>
-                  </div>
-                </FormSection>
-
-                <FormSection id="profile-location" icon={MapPin} title="Личные данные">
-                  <div className="grid gap-5 sm:grid-cols-3">
-                    <Field label="Город" icon={MapPin}><Input value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Москва" className={INPUT_CLASS} /></Field>
-                    <Field label="Возраст"><Input type="number" min="0" max="120" inputMode="numeric" value={form.age} onChange={(event) => update("age", event.target.value)} placeholder="Например, 24" className={INPUT_CLASS} /></Field>
-                    <Field label="Пол"><select value={form.gender} onChange={(event) => update("gender", event.target.value)} className={`${INPUT_CLASS} w-full border border-input text-sm`}><option value="">Не указывать</option><option value="male">Мужской</option><option value="female">Женский</option></select></Field>
-                  </div>
-                  <fieldset className="mt-7"><legend className="flex items-center gap-2 text-sm font-semibold"><Target size={14} className="text-muted-foreground" />ML-интересы</legend><p className="mt-2 text-xs leading-5 text-muted-foreground">Выберите направления, которыми занимаетесь или хотите заниматься.</p><div className="mt-4 flex flex-wrap gap-2">{ML_INTERESTS.map(([value, label]) => { const selected = form.interests.includes(value); return <button key={value} type="button" aria-pressed={selected} onClick={() => toggleInterest(value)} className={`rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"}`}>{selected && <Check size={13} className="mr-1.5 inline" />}{label}</button>; })}</div></fieldset>
-                </FormSection>
-
-                <FormSection id="profile-education" icon={GraduationCap} title="Образование">
-                  <Field label="Университет" icon={GraduationCap}>
-                    <Input value={form.education_status} onChange={(event) => update("education_status", event.target.value)} maxLength={200} placeholder="Название университета" className={INPUT_CLASS} />
-                  </Field>
-                </FormSection>
-
-                <FormSection id="profile-work" icon={BriefcaseBusiness} title="Работа">
-                  <Field label="Компания" icon={BriefcaseBusiness}>
-                    <Input value={form.organization} onChange={(event) => update("organization", event.target.value)} autoComplete="organization" maxLength={200} placeholder="Текущее место работы" className={INPUT_CLASS} />
-                  </Field>
-                </FormSection>
-
-                <FormSection id="profile-visibility" icon={ShieldCheck} title="Видимость">
-                  <div className="divide-y divide-border border-y border-border">
-                    <Toggle icon={Globe2} checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль доступен по ссылке и отображается в поиске." />
-                    <Toggle icon={BriefcaseBusiness} checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Показывать компаниям" text="Компании смогут находить ваш профиль среди участников." />
-                    <Toggle icon={UserRound} checked={form.show_real_name} onChange={(value) => update("show_real_name", value)} title="Показывать имя и фамилию" text="Имя и фамилия видны посетителям публичного профиля." />
-                    <Toggle icon={BriefcaseBusiness} checked={form.show_career_details} onChange={(value) => update("show_career_details", value)} title="Показывать карьерные данные" text="Город, университет, компания и внешние профили видны посетителям." />
-                  </div>
-                </FormSection>
-
-                {error && (
-                  <div className="mb-6 flex items-start gap-3 border border-destructive/20 bg-destructive/5 p-3.5 text-sm text-destructive">
-                    <CircleAlert className="mt-0.5 shrink-0" size={17} /><span>{error}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="sticky bottom-0 z-30 flex gap-2 border-t border-border bg-card/95 p-4 backdrop-blur sm:hidden">
-                <Button type="button" variant="outline" onClick={goBack} className="flex-1">Отмена</Button>
-                <Button type="submit" disabled={loading || !dirty} className="flex-1">
-                  {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Сохранить
-                </Button>
-              </div>
-            </main>
+  return <div className="profile-edit-page"><div className="profile-edit-frame">
+    <button type="button" onClick={goBack} className="profile-edit-back"><ArrowLeft size={16} />Вернуться в профиль</button>
+    <form onSubmit={handleSubmit}>
+      <header className="profile-edit-top">
+        <div className="profile-edit-top__copy"><h1>Редактирование профиля</h1><p>Актуальная информация о вас помогает другим участникам узнать вас лучше.</p></div>
+        <div className="profile-edit-top__actions">
+          <div className="profile-edit-top__buttons">
+            <Button type="button" variant="outline" onClick={goBack}>Отмена</Button>
+            <Button type="submit" disabled={loading || !dirty} className="profile-edit-save">{loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}Сохранить изменения</Button>
           </div>
-        </form>
+          <span className={dirty ? "profile-edit-top__status is-dirty" : "profile-edit-top__status"}>{dirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}</span>
+        </div>
+      </header>
+
+      <div className={`profile-edit-hero ${draggingAvatar ? "is-dragging" : ""}`} onDragEnter={(event) => { event.preventDefault(); setDraggingAvatar(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDraggingAvatar(false)} onDrop={handleAvatarDrop}>
+        <div className="profile-edit-hero__art" aria-hidden="true"><span /><span /><span /></div>
+        <p className="profile-edit-hero__motto" aria-hidden="true">Больше,<br />чем ML</p>
+        <div className="profile-edit-hero__avatar">
+          <button type="button" onClick={() => fileRef.current?.click()} title="Изменить фото (JPG, PNG или WebP до 5 МБ)" aria-label="Изменить фото" className="profile-edit-hero__avatar-button">
+            <Avatar name={displayName} src={avatarPreview} size={132} />
+            <span className="profile-edit-hero__camera"><Camera size={17} aria-hidden="true" /></span>
+          </button>
+          {avatarPreview && <button type="button" onClick={clearAvatar} title="Удалить фото" aria-label="Удалить фото" className="profile-edit-hero__remove"><Trash2 size={15} aria-hidden="true" /></button>}
+        </div>
+        <div className="profile-edit-hero__identity">
+          <h2>{displayName}</h2>
+          <p className="profile-edit-hero__handle">@{form.nickname || "nickname"}</p>
+          <p className="profile-edit-hero__bio">{form.bio || "Описание профиля пока не заполнено."}</p>
+          <div className="profile-edit-hero__meta">
+            {joinedYear && <span><CalendarDays size={13} />ML-Арена с {joinedYear}</span>}
+            {form.city && <span><MapPin size={13} />{form.city}</span>}
+            {form.education_status && <span><GraduationCap size={13} />{form.education_status}</span>}
+          </div>
+        </div>
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="sr-only" tabIndex={-1} />
       </div>
-    </div>
-  );
+
+      <div className="profile-edit-grid">
+        <FormCard id="profile-main" icon={UserRound} title="Основная информация" description="Расскажите о себе — это будет видно другим участникам." className="profile-edit-card--main">
+          <div className="profile-edit-fields profile-edit-fields--three">
+            <Field label="Никнейм" htmlFor="profile-nickname" required><Input id="profile-nickname" value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="username" maxLength={30} className="profile-edit-input" required /></Field>
+            <Field label="Имя" htmlFor="profile-first-name"><Input id="profile-first-name" value={form.first_name} onChange={(event) => update("first_name", event.target.value)} autoComplete="given-name" maxLength={60} className="profile-edit-input" /></Field>
+            <Field label="Фамилия" htmlFor="profile-last-name"><Input id="profile-last-name" value={form.last_name} onChange={(event) => update("last_name", event.target.value)} autoComplete="family-name" maxLength={60} className="profile-edit-input" /></Field>
+          </div>
+          <Field label="О себе" htmlFor="profile-bio" className="profile-edit-field--bio"><Textarea id="profile-bio" value={form.bio} onChange={(event) => update("bio", event.target.value)} maxLength={1000} rows={4} placeholder="Расскажите о своём опыте и интересах" className="profile-edit-textarea" /><span className="profile-edit-field__counter">{form.bio.length}/1000</span></Field>
+        </FormCard>
+
+        <FormCard id="profile-contacts" icon={Mail} title="Контакты" description="Ваши публичные контакты для связи и сотрудничества." className="profile-edit-card--contacts">
+          <div className="profile-edit-fields">
+            <Field label="Email" htmlFor="profile-email" icon={Mail}><Input id="profile-email" type="email" value={user?.email || ""} readOnly disabled className="profile-edit-input" /></Field>
+            <Field label="GitHub" htmlFor="profile-github" icon={Link2}><Input id="profile-github" type="url" value={form.github_url} onChange={(event) => update("github_url", event.target.value)} autoComplete="url" placeholder="https://github.com/username" className="profile-edit-input" /></Field>
+            <Field label="Kaggle" htmlFor="profile-kaggle" icon={Link2}><Input id="profile-kaggle" type="url" value={form.kaggle_url} onChange={(event) => update("kaggle_url", event.target.value)} autoComplete="url" placeholder="https://kaggle.com/username" className="profile-edit-input" /></Field>
+          </div>
+        </FormCard>
+
+        <FormCard id="profile-location" icon={MapPin} title="Личные данные" description="Эта информация может отображаться в вашем публичном профиле." className="profile-edit-card--location">
+          <div className="profile-edit-fields profile-edit-fields--three">
+            <Field label="Город" htmlFor="profile-city" icon={MapPin}><Input id="profile-city" value={form.city} onChange={(event) => update("city", event.target.value)} autoComplete="address-level2" maxLength={100} placeholder="Ваш город" className="profile-edit-input" /></Field>
+            <Field label="Возраст" htmlFor="profile-age" icon={CalendarDays}><Input id="profile-age" type="number" min="0" max="120" inputMode="numeric" value={form.age} onChange={(event) => update("age", event.target.value)} placeholder="24" className="profile-edit-input" /></Field>
+            <Field label="Пол" htmlFor="profile-gender" icon={UserRound}><select id="profile-gender" value={form.gender} onChange={(event) => update("gender", event.target.value)} className="profile-edit-input"><option value="">Не указан</option><option value="male">Мужской</option><option value="female">Женский</option></select></Field>
+          </div>
+        </FormCard>
+
+        <FormCard id="profile-education" icon={GraduationCap} title="Образование" description="Укажите ваш университет." className="profile-edit-card--education">
+          <Field label="Университет" htmlFor="profile-university" icon={GraduationCap}><Input id="profile-university" value={form.education_status} onChange={(event) => update("education_status", event.target.value)} maxLength={200} placeholder="Название университета" className="profile-edit-input" /></Field>
+        </FormCard>
+
+        <FormCard id="profile-work" icon={BriefcaseBusiness} title="Работа" description="Укажите текущую компанию, если применимо." className="profile-edit-card--work">
+          <Field label="Компания" htmlFor="profile-company" icon={BriefcaseBusiness}><Input id="profile-company" value={form.organization} onChange={(event) => update("organization", event.target.value)} autoComplete="organization" maxLength={200} placeholder="Компания" className="profile-edit-input" /></Field>
+        </FormCard>
+
+        <FormCard id="profile-interests" icon={Target} title="ML-интересы" description="Выберите направления, которыми занимаетесь или хотите заниматься." className="profile-edit-card--interests">
+          <div className="profile-edit-interests" role="group" aria-label="ML-интересы">{ML_INTERESTS.map(([value, label]) => { const selected = form.interests.includes(value); return <button key={value} type="button" aria-pressed={selected} onClick={() => toggleInterest(value)} className={`profile-edit-interests__option ${selected ? "is-selected" : ""}`}>{selected && <Check size={13} aria-hidden="true" />}{label}</button>; })}</div>
+        </FormCard>
+
+        <FormCard id="profile-visibility" icon={ShieldCheck} title="Видимость" description="Настройте, какая информация будет отображаться в вашем публичном профиле." className="profile-edit-card--visibility">
+          <div className="profile-edit-visibility">
+            <Toggle icon={Globe2} checked={form.public_profile} onChange={(value) => update("public_profile", value)} title="Публичный профиль" text="Профиль доступен по ссылке и отображается в поиске." />
+            <Toggle icon={BriefcaseBusiness} checked={form.visible_to_employers} onChange={(value) => update("visible_to_employers", value)} title="Показывать компаниям" text="Компании смогут находить ваш профиль среди участников." />
+            <Toggle icon={UserRound} checked={form.show_real_name} onChange={(value) => update("show_real_name", value)} title="Показывать имя и фамилию" text="Имя и фамилия видны посетителям публичного профиля." />
+            <Toggle icon={BriefcaseBusiness} checked={form.show_career_details} onChange={(value) => update("show_career_details", value)} title="Показывать карьерные данные" text="Город, университет, компания и внешние профили видны посетителям." />
+          </div>
+        </FormCard>
+      </div>
+
+      {error && <div className="profile-edit-error" role="alert"><CircleAlert size={18} aria-hidden="true" /><span>{error}</span></div>}
+      <div className="profile-edit-mobile-actions"><Button type="button" variant="outline" onClick={goBack}>Отмена</Button><Button type="submit" disabled={loading || !dirty} className="profile-edit-save">{loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Сохранить</Button></div>
+    </form>
+  </div></div>;
 }
 
-function FormSection({ id, icon: Icon, title, children }) {
-  return (
-    <section id={id} className="scroll-mt-24 border-b border-border py-8 last:border-b-0 md:py-10">
-      <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-primary/10 text-primary"><Icon size={17} /></span>
-        <h2 className="font-heading text-lg font-extrabold">{title}</h2>
-      </div>
-      <div className="min-w-0">{children}</div>
-    </section>
-  );
+function FormCard({ id, icon: Icon, title, description, className = "", children }) {
+  return <section id={id} className={`profile-edit-card ${className}`}>
+    <div className="profile-edit-card__heading"><span className="profile-edit-card__icon"><Icon size={20} strokeWidth={2} aria-hidden="true" /></span><div><h2>{title}</h2><p>{description}</p></div></div>
+    <div className="profile-edit-card__content">{children}</div>
+  </section>;
 }
 
-function Field({ label, icon: Icon, required = false, className = "", children }) {
-  return (
-    <div className={`space-y-2 ${className}`}>
-      <Label className="flex items-center gap-1.5">
-        {Icon && <Icon size={13} className="text-muted-foreground" />}
-        {label}
-        {required && <span className="text-destructive">*</span>}
-      </Label>
-      {children}
-    </div>
-  );
+function Field({ label, htmlFor, icon: Icon, required = false, className = "", children }) {
+  return <div className={`profile-edit-field ${className}`}>
+    <Label htmlFor={htmlFor}>{label}{required && <span className="profile-edit-field__required"> *</span>}</Label>
+    <div className={`profile-edit-field__control ${Icon ? "has-icon" : ""}`}>{Icon && <Icon size={15} aria-hidden="true" />}{children}</div>
+  </div>;
 }
 
 function Toggle({ icon: Icon, checked, onChange, title, text }) {
-  return (
-    <label className="group flex min-h-20 cursor-pointer items-center gap-3 py-4 transition-colors hover:bg-secondary/20 sm:px-2">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center transition-colors ${checked ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}><Icon size={17} /></span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{text}</span>
-      </span>
-      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}>
-        <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="sr-only" />
-        <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? "translate-x-6" : "translate-x-1"}`} />
-      </span>
-    </label>
-  );
+  return <label className="profile-edit-toggle">
+    <span className="profile-edit-toggle__icon"><Icon size={19} aria-hidden="true" /></span>
+    <span className="profile-edit-toggle__copy"><strong>{title}</strong><small>{text}</small></span>
+    <span className={`profile-edit-toggle__switch ${checked ? "is-checked" : ""}`}><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="sr-only" /><span /></span>
+  </label>;
 }

@@ -7,11 +7,14 @@ import {
   ArrowRight,
   BookOpenCheck,
   CalendarClock,
+  CalendarDays,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   CircleHelp,
-  Clock3,
   Crown,
-  History,
+  FileText,
+  Flag,
   Loader2,
   Medal,
   Search,
@@ -23,11 +26,12 @@ import {
 } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
-import { PageFrame, PageHeader } from "@/components/ml/PageFrame";
-import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
+import { PageFrame } from "@/components/ml/PageFrame";
+import { Reveal } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import "./Leaderboard.css";
 
 const DIRECTIONS = [
   ["all", "Все направления"],
@@ -42,6 +46,7 @@ const DIRECTIONS = [
 ];
 
 const DIRECTION_LABELS = Object.fromEntries(DIRECTIONS);
+const directionLabel = (value) => value === "cv" ? "Компьютерное зрение" : DIRECTION_LABELS[value] || value;
 
 const TAB_META = {
   overall: { label: "Общий", icon: Crown, metric: "Общий результат", description: "70% соревнования + 30% дуэли после нормализации мест" },
@@ -116,7 +121,7 @@ function calculateDuelWinDelta(userRating, opponentRating, duelConfig) {
 }
 
 function SeasonSelector({ value, onChange, seasons }) {
-  return <label className="relative block"><span className="sr-only">Сезон</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 appearance-none border border-border bg-card pl-4 pr-10 text-sm font-semibold outline-none hover:border-primary/40 focus:border-primary">{seasons.map((item) => <option key={item.slug} value={item.slug}>{item.name || item.title || item.slug}{item.status === "active" ? " · активен" : item.status === "archived" ? " · архив" : ""}</option>)}</select><History className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} /></label>;
+  return <label className="rating-season-select"><span className="sr-only">Сезон</span><span className="rating-season-select__dot" aria-hidden="true" /><select value={value} onChange={(event) => onChange(event.target.value)}>{seasons.map((item) => <option key={item.slug} value={item.slug}>{item.name || item.title || item.slug}{item.status === "active" ? " · активен" : item.status === "archived" ? " · архив" : ""}</option>)}</select><ChevronDown size={16} aria-hidden="true" /></label>;
 }
 
 function formatSeasonDate(value, options = {}) {
@@ -183,7 +188,6 @@ function SeasonDetailsDialog({ open, onOpenChange, season, methodology, particip
 function MyPosition({ row, rank, tab, direction, archived, duelStart, calibrationMatches }) {
   const duelCount = Number(row.duels || 0);
   const value = tab === "duels" && direction === "all" && row.duel == null && duelCount === 0 ? duelStart : rankValue(row, tab, direction);
-  const details = tab === "overall" ? [`Соревнования №${row.competitionRank ?? "—"}`, `Дуэли №${row.duelRank ?? "—"}`] : tab === "competitions" ? [`${row.competitions ?? "—"} соревнований`, row.best == null ? "лучший результат: —" : `лучший результат: верхние ${row.best}%`] : [`${row.duels ?? "—"} дуэлей`, row.duels && row.wins != null ? `${Math.round((row.wins / row.duels) * 100)}% побед` : "процент побед: —"];
   const emptyText = tab === "competitions" && Number(row.competitions || 0) === 0
     ? "Ваш рейтинг соревнований начнётся после первого финального результата этого сезона."
     : tab === "duels" && duelCount === 0
@@ -194,11 +198,12 @@ function MyPosition({ row, rank, tab, direction, archived, duelStart, calibratio
           ? "Общий рейтинг уже считается, но один из компонентов пока равен нулю."
           : "В этой выборке пока нет рейтингового результата.";
   return (
-    <section className="grid gap-px border border-border bg-border lg:grid-cols-[minmax(0,1fr)_200px_200px_auto]">
-      <div className="bg-card p-5"><div className="flex items-center gap-3"><Avatar name={row.name} src={row.avatar} size={44} /><div><p className="text-xs text-muted-foreground">Моя позиция</p><p className="mt-1 font-heading text-lg font-extrabold">{row.name}</p></div></div></div>
-      <div className="bg-card p-5"><p className="text-xs text-muted-foreground">Место</p><p className="mt-2 font-heading text-3xl font-extrabold">{rank ? `#${rank}` : "—"}</p></div>
-      <div className="bg-card p-5"><p className="text-xs text-muted-foreground">{TAB_META[tab].metric}</p><p className="mt-2 font-heading text-3xl font-extrabold">{displayRating(value)}</p></div>
-      <div className="flex min-w-60 flex-col justify-center bg-card p-5"><p className="text-xs leading-5 text-muted-foreground">{rank ? details.join(" · ") : emptyText}</p><Button asChild variant="outline" className="mt-3"><Link to={archived ? "/profile" : tab === "duels" ? "/duels" : "/competitions"}>{archived ? "Открыть ML-паспорт" : "Улучшить позицию"}<ArrowRight size={15} /></Link></Button></div>
+    <section className="rating-my-position">
+      <div className="rating-my-position__person"><Avatar name={row.name} src={row.avatar} size={54} /><div><p>Моя позиция</p><strong>{row.name}</strong></div></div>
+      <div className="rating-my-position__metric"><p>Место</p><strong>{rank ? `#${rank}` : "—"}</strong></div>
+      <div className="rating-my-position__metric"><p>{TAB_META[tab].metric}</p><strong>{displayRating(value)}</strong></div>
+      <Button asChild className="rating-my-position__action"><Link to={archived ? "/profile" : tab === "duels" ? "/duels" : "/competitions"}>{archived ? "Открыть ML-паспорт" : "Улучшить позицию"}<ArrowRight size={17} /></Link></Button>
+      {!rank && <p className="rating-my-position__note">{emptyText}</p>}
     </section>
   );
 }
@@ -207,12 +212,12 @@ function RatingRow({ row, rank, tab, direction }) {
   const value = rankValue(row, tab, direction);
   const winRate = row.duels && row.wins != null ? Math.round((row.wins / row.duels) * 100) : null;
   return (
-    <Link to={`/profile/${row.id}`} className={cn("group hidden min-h-20 grid-cols-[64px_minmax(210px,1.2fr)_minmax(170px,0.8fr)_minmax(160px,0.7fr)_140px] items-center border-b border-border px-5 transition-colors hover:bg-secondary/35 md:grid", row.me && "bg-primary/5")}>
+    <Link to={`/profile/${row.id}`} className={cn("rating-table__row", row.me && "is-me")}>
       <Rank rank={rank} />
-      <div className="flex min-w-0 items-center gap-3"><Avatar name={row.name} src={row.avatar} size={40} /><div className="min-w-0"><p className="truncate text-sm font-bold group-hover:text-primary">{row.name}{row.me && <span className="ml-2 text-[10px] text-primary">Это вы</span>}</p><div className="mt-1 flex flex-wrap gap-1">{row.directions.slice(0, 2).map((item) => <span key={item} className="text-[10px] text-muted-foreground">{DIRECTION_LABELS[item]}</span>)}</div></div></div>
-      {tab === "overall" ? <div><p className="text-xs text-muted-foreground">Соревнования {row.competitionRank ? `#${row.competitionRank}` : "—"}</p><p className="mt-1 text-xs text-muted-foreground">Дуэли {row.duelRank ? `#${row.duelRank}` : "—"}</p></div> : tab === "competitions" ? <div><p className="text-sm font-semibold">{row.competitions ?? "—"} событий</p><p className="mt-1 text-xs text-muted-foreground">{row.best == null ? "—" : `верхние ${row.best}%`}</p></div> : <div><p className="text-sm font-semibold">{row.duels ?? "—"} дуэлей</p><p className="mt-1 text-xs text-muted-foreground">{row.wins ?? "—"} побед · {winRate == null ? "—" : `${winRate}%`}</p></div>}
-      {tab === "competitions" ? <div><p className="text-xs text-muted-foreground">Проверки</p><p className="mt-1 text-sm font-semibold">{row.verified == null ? "—" : `${row.verified} подтверждено`}</p></div> : tab === "duels" ? <div><p className="text-xs text-muted-foreground">Серия</p><p className="mt-1 text-sm font-semibold">{row.streak ? `${row.streak} побед` : "—"}</p><p className="mt-1 text-[10px] text-muted-foreground">{row.activity}</p></div> : <div><p className="text-xs text-muted-foreground">Сильные области</p><p className="mt-1 text-sm font-semibold">{row.directions.slice(0, 2).map((item) => DIRECTION_LABELS[item]).join(" · ") || "—"}</p></div>}
-      <div className="text-right"><p className="font-heading text-xl font-extrabold tabular-nums">{displayRating(value)}</p><p className="mt-1 text-[10px] text-muted-foreground">{TAB_META[tab].metric}</p></div>
+      <div className="rating-table__person"><Avatar name={row.name} src={row.avatar} size={42} /><div><strong>{row.name}</strong>{row.me && <span className="rating-table__me">Это вы</span>}<small>{row.directions.slice(0, 2).map(directionLabel).join(" · ") || "Направление не указано"}</small></div></div>
+      <div className="rating-table__components">{tab === "overall" ? <><span>Соревнования {row.competitionRank ? `#${row.competitionRank}` : "—"}</span><span>Дуэли {row.duelRank ? `#${row.duelRank}` : "—"}</span></> : tab === "competitions" ? <><span>{row.competitions ?? "—"} событий</span><span>{row.best == null ? "Лучший результат —" : `Верхние ${row.best}%`}</span></> : <><span>{row.duels ?? "—"} дуэлей</span><span>{row.wins ?? "—"} побед · {winRate == null ? "—" : `${winRate}%`}</span></>}</div>
+      <div className="rating-table__directions"><span>{tab === "competitions" ? "Подтверждения" : tab === "duels" ? "Серия" : "Сильные области"}</span><strong>{tab === "competitions" ? row.verified == null ? "—" : `${row.verified} подтверждено` : tab === "duels" ? row.streak ? `${row.streak} побед` : "—" : row.directions.slice(0, 2).map(directionLabel).join(" · ") || "—"}</strong></div>
+      <strong className="rating-table__score">{displayRating(value)}</strong>
     </Link>
   );
 }
@@ -220,14 +225,14 @@ function RatingRow({ row, rank, tab, direction }) {
 function MobileRatingCard({ row, rank, tab, direction }) {
   const value = rankValue(row, tab, direction);
   const winRate = row.duels && row.wins != null ? Math.round((row.wins / row.duels) * 100) : null;
-  return <Link to={`/profile/${row.id}`} className={cn("block border-b border-border bg-card p-4 md:hidden", row.me && "bg-primary/5")}><div className="flex items-center gap-3"><Rank rank={rank} /><Avatar name={row.name} src={row.avatar} size={38} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{row.name}{row.me && <span className="ml-2 text-[10px] text-primary">Это вы</span>}</p><p className="mt-1 text-[10px] text-muted-foreground">{row.directions.slice(0, 2).map((item) => DIRECTION_LABELS[item]).join(" · ")}</p></div><div className="text-right"><p className="font-heading text-lg font-extrabold">{displayRating(value)}</p><p className="text-[9px] text-muted-foreground">{TAB_META[tab].metric}</p></div></div><div className="mt-4 grid grid-cols-2 gap-px bg-border text-xs">{tab === "overall" ? <><div className="bg-card p-3">Соревнования <strong className="float-right">{row.competitionRank ? `#${row.competitionRank}` : "—"}</strong></div><div className="bg-card p-3">Дуэли <strong className="float-right">{row.duelRank ? `#${row.duelRank}` : "—"}</strong></div></> : tab === "competitions" ? <><div className="bg-card p-3">Событий <strong className="float-right">{row.competitions ?? "—"}</strong></div><div className="bg-card p-3">Лучший <strong className="float-right">{row.best == null ? "—" : `верхние ${row.best}%`}</strong></div></> : <><div className="bg-card p-3">Дуэлей <strong className="float-right">{row.duels ?? "—"}</strong></div><div className="bg-card p-3">Победы <strong className="float-right">{winRate == null ? "—" : `${winRate}%`}</strong></div></>}</div></Link>;
+  return <Link to={`/profile/${row.id}`} className={cn("rating-mobile-row", row.me && "is-me")}><div className="rating-mobile-row__top"><Rank rank={rank} /><Avatar name={row.name} src={row.avatar} size={42} /><div className="rating-mobile-row__person"><strong>{row.name}</strong>{row.me && <span className="rating-table__me">Это вы</span>}<small>{row.directions.slice(0, 2).map(directionLabel).join(" · ") || "Направление не указано"}</small></div><strong className="rating-mobile-row__score">{displayRating(value)}</strong></div><div className="rating-mobile-row__bottom">{tab === "overall" ? <><span>Соревнования <strong>{row.competitionRank ? `#${row.competitionRank}` : "—"}</strong></span><span>Дуэли <strong>{row.duelRank ? `#${row.duelRank}` : "—"}</strong></span></> : tab === "competitions" ? <><span>Событий <strong>{row.competitions ?? "—"}</strong></span><span>Лучший <strong>{row.best == null ? "—" : `верхние ${row.best}%`}</strong></span></> : <><span>Дуэлей <strong>{row.duels ?? "—"}</strong></span><span>Победы <strong>{winRate == null ? "—" : `${winRate}%`}</strong></span></>}</div></Link>;
 }
 
 function Rank({ rank }) {
-  if (rank == null) return <span className="w-10 shrink-0 font-mono text-sm text-muted-foreground">—</span>;
-  if (rank === 1) return <span className="flex w-10 shrink-0 items-center gap-1 font-heading text-lg font-extrabold text-amber-600 dark:text-amber-400"><Crown size={17} />1</span>;
-  if (rank <= 3) return <span className="flex w-10 shrink-0 items-center gap-1 font-heading text-lg font-extrabold text-primary"><Medal size={16} />{rank}</span>;
-  return <span className="w-10 shrink-0 font-mono text-sm text-muted-foreground">{String(rank).padStart(2, "0")}</span>;
+  if (rank == null) return <span className="rating-rank">—</span>;
+  if (rank === 1) return <span className="rating-rank is-first"><Crown size={19} />1</span>;
+  if (rank <= 3) return <span className={`rating-rank is-${rank}`}><Medal size={18} />{rank}</span>;
+  return <span className="rating-rank">{String(rank).padStart(2, "0")}</span>;
 }
 
 export default function Leaderboard() {
@@ -265,37 +270,37 @@ export default function Leaderboard() {
   const calibrationMatches = configNumber(methodologyQuery.data?.duel?.calibration_matches);
 
   return (
-    <PageFrame>
-      <Reveal><PageHeader title="Рейтинг ML-Арены" description="Результаты участников в текущем сезоне. Соревнования и дуэли считаются отдельно, а общий рейтинг объединяет их с весами 70% и 30%. Выберите направление, чтобы сравнить участников в конкретной области ML." actions={<>{seasons.length ? <SeasonSelector value={season} seasons={seasons} onChange={(value) => updateParam("season", value, activeSeason)} /> : null}<Button asChild variant="outline"><Link to={`/rating/methodology${season ? `?season=${encodeURIComponent(season)}` : ""}`}><BookOpenCheck size={16} />Как считается рейтинг?</Link></Button></>} /></Reveal>
+    <PageFrame className="rating-page">
+      <header className="rating-hero">
+        <div className="rating-hero__content"><h1>Рейтинг ML-Арены</h1><p>Результаты участников в текущем сезоне. Соревнования и дуэли считаются отдельно, а общий рейтинг объединяет их с весами 70% и 30%. Выберите направление, чтобы сравнить участников в конкретной области ML.</p></div>
+        <img className="rating-hero__trophy" src="/rating-trophy.webp" alt="" aria-hidden="true" />
+        <div className="rating-hero__actions">{seasons.length ? <SeasonSelector value={season} seasons={seasons} onChange={(value) => updateParam("season", value, activeSeason)} /> : null}<Button asChild variant="outline"><Link to={`/rating/methodology${season ? `?season=${encodeURIComponent(season)}` : ""}`}><BookOpenCheck size={18} />Как считается рейтинг?</Link></Button></div>
+      </header>
 
-      {archived && <div className="mt-5 flex items-start gap-3 border border-border bg-secondary/50 p-4 text-sm"><History size={18} className="mt-0.5 shrink-0 text-primary" /><div><p className="font-semibold">Сезон завершён</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Рейтинг зафиксирован и доступен только для просмотра. Долгосрочные результаты сохранены в ML-паспортах участников.</p></div></div>}
+      {archived && <div className="rating-archived"><CalendarClock size={19} /><div><strong>Сезон завершён</strong><p>Рейтинг зафиксирован и доступен для просмотра. Результаты сохранены в ML-паспортах участников.</p></div></div>}
 
-      {seasonData && <Reveal className="mt-6" delay={0.03}><section className="relative grid overflow-hidden border border-primary/20 bg-card md:grid-cols-[minmax(0,1fr)_auto] md:items-stretch"><span className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" /><div className="p-6 pl-7"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">{seasonData.name || seasonData.slug}</h2><p className="mt-3 line-clamp-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-muted-foreground">{seasonData.description || seasonData.long_description || seasonData.summary || "Описание сезона пока не добавлено."}</p><Button type="button" variant="outline" className="mt-5" onClick={() => setSeasonDetailsOpen(true)}>Подробнее о сезоне <ArrowRight size={15} /></Button></div><div className="grid grid-cols-2 border-t border-border bg-secondary/25 md:min-w-64 md:grid-cols-1 md:border-l md:border-t-0"><div className="p-4 md:p-5"><p className="text-[10px] text-muted-foreground">Старт</p><p className="mt-2 text-sm font-bold">{seasonStart || "—"}</p></div><div className="border-l border-border p-4 md:border-l-0 md:border-t md:p-5"><p className="text-[10px] text-muted-foreground">Финиш</p><p className="mt-2 text-sm font-bold">{seasonEnd || "—"}</p></div></div></section></Reveal>}
+      {seasonData && <section className="rating-season-card"><div className="rating-season-card__visual"><img src="/rating-trophy.webp" alt="" aria-hidden="true" /></div><div className="rating-season-card__copy"><h2>{seasonData.name || seasonData.slug}</h2><p>{seasonData.description || seasonData.long_description || seasonData.summary || "Описание сезона пока не добавлено."}</p><Button type="button" onClick={() => setSeasonDetailsOpen(true)}>Подробнее о сезоне <ArrowRight size={17} /></Button></div><div className="rating-season-card__dates"><div><span className="rating-season-card__date-icon is-start"><CalendarDays size={24} /></span><p>Старт<strong>{seasonStart || "—"}</strong></p></div><div><span className="rating-season-card__date-icon is-finish"><Flag size={23} /></span><p>Финиш<strong>{seasonEnd || "—"}</strong></p></div></div></section>}
 
-      <Reveal className="mt-4" delay={0.04}><div className="grid gap-px border border-border bg-border sm:grid-cols-3">{[[Users, "Участников", ratingPayload.total ?? "—", "с рейтинговой активностью"], [Trophy, "Событий", competitionEventsCount ?? "—", competitionEventsCount === null ? "финальных результатов пока нет" : "зачтено в рейтинге сезона"], [Clock3, "Начало сезона", seasonStart || "—", seasonData?.status === "active" ? "сезон активен" : seasonData?.status || "статус неизвестен"]].map(([Icon, label, value, detail]) => <div key={label} className="bg-card p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={14} className="text-primary" />{label}</div><p className="mt-3 font-heading text-xl font-extrabold">{value}</p><p className="mt-1 text-[10px] text-muted-foreground">{detail}</p></div>)}</div></Reveal>
+      <div className="rating-stats">{[[Users, "Участников", ratingPayload.total ?? "—", "с рейтинговой активностью", "people"], [Trophy, "Событий", competitionEventsCount ?? "—", competitionEventsCount === null ? "финальных результатов пока нет" : "зачтено в рейтинге сезона", "events"], [CalendarDays, "Начало сезона", seasonStart || "—", seasonData?.status === "active" ? "сезон активен" : seasonData?.status || "статус неизвестен", "season"]].map(([Icon, label, value, detail, tone]) => <div key={label} className="rating-stat"><span className={`rating-stat__icon is-${tone}`}><Icon size={28} /></span><div><p>{label}</p><strong>{value}</strong><small>{detail}</small></div></div>)}</div>
 
       <SeasonDetailsDialog open={seasonDetailsOpen} onOpenChange={setSeasonDetailsOpen} season={seasonData} methodology={methodologyQuery.data} participants={ratingPayload.total} competitionEvents={competitionEventsCount} />
 
-      <section className="mt-7">
-        <div className="flex overflow-x-auto border border-border bg-card p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{Object.entries(TAB_META).map(([value, item]) => <button key={value} type="button" onClick={() => updateParam("tab", value, "overall")} className={cn("flex min-h-12 min-w-[180px] flex-1 items-center justify-center gap-2 px-5 text-sm font-semibold text-muted-foreground transition-colors sm:min-w-0", tab === value ? "bg-primary text-primary-foreground" : "hover:bg-secondary hover:text-foreground")}><item.icon size={17} />{item.label}</button>)}</div>
-        <p className="mt-3 text-xs text-muted-foreground">{TAB_META[tab].description}</p>
-
-        <div className="mt-5 flex flex-col gap-3 lg:flex-row">
-          <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти участника по нику" className="h-11 pl-10" /></div>
-          <label className="relative lg:w-[280px]"><span className="sr-only">Направление ML</span><select value={direction} onChange={(event) => updateParam("direction", event.target.value, "all")} className="h-11 w-full appearance-none border border-border bg-card pl-4 pr-10 text-sm font-semibold outline-none hover:border-primary/40 focus:border-primary">{DIRECTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><Target className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} /></label>
-        </div>
+      <section className="rating-controls">
+        <div className="rating-tabs" role="tablist" aria-label="Тип рейтинга">{Object.entries(TAB_META).map(([value, item]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => updateParam("tab", value, "overall")} className={cn("rating-tabs__tab", tab === value && "is-active")}><item.icon size={20} />{item.label}</button>)}</div>
+        <p className="rating-controls__description">{TAB_META[tab].description}</p>
+        <div className="rating-filters"><label className="rating-filters__search"><Search size={19} aria-hidden="true" /><span className="sr-only">Поиск участника</span><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти участника по нику" /></label><label className="rating-filters__direction"><span className="sr-only">Направление ML</span><select value={direction} onChange={(event) => updateParam("direction", event.target.value, "all")}>{DIRECTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={16} aria-hidden="true" /><Target size={18} aria-hidden="true" /></label></div>
       </section>
 
       {direction !== "all" && eligibleCount < 10 && <div className="mt-5 flex items-start gap-3 border border-amber-500/25 bg-amber-500/5 p-4"><CircleHelp className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" size={18} /><div><p className="text-sm font-semibold">Недостаточно данных для устойчивого места</p><p className="mt-1 text-xs leading-5 text-muted-foreground">В направлении «{DIRECTION_LABELS[direction]}» сейчас {eligibleCount} участников. Результаты уже сохраняются в ML-паспорте, но громкий статус лидера направления пока не присваивается.</p></div></div>}
 
-      {myRow && <Reveal className="mt-6" delay={0.06}><MyPosition row={myRow} rank={myRank} tab={tab} direction={direction} archived={archived} duelStart={duelStart} calibrationMatches={calibrationMatches} /></Reveal>}
+      {myRow && <MyPosition row={myRow} rank={myRank} tab={tab} direction={direction} archived={archived} duelStart={duelStart} calibrationMatches={calibrationMatches} />}
 
-      {!seasonsQuery.isLoading && !season ? <div className="mt-8 border border-dashed border-border bg-card px-6 py-16 text-center"><CalendarClock className="mx-auto text-muted-foreground" size={28} /><h2 className="mt-4 font-heading text-2xl font-extrabold">Новый сезон ещё не начался</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Таблица появится здесь после старта следующего рейтингового сезона.</p></div> : <section className="mt-8">
-        <div className="flex items-end justify-between gap-4"><div><h2 className="font-heading text-2xl font-extrabold md:text-3xl">{TAB_META[tab].label}{direction !== "all" ? ` · ${DIRECTION_LABELS[direction]}` : ""}</h2><p className="mt-2 text-xs text-muted-foreground">{rows.length} участников в текущей выборке</p></div>{search && <button type="button" onClick={() => setSearch("")} className="text-xs font-semibold text-primary hover:underline">Сбросить поиск</button>}</div>
-        {ratingQuery.isLoading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div> : ratingQuery.error ? <div className="mt-5 border border-destructive/25 bg-destructive/5 px-6 py-12 text-center"><CircleHelp className="mx-auto text-destructive" size={28} /><h3 className="mt-4 font-heading text-xl font-extrabold">Не удалось загрузить рейтинг</h3><p className="mt-2 text-sm text-muted-foreground">{ratingQuery.error.message || "Повторите попытку позже."}</p></div> : rows.length ? <div className="mt-5 overflow-hidden border border-border bg-card"><div className="hidden grid-cols-[64px_minmax(210px,1.2fr)_minmax(170px,0.8fr)_minmax(160px,0.7fr)_140px] border-b border-border bg-secondary/40 px-5 py-3 text-[10px] font-semibold text-muted-foreground md:grid"><span>Место</span><span>Участник</span><span>{tab === "overall" ? "Компоненты" : tab === "competitions" ? "Активность" : "Матчи"}</span><span>{tab === "competitions" ? "Подтверждения" : tab === "duels" ? "Серия" : "Направления"}</span><span className="text-right">{TAB_META[tab].metric}</span></div><Stagger delay={0.04}>{rows.map((row) => <StaggerItem key={row.id}><RatingRow row={row} rank={row.rank} tab={tab} direction={direction} /><MobileRatingCard row={row} rank={row.rank} tab={tab} direction={direction} /></StaggerItem>)}</Stagger></div> : <div className="mt-5 border-y border-dashed border-border py-16 text-center"><Search className="mx-auto text-muted-foreground" size={28} /><h3 className="mt-4 font-heading text-xl font-extrabold">Участники не найдены</h3><p className="mt-2 text-sm text-muted-foreground">Измените поиск или выберите другое направление.</p></div>}
+      {!seasonsQuery.isLoading && !season ? <div className="rating-empty"><CalendarClock size={30} /><h2>Новый сезон ещё не начался</h2><p>Таблица появится здесь после старта следующего рейтингового сезона.</p></div> : <section className="rating-board">
+        <div className="rating-board__heading"><div><h2>{TAB_META[tab].label}{direction !== "all" ? ` · ${DIRECTION_LABELS[direction]}` : ""}</h2><p>{rows.length} участников в текущей выборке</p></div>{search && <button type="button" onClick={() => setSearch("")}>Сбросить поиск</button>}</div>
+        {ratingQuery.isLoading ? <div className="rating-board__loading"><Loader2 className="animate-spin" size={28} /></div> : ratingQuery.error ? <div className="rating-empty is-error"><CircleHelp size={28} /><h3>Не удалось загрузить рейтинг</h3><p>{ratingQuery.error.message || "Повторите попытку позже."}</p></div> : rows.length ? <div className="rating-table"><div className="rating-table__head"><span>Место</span><span>Участник</span><span>{tab === "overall" ? "Компоненты" : tab === "competitions" ? "Активность" : "Матчи"}</span><span>{tab === "competitions" ? "Подтверждения" : tab === "duels" ? "Серия" : "Направления"}</span><span>{TAB_META[tab].metric}</span></div>{rows.map((row) => <React.Fragment key={row.id}><RatingRow row={row} rank={row.rank} tab={tab} direction={direction} /><MobileRatingCard row={row} rank={row.rank} tab={tab} direction={direction} /></React.Fragment>)}</div> : <div className="rating-empty"><Search size={28} /><h3>Участники не найдены</h3><p>Измените поиск или выберите другое направление.</p></div>}
       </section>}
 
-      <Reveal className="mt-10" delay={0.08}><section className="grid gap-8 border-t border-border py-8 lg:grid-cols-2 lg:gap-12"><div className="border-l-2 border-primary pl-6"><h2 className="font-heading text-2xl font-extrabold">Рейтинг — результат сезона</h2><p className="mt-4 max-w-lg text-sm leading-6 text-muted-foreground">Он сравнивает результаты участников, а не оценивает все ваши знания. Подтверждённые навыки и достижения собраны в ML-паспорте.</p><Link to="/ml-passport" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">Открыть ML-паспорт <ArrowRight size={15} /></Link></div><div className="divide-y divide-border">{[["Premium не влияет на место", "Подписка не меняет формулы, лимиты рейтинговых попыток и подбор соперников."], ["Как учитывается вызов ML-Арены", "Победа даёт небольшой бонус 0–10, максимум 40 за сезон. Поражение не отнимает рейтинг."], ["Призы за высокие места в сезоне", "Лучшие участники сезона могут получить призы. Состав наград, число призовых мест и условия получения публикуются в правилах конкретного сезона."]].map(([title, text]) => <details key={title} className="group py-5 first:pt-0"><summary className="cursor-pointer font-heading text-base font-bold leading-6 marker:text-primary">{title}</summary><p className="mt-3 text-sm leading-6 text-muted-foreground">{text}</p></details>)}</div></section></Reveal>
+      <section className="rating-extras"><div className="rating-extras__passport"><span className="rating-extras__icon"><FileText size={25} /></span><div><h2>Рейтинг — результат сезона</h2><p>Он сравнивает результаты участников, а не оценивает все ваши знания. Подтверждённые навыки и достижения собраны в ML-паспорте.</p><Link to="/ml-passport">Открыть ML-паспорт <ArrowRight size={16} /></Link></div></div><div className="rating-extras__faq">{[["Premium не влияет на место", "Подписка не меняет формулы, лимиты рейтинговых попыток и подбор соперников."], ["Как учитывается вызов ML-Арены", "Победа даёт небольшой бонус 0–10, максимум 40 за сезон. Поражение не отнимает рейтинг."], ["Призы за высокие места в сезоне", "Лучшие участники сезона могут получить призы. Состав наград, число призовых мест и условия получения публикуются в правилах конкретного сезона."]].map(([title, text]) => <details key={title}><summary><span>{title}</span><ChevronRight size={18} /></summary><p>{text}</p></details>)}</div></section>
     </PageFrame>
   );
 }

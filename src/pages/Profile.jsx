@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Link, useParams } from "react-router-dom";
-import { Award, BadgeCheck, BriefcaseBusiness, CheckCircle2, Crown, ExternalLink, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, Loader2, MapPin, Medal, ShieldCheck, Sparkles, Star, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
+import { Activity, Award, BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, ChevronRight, CircleDot, Crown, ExternalLink, FileText, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, ListFilter, Loader2, MapPin, Medal, Network, Pencil, ScanEye, ShieldCheck, Sparkles, Star, Swords, Target, TrendingUp, Trophy, UserRoundSearch } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import { PageFrame } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
+import ProfileRating from "./ProfileRating";
+import ProfileCareer from "./ProfileCareer";
+import ProfilePractice from "./ProfilePractice";
+import "./Profile.css";
 
 const DIRECTIONS = [
   ["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"], ["cv", "Компьютерное зрение"],
@@ -20,11 +23,6 @@ const DIRECTIONS = [
 const list = (value) => Array.isArray(value) ? value : value?.items || value?.data || [];
 const currentRating = (value) => value?.current_user || value?.currentUser || null;
 const shown = (value) => value === undefined || value === null ? "—" : value;
-const INTEREST_LABELS = {
-  classification: "Классификация", regression: "Регрессия", nlp: "NLP", computer_vision: "Компьютерное зрение",
-  time_series: "Временные ряды", ranking: "Ранжирование", clustering: "Кластеризация", recsys: "RecSys",
-};
-
 const BADGE_ICONS = {
   award: Award,
   badge: BadgeCheck,
@@ -49,8 +47,13 @@ const BADGE_COLORS = {
   "violet-500": "border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-300",
 };
 
-function SummaryMetric({ label, value, detail }) {
-  return <div className="h-full border-b border-border px-5 py-6 sm:border-l sm:border-b-0"><p className="text-xs font-semibold text-muted-foreground">{label}</p><p className="mt-4 font-heading text-4xl font-extrabold tabular-nums">{shown(value)}</p><p className="mt-3 text-xs leading-5 text-muted-foreground">{detail}</p></div>;
+function SummaryMetric({ icon: Icon = Trophy, label, value, detail, tone = "blue", onActivate }) {
+  const Element = onActivate ? "button" : "div";
+  return <Element type={onActivate ? "button" : undefined} onClick={onActivate} className={cn("passport-stat", `passport-stat--${tone}`, onActivate && "passport-stat--interactive")}>
+    <span className="passport-stat__icon"><Icon size={26} strokeWidth={2.4} /></span>
+    <span className="passport-stat__copy"><span className="passport-stat__label">{label}</span><strong className="passport-stat__value">{shown(value)}</strong><span className="passport-stat__detail">{detail}</span></span>
+    {onActivate && <ChevronRight size={19} className="passport-stat__arrow" aria-hidden="true" />}
+  </Element>;
 }
 
 function EmptyState({ title, text }) {
@@ -58,27 +61,26 @@ function EmptyState({ title, text }) {
 }
 
 const DIRECTION_STYLE = {
-  classification: ["CL", "text-teal-700 dark:text-teal-300", "bg-teal-500"],
-  regression: ["RG", "text-blue-700 dark:text-blue-300", "bg-blue-500"],
-  nlp: ["NLP", "text-violet-700 dark:text-violet-300", "bg-violet-500"],
-  cv: ["CV", "text-rose-700 dark:text-rose-300", "bg-rose-500"],
-  time_series: ["TS", "text-cyan-700 dark:text-cyan-300", "bg-cyan-500"],
-  ranking: ["RK", "text-amber-700 dark:text-amber-300", "bg-amber-500"],
-  clustering: ["KM", "text-emerald-700 dark:text-emerald-300", "bg-emerald-500"],
-  recsys: ["RS", "text-indigo-700 dark:text-indigo-300", "bg-indigo-500"],
+  classification: ["CL", BarChart3, "#08b88e", "#e0f7f0"],
+  regression: ["RG", TrendingUp, "#356cf2", "#e3edff"],
+  nlp: ["NLP", FileText, "#733bea", "#efe7ff"],
+  cv: ["CV", ScanEye, "#eb2858", "#ffe4eb"],
+  time_series: ["TS", Activity, "#09a8da", "#ddf5fc"],
+  ranking: ["RK", ListFilter, "#f18b0b", "#fff0df"],
+  clustering: ["KM", CircleDot, "#10ad69", "#e0f7ee"],
+  recsys: ["RS", Network, "#7045e9", "#ece8ff"],
 };
 
 function DirectionCard({ code, title, score }) {
   const value = Number(score);
   const hasData = score != null && Number.isFinite(value) && value > 0;
   const progress = hasData ? Math.max(0, Math.min(100, value)) : 0;
-  const [mark, ink, accent] = DIRECTION_STYLE[code];
-  return <article className="group relative flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card p-6 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transform-none">
-    <div className={cn("absolute inset-x-0 top-0 h-1", accent)} />
-    <div className="flex items-center gap-4"><span aria-hidden="true" className={cn("font-mono text-3xl font-semibold", ink)}>{mark}<span className="opacity-35">/</span></span></div>
-    <h3 className="mt-6 break-words font-heading text-xl font-extrabold leading-snug">{title}</h3>
-    <p className={cn("mt-2 text-xs", hasData ? ink : "text-muted-foreground")}>{hasData ? "Подтверждено" : "Пока нет результатов"}</p>
-    <div className="mt-auto pt-7"><div className="flex items-end justify-between gap-3"><span className="text-xs text-muted-foreground">Уровень</span><strong className="font-heading text-2xl tabular-nums">{hasData ? `${value}%` : "—"}</strong></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className={cn("h-full rounded-full transition-[width] duration-500", accent)} style={{ width: `${progress}%` }} /></div></div>
+  const [mark, Icon, accent, soft] = DIRECTION_STYLE[code] || DIRECTION_STYLE.classification;
+  return <article className="passport-direction" style={{ "--direction-accent": accent, "--direction-soft": soft }}>
+    <div className="passport-direction__top"><span className="passport-direction__icon"><Icon size={27} strokeWidth={2.4} /></span><span className="passport-direction__mark" aria-hidden="true">{mark}<span>/</span></span><span className="passport-direction__brand">ML-ARENA</span></div>
+    <h3>{title}</h3>
+    <p>{hasData ? "Подтверждено" : "Пока нет результатов"}</p>
+    <div className="passport-direction__bottom"><span>Уровень</span><div className="passport-direction__track"><div style={{ width: `${progress}%` }} /></div><strong>{hasData ? `${value}%` : "—"}</strong></div>
   </article>;
 }
 
@@ -147,21 +149,11 @@ function ExternalAchievementCard({ achievement }) {
   </article>;
 }
 
-function RatingHistory({ history }) {
-  if (!history.length) return <EmptyState title="История рейтинга пока пуста" text="Изменения появятся после первого рейтингового результата." />;
-  const validHistory = history.filter((item) => Number.isFinite(Number(item.rating)));
-  if (!validHistory.length) return <EmptyState title="История рейтинга пока пуста" text="Изменения появятся после первого рейтингового результата." />;
-  const values = validHistory.map((item) => Number(item.rating));
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = Math.max(1, max - min);
-  return <div className="border border-border bg-card p-5"><div className="flex h-44 items-end gap-2">{validHistory.map((item) => { const height = 20 + ((Number(item.rating) - min) / range) * 80; return <div key={`${item.date}-${item.rating}`} className="group flex min-w-0 flex-1 flex-col items-center justify-end"><span className="mb-2 hidden text-[10px] font-semibold group-hover:block">{item.rating}</span><div className="w-full bg-primary/75" style={{ height: `${height}%` }} /><span className="mt-2 max-w-full truncate text-[9px] text-muted-foreground">{item.date}</span></div>; })}</div></div>;
-}
-
 export default function Profile() {
   const { id } = useParams();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("directions");
+  const [selectedSeason, setSelectedSeason] = useState("");
   const ownerIds = [user?.id, user?.user_id, user?.profile_id].filter(Boolean).map(String);
   const isOwner = !id || id === "me" || ownerIds.includes(String(id));
   const profileQuery = useQuery({ queryKey: ["profile", isOwner ? "me" : id], queryFn: () => isOwner ? api.profiles.me() : api.profiles.get(id) });
@@ -170,7 +162,7 @@ export default function Profile() {
   const badgesQuery = useQuery({ queryKey: ["profile-badges", profileUserId], queryFn: () => api.profiles.badges(profileUserId), enabled: Boolean(profileUserId) });
   const seasonsQuery = useQuery({ queryKey: ["rating-seasons"], queryFn: api.rating.seasons, staleTime: 60000, enabled: isOwner });
   const seasons = list(seasonsQuery.data);
-  const season = seasons.find((item) => item.status === "active")?.slug || null;
+  const season = seasons.some((item) => item.slug === selectedSeason) ? selectedSeason : seasons.find((item) => item.status === "active")?.slug || null;
   const overallQuery = useQuery({ queryKey: ["profile-rating", "overall", season], queryFn: () => api.rating.get({ tab: "overall", season }), enabled: Boolean(isOwner && season) });
   const competitionsQuery = useQuery({ queryKey: ["profile-rating", "competitions", season], queryFn: () => api.rating.get({ tab: "competitions", season }), enabled: Boolean(isOwner && season) });
   const duelsQuery = useQuery({ queryKey: ["profile-rating", "duels", season], queryFn: () => api.rating.get({ tab: "duels", season }), enabled: Boolean(isOwner && season) });
@@ -184,7 +176,6 @@ export default function Profile() {
   const competitionRating = currentRating(competitionsQuery.data);
   const duelRating = currentRating(duelsQuery.data);
   const overallScore = overall?.score ?? 0;
-  const competitionScore = competitionRating?.score ?? overall?.competition_score ?? 0;
   const duelWins = duelRating?.wins ?? overall?.wins ?? stats.duels_won ?? 0;
   const duelLosses = duelRating?.losses ?? overall?.losses ?? stats.duels_lost ?? 0;
   const humanDuels = duelRating?.human_duels_count ?? overall?.human_duels_count ?? (Number(duelWins) + Number(duelLosses));
@@ -192,31 +183,19 @@ export default function Profile() {
   const duelScore = duelRating?.duel_rating ?? duelRating?.score ?? overall?.duel_rating ?? (Number(humanDuels) === 0 ? duelStart : null);
   const challengeBonus = duelRating?.challenge_bonus_total ?? overall?.challenge_bonus_total ?? 0;
   const seasonalScore = overallQuery.isSuccess ? overallScore : null;
-  const seasonalCompetitionScore = competitionsQuery.isSuccess ? competitionScore : null;
   const seasonalDuelScore = duelsQuery.isSuccess ? duelScore : null;
-  const competitionWeight = methodologyQuery.data?.overall?.competition_weight == null
-    ? methodologyQuery.data?.competition_weight_percent
-    : Math.round(Number(methodologyQuery.data.overall.competition_weight) * 100);
-  const duelWeight = methodologyQuery.data?.overall?.duel_weight == null
-    ? methodologyQuery.data?.duel_weight_percent
-    : Math.round(Number(methodologyQuery.data.overall.duel_weight) * 100);
-  const ratingComposition = competitionWeight != null && duelWeight != null
-    ? `${competitionWeight}% соревнования · ${duelWeight}% дуэли после нормализации`
-    : "Вес компонентов задаётся методикой активного сезона";
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
-  const hasDirections = directionCards.some((item) => Number(item.score) > 0);
-  const hasRating = Number(overallScore) > 0 || Number(competitionScore) > 0 || Number(duelScore) > 0 || Number(humanDuels) > 0;
-  const hasPractice = [humanDuels, duelWins, duelLosses, challengeBonus, stats.competitions_participated].some((value) => Number(value) > 0);
   const passportTabs = [
-    ...(isOwner || hasDirections ? [["directions", "Направления", Target]] : []),
-    ...(isOwner || hasRating ? [["rating", "Рейтинг", Trophy]] : []),
-    ...(isOwner || hasPractice ? [["practice", "Практика", Swords]] : []),
-    ...(isOwner || badges.length ? [["badges", "Бейджи", Award]] : []),
-    ...(isOwner || externalAchievements.length ? [["external", "Внешние достижения", Globe2]] : []),
+    ["directions", "Направления", Target],
+    ["rating", "Рейтинг", Trophy],
+    ["practice", "Практика", Swords],
+    ["badges", "Бейджи", Award],
+    ["external", "Внешние достижения", Globe2],
     ...(isOwner ? [["career", "Профиль", UserRoundSearch]] : []),
   ];
+  const tabAction = (tab) => passportTabs.some(([value]) => value === tab) ? () => setActiveTab(tab) : undefined;
 
   useEffect(() => {
     if (passportTabs.length && !passportTabs.some(([value]) => value === activeTab)) {
@@ -224,43 +203,44 @@ export default function Profile() {
     }
   }, [activeTab, passportTabs]);
 
-  if (profileQuery.isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
-  if (!profile) return <div className="py-20 text-center text-muted-foreground">ML-паспорт не найден</div>;
+  if (profileQuery.isLoading) return <div className="passport-page min-h-full"><div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div></div>;
+  if (!profile) return <div className="passport-page min-h-full"><div className="py-20 text-center text-muted-foreground">ML-паспорт не найден</div></div>;
+  const joinedAt = profile.created_at || (isOwner ? user?.registered_at : null);
+  const joinedYear = joinedAt && !Number.isNaN(new Date(joinedAt).getTime()) ? new Date(joinedAt).getFullYear() : null;
 
-  return <div className="min-h-full bg-secondary/35"><PageFrame>
+  return <div className="passport-page min-h-full"><PageFrame className="passport-frame">
     <Reveal>
-      <div className="mb-7 flex items-center justify-between gap-4 border-b border-border pb-4"><p className="font-heading text-sm font-bold">ML-паспорт</p><img src="/logo.svg" alt="ML-Арена" className="h-8 w-8 object-contain" /></div>
-      <header className="flex flex-col justify-between gap-7 border-b border-border pb-9 pt-3 xl:flex-row xl:items-end">
-        <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar name={displayName} src={profile.avatar_url} size={128} className="shrink-0 ring-8 ring-card shadow-lg" />
-          <div className="min-w-0">
-            <h1 className="mt-3 break-words font-heading text-3xl font-extrabold leading-tight [overflow-wrap:anywhere] sm:text-4xl">{displayName}</h1>
-            {fullName && profile.user_name && <p className="mt-1 text-sm text-muted-foreground">@{profile.user_name}</p>}
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{profile.bio || "Описание профиля пока не заполнено."}</p>
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">{profile.city && <span className="flex items-center gap-1.5"><MapPin size={13} />{profile.city}</span>}{profile.university && <span className="flex items-center gap-1.5"><GraduationCap size={13} />{profile.university}</span>}{profile.company && <span className="flex items-center gap-1.5"><BriefcaseBusiness size={13} />{profile.company}</span>}{profile.github_url && <a href={profile.github_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary"><Github size={13} />GitHub</a>}{profile.kaggle_url && <a href={profile.kaggle_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary"><LinkIcon size={13} />Kaggle</a>}</div>
-            {profile.interests?.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{profile.interests.map((interest) => <span key={interest} className="rounded-full border border-primary/20 bg-primary/[0.06] px-3 py-1.5 text-xs font-semibold text-primary">{INTEREST_LABELS[interest] || interest}</span>)}</div>}
-          </div>
+      <header className="passport-hero">
+        <div className="passport-hero__art" aria-hidden="true"><span /><span /><span /></div>
+        <span className="passport-hero__motto" aria-hidden="true">Больше,<br />чем ML</span>
+        <div className="passport-hero__avatar"><Avatar name={displayName} src={profile.avatar_url} size={132} /></div>
+        <div className="passport-hero__identity">
+          <span className="passport-hero__rating"><Trophy size={18} fill="currentColor" /> Рейтинг {shown(seasonalScore)}</span>
+          <h1>{displayName}</h1>
+          {profile.user_name && <p className="passport-hero__handle">@{profile.user_name}</p>}
+          <p className="passport-hero__bio">{profile.bio || "Описание профиля пока не заполнено."}</p>
+          <div className="passport-hero__meta">{joinedYear && <span><CalendarDays size={17} />ML-Арена с {joinedYear}</span>}<span><BarChart3 size={17} />Участник сообщества</span>{profile.city && <span><MapPin size={17} />{profile.city}</span>}{profile.university && <span><GraduationCap size={17} />{profile.university}</span>}{profile.company && <span><BriefcaseBusiness size={17} />{profile.company}</span>}{profile.github_url && <a href={profile.github_url} target="_blank" rel="noreferrer"><Github size={17} />GitHub</a>}{profile.kaggle_url && <a href={profile.kaggle_url} target="_blank" rel="noreferrer"><LinkIcon size={17} />Kaggle</a>}</div>
         </div>
-        {isOwner && <Button asChild variant="outline" className="shrink-0 self-start lg:self-auto"><Link to="/profile/edit">Редактировать профиль</Link></Button>}
+        {isOwner && <Button asChild variant="outline" className="passport-hero__edit"><Link to="/profile/edit"><Pencil size={17} />Редактировать профиль</Link></Button>}
       </header>
     </Reveal>
 
-    <Stagger className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={CheckCircle2} label="Соревнования" value={stats.competitions_participated ?? 0} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={humanDuels} detail={duelRating?.calibration_status === "calibrated" ? "Калибровка завершена" : "Нужно 5 матчей для места"} /></StaggerItem><StaggerItem><SummaryMetric icon={Award} label="Бейджи" value={badges.length} detail="Полученные достижения" /></StaggerItem></Stagger>
+    <Stagger className="passport-stats"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.rank ? seasonalScore : null} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} tone="blue" onActivate={tabAction("rating")} /></StaggerItem><StaggerItem><SummaryMetric icon={BarChart3} label="Соревнования" value={stats.competitions_participated ?? 0} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} tone="violet" onActivate={tabAction("rating")} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={Number(humanDuels) > 0 ? humanDuels : null} detail="Завершённые матчи" tone="orange" onActivate={tabAction("practice")} /></StaggerItem><StaggerItem><SummaryMetric icon={ShieldCheck} label="Бейджи" value={badges.length} detail="Полученные достижения" tone="green" onActivate={tabAction("badges")} /></StaggerItem></Stagger>
 
-    <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="mt-8">
-      <Tabs.List className="flex overflow-x-auto border border-border bg-card p-1" aria-label="Разделы ML-паспорта">{passportTabs.map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="flex min-h-11 min-w-36 flex-1 items-center justify-center gap-2 px-4 text-sm font-semibold text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Icon size={16} />{label}</Tabs.Trigger>)}</Tabs.List>
+    <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="passport-tabs">
+      <Tabs.List className="passport-tabs__list" aria-label="Разделы ML-паспорта">{passportTabs.map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="passport-tabs__trigger"><Icon size={19} />{label}</Tabs.Trigger>)}</Tabs.List>
 
-      <Tabs.Content value="directions" className="mt-9 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Карта компетенций</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Ваши подтверждённые результаты в машинном обучении.</p><div className="mt-7 grid gap-4 md:grid-cols-2 2xl:grid-cols-4">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
+      <Tabs.Content value="directions" className="passport-directions outline-none"><Reveal><div className="passport-section-title"><div><h2>Карта компетенций</h2><p>Ваши подтверждённые результаты в машинном обучении.</p></div><div className="passport-section-title__note"><BarChart3 size={26} /><span>Развивайтесь в разных направлениях<br />и получайте новые достижения!</span></div></div><div className="passport-directions__grid">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
 
-      <Tabs.Content value="rating" className="mt-7 outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <><div className="mb-6"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Рейтинг сезона</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Компоненты берутся из сезонного рейтинга. {ratingComposition}.</p></div><div className="grid gap-3 md:grid-cols-3"><SummaryMetric icon={Trophy} label="Общий рейтинг" value={seasonalScore} detail={overall?.rank ? `Место #${overall.rank}` : "Пока без места"} /><SummaryMetric icon={Target} label="Соревнования" value={seasonalCompetitionScore} detail={competitionRating?.rank ? `Место #${competitionRating.rank}` : "Ваш рейтинг начнётся после первого финального результата"} /><SummaryMetric icon={Swords} label="Дуэли" value={seasonalDuelScore} detail={duelRating?.rank ? `Место #${duelRating.rank}` : Number(humanDuels) > 0 ? `Калибровка: ${humanDuels} из ${methodologyQuery.data?.duel?.calibration_matches ?? "—"}` : Number(challengeBonus) > 0 ? `Бонус вызовов: ${challengeBonus}` : `Старт сезона: ${duelStart ?? "—"}`} /></div></>}</Reveal></Tabs.Content>
+      <Tabs.Content value="rating" className="outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <ProfileRating seasons={seasons} season={season} onSeasonChange={setSelectedSeason} overall={overall} competition={competitionRating} duels={duelRating} ratingTotal={overallQuery.data?.total ?? overallQuery.data?.meta?.total} methodology={methodologyQuery.data} />}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="practice" className="mt-7 outline-none"><Reveal><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Практика</h2><p className="mt-2 text-sm text-muted-foreground">История рейтинговых дуэлей и результатов против заданий ML-Арены.</p><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><SummaryMetric icon={Swords} label="Дуэли с людьми" value={humanDuels} detail="Завершённые матчи" /><SummaryMetric icon={CheckCircle2} label="Победы" value={duelWins} detail="В дуэлях с участниками" /><SummaryMetric icon={History} label="Поражения" value={duelLosses} detail="В дуэлях с участниками" /><SummaryMetric icon={Award} label="Бонус вызовов" value={challengeBonus} detail="За задания ML-Арены" /><SummaryMetric icon={Target} label="Рейтинг дуэлей сезона" value={seasonalDuelScore} detail={Number(humanDuels) > 0 ? "Текущее значение" : `Начинается с ${duelStart ?? "—"}`} /></div>{(profile.rating_history || []).length > 0 && <div className="mt-6"><h3 className="mb-2 font-heading text-2xl font-extrabold">История рейтинга дуэлей</h3><p className="mb-4 text-xs leading-5 text-muted-foreground">Изменения рейтинга в завершённых матчах.</p><RatingHistory history={profile.rating_history || []} /></div>}{Number(humanDuels) === 0 && Number(challengeBonus) === 0 && <div className="mt-6"><EmptyState title="Практики пока нет" text="Завершите первую дуэль или вызов ML-Арены, чтобы здесь появилась статистика." /></div>}</Reveal></Tabs.Content>
+      <Tabs.Content value="practice" className="outline-none"><Reveal><ProfilePractice matches={humanDuels} wins={duelWins} losses={duelLosses} bonus={challengeBonus} rating={seasonalDuelScore} startRating={duelStart} history={duelRating?.history || duelRating?.rating_history || profile.rating_history || []} /></Reveal></Tabs.Content>
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
 
       <Tabs.Content value="external" className="mt-7 outline-none"><Reveal><div className="mb-7"><h2 className="mt-2 font-heading text-2xl font-extrabold sm:text-3xl">Внешние достижения</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Результаты с ML-площадок, соревнований и олимпиад отображаются отдельно от внутреннего рейтинга.</p></div>{externalAchievements.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{externalAchievements.map((achievement, index) => <ExternalAchievementCard key={achievement.id || `${achievement.source || achievement.platform || "external"}-${index}`} achievement={achievement} />)}</div> : <EmptyState title="Внешних достижений пока нет" text="Здесь появятся достижения, которые передаст и подтвердит ML-Арена." />}</Reveal></Tabs.Content>
 
-      {isOwner && <Tabs.Content value="career" className="mt-7 outline-none"><Reveal><div className="grid gap-3 md:grid-cols-2"><Card className="border-border bg-card p-6"><BriefcaseBusiness size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Личные и карьерные данные</h2><div className="mt-5 divide-y divide-border">{[["Возраст", profile.age], ["Пол", profile.gender === "male" ? "Мужской" : profile.gender === "female" ? "Женский" : null], ["Город", profile.city], ["Университет", profile.university], ["Компания", profile.company], ["Виден работодателям", profile.visible_to_employers ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong className="text-right">{shown(value)}</strong></div>)}</div></Card><Card className="border-border bg-card p-6"><UserRoundSearch size={21} className="text-primary" /><h2 className="mt-5 font-heading text-2xl font-extrabold">Публичность</h2><div className="mt-5 divide-y divide-border">{[["Публичный профиль", profile.public_profile ? "Да" : "Нет"], ["Показывать имя", profile.show_real_name ? "Да" : "Нет"], ["Показывать карьерные данные", profile.show_career_details ? "Да" : "Нет"]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><span className="text-muted-foreground">{label}</span><strong>{value}</strong></div>)}</div></Card></div></Reveal></Tabs.Content>}
+      {isOwner && <Tabs.Content value="career" className="outline-none"><Reveal><ProfileCareer profile={profile} /></Reveal></Tabs.Content>}
     </Tabs.Root>
   </PageFrame></div>;
 }

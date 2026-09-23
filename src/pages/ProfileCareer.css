@@ -1,0 +1,115 @@
+.passport-career {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.passport-career__panel {
+  position: relative;
+  min-width: 0;
+  min-height: 474px;
+  overflow: hidden;
+  padding: 24px 28px 29px;
+  border: 1px solid #dfe7f6;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 9px 24px rgb(46 82 147 / 5%);
+}
+
+.passport-career__art {
+  position: absolute;
+  top: 24px;
+  right: 18px;
+  width: 29%;
+  height: 76px;
+  background: #e8f0ff;
+  clip-path: polygon(0 100%, 32% 42%, 45% 67%, 77% 18%, 100% 67%, 100% 100%);
+  opacity: .55;
+  pointer-events: none;
+}
+
+.passport-career__decoration {
+  position: absolute;
+  top: 27px;
+  right: 32px;
+  width: 70px;
+  height: 70px;
+  color: #adc6fa;
+  opacity: .54;
+  pointer-events: none;
+}
+
+.passport-career__icon {
+  position: relative;
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eaf1ff;
+  color: #2b61e9;
+}
+
+.passport-career__panel h2 {
+  position: relative;
+  margin-top: 17px;
+  color: #13203b;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.passport-career__description {
+  position: relative;
+  margin-top: 7px;
+  color: #697f9e;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.passport-career__rows {
+  position: relative;
+  margin-top: 22px;
+}
+
+.passport-career__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(65px, auto) 32px;
+  align-items: center;
+  gap: 15px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2eaf6;
+  font-size: 15px;
+}
+
+.passport-career__row:last-child { border-bottom: 0; }
+.passport-career__label { min-width: 0; color: #5f7495; }
+.passport-career__value { min-width: 0; overflow-wrap: anywhere; color: #17233e; font-weight: 720; text-align: right; }
+.passport-career__edit { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 6px; color: #5e7397; transition: background-color .18s, color .18s; }
+.passport-career__edit:hover { background: #eaf1ff; color: #285ee8; }
+.passport-career__edit:focus-visible { outline: 2px solid #356cf2; outline-offset: 2px; }
+
+.dark .passport-career__panel { border-color: #2b3955; background: #19243b; }
+.dark .passport-career__panel h2, .dark .passport-career__value { color: #f2f5ff; }
+.dark .passport-career__description, .dark .passport-career__label { color: #a7b6d0; }
+.dark .passport-career__row { border-color: #34445f; }
+.dark .passport-career__icon { background: #263b66; color: #a9c4ff; }
+.dark .passport-career__edit { color: #b1c3e2; }
+.dark .passport-career__edit:hover { background: #263b66; color: #fff; }
+
+@media (max-width: 1050px) {
+  .passport-career { grid-template-columns: 1fr; }
+  .passport-career__panel { min-height: 0; }
+}
+
+@media (max-width: 520px) {
+  .passport-career { gap: 12px; margin-top: 20px; }
+  .passport-career__panel { padding: 20px 18px 23px; }
+  .passport-career__panel h2 { font-size: 21px; }
+  .passport-career__description { font-size: 13px; }
+  .passport-career__row { grid-template-columns: minmax(0, 1fr) minmax(48px, auto) 30px; gap: 9px; min-height: 52px; font-size: 13px; }
+  .passport-career__art { top: 23px; right: 14px; width: 33%; height: 72px; }
+  .passport-career__decoration { top: 25px; right: 20px; width: 66px; height: 66px; }
+}
