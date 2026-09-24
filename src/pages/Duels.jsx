@@ -5,18 +5,28 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  Box,
   BrainCircuit,
   Check,
   ChevronRight,
   CircleHelp,
   Clock3,
+  Database,
+  Eye,
+  FileText,
+  Gauge,
   History,
+  Hourglass,
+  ListFilter,
   Loader2,
+  MessageCircle,
+  Network,
   RefreshCw,
   Search,
   ShieldCheck,
   Swords,
   Target,
+  TrendingUp,
   Trophy,
   Upload,
   UserRoundSearch,
@@ -28,13 +38,14 @@ import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
-import { PageFrame, PageHeader } from "@/components/ml/PageFrame";
+import { PageFrame } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
+import "./Duels.css";
 
 const TASKS = {
   classification: {
@@ -89,12 +100,21 @@ const TASKS = {
 
 const RULES = [
   { icon: Clock3, title: "60 минут", text: "Одинаковое основное время для обоих участников." },
-  { icon: Upload, title: "Один набор данных", text: "Оба участника решают задачу на одном и том же наборе данных." },
+  { icon: Database, title: "Один набор данных", text: "Оба участника решают задачу на одном и том же наборе данных." },
   { icon: Trophy, title: "Лучший результат", text: "Побеждает лучший результат на одной скрытой выборке." },
   { icon: ShieldCheck, title: "Равные правила", text: "Результат соперника скрыт до завершения матча." },
 ];
 
-const RULE_ACCENTS = ["bg-primary", "bg-accent", "bg-amber-500", "bg-foreground/45"];
+const TASK_ICONS = {
+  classification: Network,
+  regression: TrendingUp,
+  nlp: MessageCircle,
+  cv: Eye,
+  time_series: BarChart3,
+  ranking: ListFilter,
+  clustering: Target,
+  recsys: Box,
+};
 
 const CHALLENGE_LEVELS = {
   easy: {
@@ -209,34 +229,26 @@ function RatingSummary({ rating, isLoading, defaultRating, calibrationMatches })
     ? Math.min(100, Math.round((duelCount / calibrationTarget) * 100))
     : 0;
   return (
-    <div className="grid min-w-0 grid-cols-2 md:grid-cols-4">
-      <div className="flex min-h-28 flex-col justify-between border-b border-r border-border/80 p-5 md:border-b-0">
-        <span className="text-xs font-medium text-muted-foreground">Рейтинг сезона</span>
-        <span className="font-heading text-3xl font-bold tabular-nums">{isLoading ? "…" : duelRating ?? "—"}</span>
+    <div className="duel-overview__stats">
+      <div className="duel-overview__stat">
+        <span className="duel-overview__stat-icon duel-overview__stat-icon--blue"><Trophy size={22} /></span>
+        <div><span className="duel-overview__stat-label">Рейтинг сезона</span><strong className="duel-overview__stat-number">{isLoading ? "…" : duelRating ?? "—"}</strong></div>
       </div>
-      <div className="flex min-h-28 flex-col justify-between border-b border-border/80 p-5 md:border-b-0 md:border-r">
-        <span className="text-xs font-medium text-muted-foreground">Место</span>
-        <span className={cn("font-heading font-bold", duelRank ? "text-3xl tabular-nums" : "max-w-36 text-sm leading-5 text-muted-foreground")}>
-          {isLoading ? "…" : duelRank ? `#${duelRank}` : calibrated ? "Пока нет места" : "После калибровки"}
-        </span>
+      <div className="duel-overview__stat">
+        <span className="duel-overview__stat-icon duel-overview__stat-icon--amber"><Hourglass size={22} /></span>
+        <div><span className="duel-overview__stat-label">Место</span><strong className="duel-overview__stat-value">{isLoading ? "…" : duelRank ? `#${duelRank}` : calibrated ? "Пока нет места" : "После калибровки"}</strong></div>
       </div>
-      <div className="flex min-h-28 flex-col justify-between border-r border-border/80 p-5">
-        <span className="text-xs font-medium text-muted-foreground">Калибровка</span>
-        <div>
-          <p className="text-sm font-semibold text-foreground">
-            {isLoading ? "…" : calibrated ? "Завершена" : Number.isFinite(calibrationTarget) && calibrationTarget > 0 ? `${duelCount} из ${calibrationTarget} матчей` : "Данные загружаются"}
-          </p>
-          <div className="mt-3 h-1.5 overflow-hidden bg-secondary" aria-hidden="true">
-            <span className="block h-full bg-primary transition-[width] duration-500" style={{ width: calibrated ? "100%" : `${calibrationProgress}%` }} />
-          </div>
+      <div className="duel-overview__stat">
+        <span className="duel-overview__stat-icon duel-overview__stat-icon--green"><Gauge size={22} /></span>
+        <div className="duel-overview__stat-main">
+          <span className="duel-overview__stat-label">Калибровка</span>
+          <strong className="duel-overview__stat-value">{isLoading ? "…" : calibrated ? "Завершена" : Number.isFinite(calibrationTarget) && calibrationTarget > 0 ? `${duelCount} из ${calibrationTarget} матчей` : "Данные загружаются"}</strong>
+          <span className="duel-overview__progress" aria-hidden="true"><span style={{ width: calibrated ? "100%" : `${calibrationProgress}%` }} /></span>
         </div>
       </div>
-      <div className="flex min-h-28 flex-col justify-between p-5">
-        <span className="text-xs font-medium text-muted-foreground">Результаты сезона</span>
-        <div>
-          <p className="text-sm font-semibold text-foreground">{rating ? `${rating.wins ?? 0} побед · ${rating.losses ?? 0} поражений` : "Матчей пока нет"}</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">{rating ? "Рейтинговые дуэли этого сезона" : "Статистика появится после первой дуэли"}</p>
-        </div>
+      <div className="duel-overview__stat">
+        <span className="duel-overview__stat-icon duel-overview__stat-icon--violet"><FileText size={22} /></span>
+        <div><span className="duel-overview__stat-label">Результаты сезона</span><strong className="duel-overview__stat-value">{rating ? `${rating.wins ?? 0} побед · ${rating.losses ?? 0} поражений` : "Матчей пока нет"}</strong><span className="duel-overview__stat-hint">{rating ? "Рейтинговые дуэли сезона" : "После первой дуэли"}</span></div>
       </div>
     </div>
   );
@@ -348,23 +360,21 @@ function OpponentCard({ opponent, onChallenge, pending, currentRating }) {
   const winRate = getWinRate(opponent);
 
   return (
-    <Card className="group h-full border-border bg-card p-4 transition-colors hover:border-primary/40">
-      <div className="flex items-start gap-3">
+    <Card className="duel-overview__opponent group border-border bg-card transition-colors hover:border-primary/40">
+      <div className="flex items-center gap-3">
         <div className="relative">
-          <OpponentAvatar opponent={opponent} size={42} />
+          <OpponentAvatar opponent={opponent} size={40} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{opponent.name}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="truncate text-sm font-bold">{opponent.name}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
             {opponent.rating === null ? <span className="text-xs text-muted-foreground">Нет калибровки</span> : <LeagueBadge rating={opponent.rating} size="sm" />}
           </div>
+          <p className={cn("mt-0.5 text-xs", withinRatingRange ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400")}>
+            {ratingGap === null ? "Рейтинг пока не определён" : `Разница ${ratingGap} Elo`}
+          </p>
         </div>
-        <span className="text-xs font-medium text-muted-foreground">{winRate === null ? "—" : `${winRate}%`}</span>
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-        <span className={cn("text-xs", withinRatingRange ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400")}>
-          {ratingGap === null ? "Рейтинг пока не определён" : `Разница ${ratingGap} Elo`}
-        </span>
+        <span className="duel-overview__opponent-wins text-xs text-muted-foreground">{winRate === null ? "—" : `${winRate}%`}</span>
         <Button
           size="sm"
           variant="outline"
@@ -601,34 +611,38 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
   }, [opponents, searchNick]);
 
   return (
-    <>
+    <div className="duel-overview">
       <Reveal>
-        <section>
-          <PageHeader className="border-b-0 pb-0" title="Дуэли по машинному обучению" description="Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат.">
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-11 px-6">
+        <section className="duel-overview__intro">
+          <div className="duel-overview__hero">
+            <img className="duel-overview__hero-art" src="/duels-swords-hero.webp" alt="" aria-hidden="true" fetchPriority="high" />
+            <img className="duel-overview__hero-dark-art" src="/duels-swords-dark.webp" alt="" aria-hidden="true" loading="lazy" />
+            <div className="duel-overview__hero-copy">
+              <h1>Дуэли по машинному обучению</h1>
+              <p>Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат.</p>
+              <div className="duel-overview__hero-actions">
+                <Button asChild>
                   <Link to="/duels/matchmaking">
-                    <Zap size={17} />
+                    <Zap size={16} />
                     Найти соперника
                   </Link>
                 </Button>
                 <Button
                   variant="outline"
-                  size="lg"
-                  className="h-11 px-6"
                   onClick={() => document.getElementById("nickname-search")?.focus()}
                 >
-                  <UserRoundSearch size={17} />
+                  <UserRoundSearch size={16} />
                   Вызвать по нику
                 </Button>
-                <Button variant="outline" size="lg" className="h-11 px-5" onClick={() => setGuideOpen(true)}>
-                  <CircleHelp size={17} />
+                <Button variant="outline" onClick={() => setGuideOpen(true)}>
+                  <CircleHelp size={16} />
                   Как это работает
                 </Button>
               </div>
-          </PageHeader>
-          <DuelNav view="overview" className="mt-6" />
-          <div className="mt-6 overflow-hidden border border-border bg-card"><RatingSummary rating={currentRatingRow} isLoading={ratingLoading} defaultRating={currentRating} calibrationMatches={calibrationMatches} /></div>
+            </div>
+          </div>
+          <DuelNav view="overview" className="duel-overview__tabs" />
+          <RatingSummary rating={currentRatingRow} isLoading={ratingLoading} defaultRating={currentRating} calibrationMatches={calibrationMatches} />
         </section>
       </Reveal>
 
@@ -654,41 +668,29 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
         </Reveal>
       )}
 
-      <Reveal delay={0.06} className="py-9">
+      <Reveal delay={0.06} className="duel-overview__directions">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="font-heading text-xl font-bold md:text-2xl">Выбери направление</h2>
+            <h2 className="duel-overview__section-title"><span className="duel-overview__section-icon"><Network size={21} /></span>Выбери направление</h2>
           </div>
           <span className="hidden text-xs text-muted-foreground md:block">Диапазон поиска постепенно расширяется</span>
         </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4" role="radiogroup" aria-label="Направление дуэли">
-          {Object.entries(TASKS).map(([key, task]) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={taskType === key}
-              onClick={() => setTaskType(key)}
-              className={cn(
-                "min-h-12 border px-3 text-left text-sm font-medium transition-colors",
-                taskType === key
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-foreground hover:border-primary/50 hover:text-primary",
-              )}
-            >
-              {task.label}
-            </button>
-          ))}
+        <div className="duel-overview__direction-grid" role="radiogroup" aria-label="Направление дуэли">
+          {Object.entries(TASKS).map(([key, task]) => {
+            const Icon = TASK_ICONS[key];
+            return <button key={key} type="button" role="radio" aria-checked={taskType === key} onClick={() => setTaskType(key)} className={cn("duel-overview__direction", taskType === key && "duel-overview__direction--active")}>
+              <Icon size={18} aria-hidden="true" />
+              <span>{task.label}</span>
+              {taskType === key && <ArrowRight size={16} className="duel-overview__direction-arrow" aria-hidden="true" />}
+            </button>;
+          })}
         </div>
       </Reveal>
 
-      <section className="grid gap-8 border-t border-border py-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,.85fr)]">
-        <Reveal delay={0.08} className="flex min-w-0 flex-col">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="font-heading text-xl font-bold">Найти соперника</h2>
-            </div>
-            <Search size={20} className="text-muted-foreground" />
+      <section className="duel-overview__match-grid">
+        <Reveal delay={0.08} className="duel-overview__panel duel-overview__search-panel">
+          <div className="duel-overview__panel-head">
+            <h2 className="duel-overview__section-title"><span className="duel-overview__section-icon"><Search size={22} /></span>Найти соперника</h2>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
@@ -697,7 +699,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
               value={searchNick}
               onChange={(event) => setSearchNick(event.target.value)}
               placeholder="Например, ai_glider"
-              className="h-11 pl-10"
+              className="duel-overview__search-input pl-10"
             />
           </div>
           <AnimatePresence mode="wait">
@@ -727,27 +729,27 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
                 <p className="mt-1 text-xs text-muted-foreground">Так поиск точнее найдёт нужного участника.</p>
               </motion.div>
             ) : (
-              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="relative mt-3 flex min-h-64 flex-col overflow-hidden border border-primary/20 bg-card shadow-sm lg:flex-1">
+              <motion.div key="start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="duel-overview__challenge relative mt-3 flex flex-col overflow-hidden border border-primary/20 bg-card shadow-sm lg:flex-1">
                 <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
-                <div className="flex items-start gap-4 border-b border-border p-5 pl-6 sm:p-6 sm:pl-7">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><UserRoundSearch size={21} /></span>
+                <div className="duel-overview__challenge-top flex items-start gap-4 border-b border-border">
+                  <span className="duel-overview__challenge-icon flex shrink-0 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><UserRoundSearch size={21} /></span>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-heading text-lg font-bold">Вызов конкретного игрока</h3>
+                      <h3 className="font-heading text-base font-extrabold">Вызов конкретного игрока</h3>
                       <span className="border border-primary/20 bg-primary/[0.06] px-2 py-1 text-[10px] font-semibold text-primary">{TASKS[taskType]?.label}</span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">Начните вводить ник участника. После выбора вы сможете отправить ему прямой вызов в выбранном направлении.</p>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">Начните вводить ник участника. После выбора вы сможете отправить ему прямой вызов в выбранном направлении.</p>
                   </div>
                 </div>
-                <div className="mt-auto grid border-t border-border bg-card sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <div className="flex items-end justify-between gap-4 p-5 pl-6 sm:pl-7">
+                <div className="duel-overview__challenge-bottom mt-auto grid border-t border-border bg-card sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="duel-overview__challenge-rating flex items-end justify-between gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground">Ваш рейтинг дуэлей</p>
-                      <p className="mt-1 font-heading text-2xl font-extrabold tabular-nums">{currentRating ?? "—"}</p>
+                      <p className="mt-1 font-heading text-xl font-extrabold tabular-nums">{currentRating ?? "—"}</p>
                     </div>
                     <span className="hidden max-w-40 text-right text-xs leading-5 text-muted-foreground sm:block">Подбор учитывает текущий рейтинг</span>
                   </div>
-                  <div className="flex flex-col justify-center border-t border-primary/15 bg-primary/[0.035] p-5 sm:min-w-64 sm:border-l sm:border-t-0">
+                  <div className="duel-overview__challenge-auto flex flex-col justify-center border-t border-primary/15 bg-primary/[0.035] sm:border-l sm:border-t-0">
                     <p className="text-xs font-medium text-muted-foreground">Не знаете ник участника?</p>
                     <Button asChild variant="outline" size="sm" className="mt-2 justify-between border-primary/25 bg-card text-primary hover:bg-primary hover:text-primary-foreground">
                       <Link to="/duels/matchmaking">Автоматический подбор <Zap size={14} /></Link>
@@ -759,14 +761,12 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
           </AnimatePresence>
         </Reveal>
 
-        <Reveal delay={0.12}>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="font-heading text-xl font-bold">Ближайшие по рейтингу</h2>
-            </div>
+        <Reveal delay={0.12} className="duel-overview__panel">
+          <div className="duel-overview__panel-head">
+            <h2 className="duel-overview__section-title"><span className="duel-overview__section-icon"><UserRoundSearch size={22} /></span>Ближайшие по рейтингу</h2>
             <span className="text-xs text-muted-foreground">Победы</span>
           </div>
-          <div className="space-y-2">
+          <div className="duel-overview__opponents">
             {opponents.slice(0, 3).map((opponent) => (
               <OpponentCard
                 key={opponent.id}
@@ -780,35 +780,34 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
         </Reveal>
       </section>
 
-      <section className="border-t border-border py-9">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-heading text-xl font-bold md:text-2xl">Последние дуэли</h2>
-          </div>
-          <Button asChild variant="ghost" size="sm">
+      <section className="duel-overview__recent duel-overview__panel">
+        <div className="duel-overview__panel-head">
+          <h2 className="duel-overview__section-title"><span className="duel-overview__section-icon"><Clock3 size={21} /></span>Последние дуэли</h2>
+          <Button asChild variant="outline" size="sm">
             <Link to="/duels/history">Вся история <ArrowRight size={14} /></Link>
           </Button>
         </div>
-        <RecentDuels duels={duels} isLoading={isLoading} />
+        <div className="duel-overview__recent-body"><RecentDuels duels={duels} isLoading={isLoading} /></div>
       </section>
 
-      <section className="border-t border-border py-9">
-      <div className="mb-7 flex flex-wrap items-center justify-between gap-4"><h2 className="font-heading text-2xl font-extrabold sm:text-3xl">Один матч. Равные условия.</h2><Button variant="outline" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={16} /></Button></div>
-      <Stagger className="grid gap-px border-y border-border bg-border sm:grid-cols-2 lg:grid-cols-4" delay={0.08}>
-        {RULES.map((rule, index) => {
-          return (
-            <StaggerItem key={rule.title} className="relative min-w-0 bg-background p-5 sm:min-h-44 sm:p-6">
-              <span aria-hidden="true" className={cn("block h-1 w-12", RULE_ACCENTS[index])} />
-              <h3 className="mt-6 font-heading text-lg font-bold xl:text-xl">{rule.title}</h3>
-              <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">{rule.text}</p>
-            </StaggerItem>
-          );
-        })}
-      </Stagger>
+      <section className="duel-overview__rules duel-overview__panel">
+        <div className="duel-overview__panel-head">
+          <h2 className="duel-overview__section-title"><span className="duel-overview__section-icon"><Trophy size={21} /></span>Один матч. Равные условия.</h2>
+          <Button variant="outline" size="sm" onClick={() => setGuideOpen(true)}>Как проходит дуэль <ArrowRight size={14} /></Button>
+        </div>
+        <Stagger className="duel-overview__rule-grid" delay={0.08}>
+          {RULES.map((rule, index) => {
+            const Icon = rule.icon;
+            return <StaggerItem key={rule.title} className="duel-overview__rule">
+              <span className={cn("duel-overview__rule-icon", `duel-overview__rule-icon--${index}`)}><Icon size={22} /></span>
+              <div><h3>{rule.title}</h3><p>{rule.text}</p></div>
+            </StaggerItem>;
+          })}
+        </Stagger>
       </section>
 
       <DuelGuideDialog open={guideOpen} onClose={() => setGuideOpen(false)} />
-    </>
+    </div>
   );
 }
 
@@ -1352,7 +1351,7 @@ export default function Duels() {
   };
 
   return (
-    <PageFrame>
+    <PageFrame className={view === "overview" ? "duel-overview-frame" : undefined}>
       {view === "overview" && (
         <OverviewView
           duels={duels}

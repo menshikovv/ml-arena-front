@@ -19,13 +19,15 @@ import {
   ShieldCheck,
   Trophy,
   Users,
+  BarChart3,
+  FileText,
   X,
   Zap,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/api/mlArenaApi";
 import CompetitionCard from "@/components/ml/CompetitionCard";
-import { PageFrame, PageHeader } from "@/components/ml/PageFrame";
+import { PageFrame } from "@/components/ml/PageFrame";
 import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
+import "./Competitions.css";
 
 const FAIRNESS = [
   { icon: ShieldCheck, title: "Равные лимиты", text: "В рейтинговых соревнованиях число попыток одинаково для всех. Premium не даёт преимущества." },
@@ -162,15 +165,19 @@ export default function Competitions() {
   };
 
   return (
-    <PageFrame>
+    <PageFrame className="competitions-page">
       <Reveal>
-        <PageHeader
-          title="Соревнования"
-          description="Практические ML-задачи от ML-Арены, партнёров и сообщества. Выбирайте направление, отправляйте решение и сохраняйте результат в ML-паспорте."
-        />
+        <header className="competitions-hero">
+          <img className="competitions-hero__art" src="/competitions-hero.webp" alt="" aria-hidden="true" fetchPriority="high" />
+          <img className="competitions-hero__dark-art" src="/competitions-hero-dark.webp" alt="" aria-hidden="true" loading="lazy" />
+          <div className="competitions-hero__copy">
+            <h1>Соревнования</h1>
+            <p>Практические ML-задачи от ML-Арены, партнёров и сообщества. Выбирайте направление, отправляйте решение и сохраняйте результат в ML-паспорте.</p>
+          </div>
+        </header>
       </Reveal>
       <Reveal delay={0.04}>
-        <section className="mt-7 grid gap-px border border-border bg-border md:grid-cols-2">
+        <section className="competitions-sections">
           {[
             {
               id: "official",
@@ -187,40 +194,40 @@ export default function Competitions() {
           ].map((item) => {
             const active = section === item.id;
             return (
-              <button key={item.id} type="button" onClick={() => switchSection(item.id)} className={cn("group flex min-h-32 items-start gap-4 bg-card p-5 text-left transition-colors sm:p-6", active ? "bg-primary text-primary-foreground" : "hover:bg-secondary/45")}>
-                <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center border", active ? "border-primary-foreground/20 bg-primary-foreground/10" : "border-primary/15 bg-primary/10 text-primary")}><item.icon size={21} /></span>
-                <span><span className="font-heading text-xl font-extrabold">{item.title}</span><span className={cn("mt-2 block text-sm leading-6", active ? "text-primary-foreground/75" : "text-muted-foreground")}>{item.text}</span></span>
+              <button key={item.id} type="button" onClick={() => switchSection(item.id)} className={cn("competitions-section", active && "competitions-section--active")}>
+                <span className="competitions-section__icon"><item.icon size={20} /></span>
+                <span><strong>{item.title}</strong><span>{item.text}</span></span>
               </button>
             );
           })}
         </section>
       </Reveal>
 
-      <section className="mt-7">
-        <div className="flex flex-col justify-between gap-4 border-b border-border md:flex-row md:items-end">
-          <div className="flex gap-1 overflow-x-auto">
+      <section className="competitions-content">
+        <div className="competitions-toolbar">
+          <div className="competitions-status-tabs">
             {[
               ["active", "Активные", Zap],
               ["upcoming", "Скоро", CalendarClock],
               ["finished", "Завершённые", History],
             ].map(([value, label, Icon]) => (
-              <button key={value} type="button" onClick={() => setStatusFilter(value)} className={cn("relative flex h-11 shrink-0 items-center gap-2 px-3 text-sm font-semibold text-muted-foreground hover:text-primary", statusFilter === value && "text-primary")}>
+              <button key={value} type="button" onClick={() => setStatusFilter(value)} className={cn("competitions-status-tab", statusFilter === value && "competitions-status-tab--active")}>
                 <Icon size={16} />{label}
                 {statusFilter === value && <motion.span layoutId="competition-status" className="absolute inset-x-2 bottom-0 h-0.5 bg-primary" />}
               </button>
             ))}
           </div>
           {section === "community" ? (
-            <Button asChild className="mb-2 self-start md:self-auto"><Link to="/competitions/community/create"><Plus size={16} /> Создать соревнование</Link></Button>
+            <Button asChild variant="outline" className="competitions-toolbar__action"><Link to="/competitions/community/create"><Plus size={16} /> Создать соревнование</Link></Button>
           ) : (
-            <Button variant="outline" className="mb-2 self-start md:self-auto" onClick={() => setRequestOpen(true)}><Building2 size={16} /> Провести с ML-Ареной</Button>
+            <Button variant="outline" className="competitions-toolbar__action" onClick={() => setRequestOpen(true)}><Building2 size={16} /> Провести с ML-Ареной</Button>
           )}
         </div>
 
-        <div className={cn("mt-5 grid gap-3", section === "community" ? "lg:grid-cols-[minmax(260px,1fr)_190px_190px_190px]" : "lg:grid-cols-[minmax(260px,1fr)_220px_210px]")}>
+        <div className={cn("competitions-filters", section === "community" && "competitions-filters--community")}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Название, задача или организатор" className="h-11 pl-10" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Название, задача или организатор" className="competitions-filters__input pl-10" />
           </div>
           <SelectControl icon={Layers3} label="Направление" value={typeFilter} onChange={setTypeFilter}>
             <option value="all">Все направления</option>
@@ -241,10 +248,10 @@ export default function Competitions() {
           </SelectControl>
         </div>
 
-        <div className="mt-8 flex items-end justify-between gap-4">
+        <div className="competitions-list-heading">
           <div>
-            <h2 className="font-heading text-2xl font-extrabold md:text-3xl">{section === "community" ? "Задачи сообщества" : "События сезона"}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{filtered.length} {pluralize(filtered.length, "соревнование", "соревнования", "соревнований")}</p>
+            <h2>{section === "community" ? "Задачи сообщества" : "События сезона"}</h2>
+            <p>{filtered.length} {pluralize(filtered.length, "соревнование", "соревнования", "соревнований")}</p>
           </div>
           {(search || typeFilter !== "all" || accessFilter !== "all" || sort !== "deadline") && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-primary hover:underline">Сбросить фильтры</button>}
         </div>
@@ -252,7 +259,7 @@ export default function Competitions() {
         {isLoading ? (
           <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin text-primary" size={26} /></div>
         ) : filtered.length ? (
-          <Stagger className="mt-6 space-y-5" delay={0.05}>
+          <Stagger className="competitions-event-list" delay={0.05}>
             {filtered.map((competition, index) => (
               <StaggerItem key={competition.id}>
                 <CompetitionCard
@@ -275,15 +282,17 @@ export default function Competitions() {
         )}
       </section>
 
-      <Reveal className="mt-12" delay={0.08}>
-        <section className="overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-sm">
-          <div className="h-1 bg-primary" />
-          <div className="flex flex-col justify-between gap-5 px-6 py-8 sm:px-8 lg:flex-row lg:items-end lg:px-10 lg:py-10">
-            <h2 className="max-w-2xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Результат определяет решение</h2>
-            <p className="max-w-md text-sm leading-6 text-muted-foreground">Единые правила сохраняют ценность каждого места и каждого результата.</p>
+      <Reveal className="competitions-fairness" delay={0.08}>
+        <section>
+          <div className="competitions-fairness__head">
+            <h2>Результат определяет решение</h2>
+            <p>Единые правила сохраняют ценность каждого места и каждого результата.</p>
           </div>
-          <div className="grid border-t border-border bg-secondary/15 sm:grid-cols-3">
-            {FAIRNESS.map((item) => <article key={item.title} className="border-b border-border bg-card/80 px-6 py-7 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:px-8"><h3 className="font-heading text-lg font-bold">{item.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{item.text}</p></article>)}
+          <div className="competitions-fairness__grid">
+            {FAIRNESS.map((item, index) => {
+              const Icon = index === 0 ? BarChart3 : index === 2 ? FileText : item.icon;
+              return <article key={item.title} className="competitions-fairness__item"><span className={`competitions-fairness__icon competitions-fairness__icon--${index}`}><Icon size={20} /></span><div><h3>{item.title}</h3><p>{item.text}</p></div></article>;
+            })}
           </div>
         </section>
       </Reveal>
@@ -316,9 +325,9 @@ export default function Competitions() {
 
 function SelectControl({ icon: Icon, label, value, onChange, children }) {
   return (
-    <div className="relative">
+    <div className="competitions-filter-select">
       <Icon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full appearance-none border border-input bg-card pl-10 pr-9 text-sm" aria-label={label}>{children}</select>
+      <select value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>{children}</select>
       <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
     </div>
   );
