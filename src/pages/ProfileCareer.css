@@ -86,7 +86,7 @@
 
 .passport-career__row:last-child { border-bottom: 0; }
 .passport-career__label { min-width: 0; color: #5f7495; }
-.passport-career__value { min-width: 0; overflow-wrap: anywhere; color: #17233e; font-weight: 720; text-align: right; }
+.passport-career__value { min-width: 0; overflow-wrap: anywhere; color: #17233e; font-weight: 700; text-align: right; }
 .passport-career__edit { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 6px; color: #5e7397; transition: background-color .18s, color .18s; }
 .passport-career__edit:hover { background: #eaf1ff; color: #285ee8; }
 .passport-career__edit:focus-visible { outline: 2px solid #356cf2; outline-offset: 2px; }

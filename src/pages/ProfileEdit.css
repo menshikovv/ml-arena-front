@@ -18,7 +18,7 @@
   margin-bottom: 16px;
   color: #607493;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   transition: color .18s;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .profile-edit-top__copy { min-width: 0; }
-.profile-edit-top h1 { color: #111c37; font-size: 31px; font-weight: 850; line-height: 1.16; }
+.profile-edit-top h1 { color: #111c37; font-size: 31px; font-weight: 800; line-height: 1.16; }
 .profile-edit-top__copy p { margin-top: 7px; color: #647a9c; font-size: 14px; line-height: 1.45; }
 .profile-edit-top__actions { display: flex; flex: none; flex-direction: column; align-items: flex-end; gap: 6px; }
 .profile-edit-top__buttons { display: flex; gap: 9px; }
@@ -71,8 +71,8 @@
 .profile-edit-hero__camera { position: absolute; right: -6px; bottom: 6px; display: grid; width: 34px; height: 34px; place-items: center; border: 3px solid #fff; border-radius: 50%; background: #3164ed; color: #fff; }
 .profile-edit-hero__remove { position: absolute; bottom: -6px; left: 2px; display: grid; width: 26px; height: 26px; place-items: center; border: 1px solid #d7e2f3; border-radius: 50%; background: #fff; color: #b3434e; }
 .profile-edit-hero__identity { position: relative; z-index: 1; min-width: 0; max-width: 68%; }
-.profile-edit-hero__identity h2 { overflow-wrap: anywhere; color: #111b34; font-size: 39px; font-weight: 850; line-height: 1.09; }
-.profile-edit-hero__handle { margin-top: 3px; color: #4d6285; font-size: 16px; font-weight: 550; }
+.profile-edit-hero__identity h2 { overflow-wrap: anywhere; color: #111b34; font-size: 39px; font-weight: 800; line-height: 1.09; }
+.profile-edit-hero__handle { margin-top: 3px; color: #4d6285; font-size: 16px; font-weight: 500; }
 .profile-edit-hero__bio { margin-top: 6px; color: #536888; font-size: 15px; line-height: 1.45; }
 .profile-edit-hero__meta { display: flex; flex-wrap: wrap; gap: 8px 19px; margin-top: 13px; color: #4f6489; font-size: 13px; }
 .profile-edit-hero__meta span { display: inline-flex; align-items: center; gap: 8px; }
@@ -87,13 +87,13 @@
 .profile-edit-card__heading { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; }
 .profile-edit-card__icon { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border-radius: 7px; background: #eaf1ff; color: #3266eb; }
 .profile-edit-card__heading > div { min-width: 0; }
-.profile-edit-card__heading h2 { color: #172541; font-size: 17px; font-weight: 780; line-height: 1.3; }
+.profile-edit-card__heading h2 { color: #172541; font-size: 17px; font-weight: 800; line-height: 1.3; }
 .profile-edit-card__heading p { margin-top: 3px; color: #6b7e9c; font-size: 12px; line-height: 1.45; }
 .profile-edit-card__content { margin-top: 19px; }
 .profile-edit-fields { display: grid; gap: 14px; }
 .profile-edit-fields--three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .profile-edit-field { min-width: 0; }
-.profile-edit-field > label { display: block; margin-bottom: 7px; color: #243553; font-size: 13px; font-weight: 730; }
+.profile-edit-field > label { display: block; margin-bottom: 7px; color: #243553; font-size: 13px; font-weight: 700; }
 .profile-edit-field__required { color: #e32651; }
 .profile-edit-field__control { position: relative; }
 .profile-edit-field__control > svg { position: absolute; top: 50%; left: 11px; z-index: 1; color: #7186a8; transform: translateY(-50%); pointer-events: none; }
@@ -107,7 +107,7 @@
 .profile-edit-field__counter { display: block; margin-top: 4px; color: #7b8eab; font-size: 11px; text-align: right; }
 
 .profile-edit-interests { display: flex; flex-wrap: wrap; gap: 8px; }
-.profile-edit-interests__option { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; padding: 7px 13px; border: 1px solid #d8e3f5; border-radius: 20px; background: #fff; color: #4c6489; font-size: 12px; font-weight: 620; transition: border-color .18s, background-color .18s, color .18s; }
+.profile-edit-interests__option { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; padding: 7px 13px; border: 1px solid #d8e3f5; border-radius: 20px; background: #fff; color: #4c6489; font-size: 12px; font-weight: 600; transition: border-color .18s, background-color .18s, color .18s; }
 .profile-edit-interests__option:hover { border-color: #8caffb; color: #285cdb; }
 .profile-edit-interests__option.is-selected { border-color: #3267eb; background: #3267eb; color: #fff; }
 
@@ -117,7 +117,7 @@
 .profile-edit-toggle:has(input:focus-visible) { outline: 2px solid #356cf2; outline-offset: 2px; }
 .profile-edit-toggle__icon { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 6px; background: #eaf1ff; color: #3367e9; }
 .profile-edit-toggle__copy { display: block; min-width: 0; flex: 1; }
-.profile-edit-toggle__copy strong { display: block; color: #172541; font-size: 13px; font-weight: 760; line-height: 1.3; }
+.profile-edit-toggle__copy strong { display: block; color: #172541; font-size: 13px; font-weight: 700; line-height: 1.3; }
 .profile-edit-toggle__copy small { display: block; margin-top: 4px; color: #6b7e9c; font-size: 11px; line-height: 1.4; }
 .profile-edit-toggle__switch { position: relative; width: 34px; height: 19px; flex: none; border-radius: 20px; background: #ced8e8; transition: background-color .18s; }
 .profile-edit-toggle__switch.is-checked { background: #3267eb; }
@@ -128,7 +128,7 @@
 .profile-edit-error svg { flex: none; }
 .profile-edit-mobile-actions { display: none; }
 
-.dark .profile-edit-page { background: #10172a; color: #eef3ff; }
+.dark .profile-edit-page { background: transparent; color: #eef3ff; }
 .dark .profile-edit-top h1, .dark .profile-edit-hero__identity h2, .dark .profile-edit-card__heading h2, .dark .profile-edit-toggle__copy strong { color: #f2f5ff; }
 .dark .profile-edit-top__copy p, .dark .profile-edit-card__heading p, .dark .profile-edit-toggle__copy small, .dark .profile-edit-hero__handle, .dark .profile-edit-hero__bio { color: #a7b6d0; }
 .dark .profile-edit-hero, .dark .profile-edit-card { border-color: #2b3955; background: #19243b; }
@@ -177,7 +177,7 @@
   .profile-edit-top__actions { display: none; }
   .profile-edit-mobile-actions { position: sticky; bottom: 0; z-index: 20; display: flex; gap: 9px; margin: 15px -16px -64px; padding: 11px 16px; border-top: 1px solid #dfe7f5; background: rgb(247 250 255 / 94%); backdrop-filter: blur(12px); }
   .profile-edit-mobile-actions > button { flex: 1; }
-  .dark .profile-edit-mobile-actions { border-color: #34445f; background: rgb(16 23 42 / 94%); }
+  .dark .profile-edit-mobile-actions { border-color: #34445f; background: hsl(var(--background) / 94%); }
 }
 
 @media (max-width: 450px) {

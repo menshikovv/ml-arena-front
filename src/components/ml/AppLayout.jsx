@@ -181,7 +181,7 @@ export default function AppLayout({ children }) {
     <div className="flex h-full flex-col">
       <div className={`arena-sidebar-logo flex h-[76px] shrink-0 items-center border-b border-sidebar-border px-4 ${!expanded ? "justify-center" : ""}`}>
         <Link to="/" className="group flex min-w-0 items-center gap-3" onClick={() => setMobileOpen(false)}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-card shadow-sm ring-1 ring-sidebar-border"><ArenaLogoMark className="h-8 w-8" /></span>
+          <ArenaLogoMark className="h-10 w-10" />
           {expanded && <span className="min-w-0"><span className="block truncate font-heading text-xl font-extrabold leading-none">ML-Арена</span><span className="mt-1.5 block text-[10px] font-semibold uppercase text-muted-foreground">Founder Season</span></span>}
         </Link>
       </div>

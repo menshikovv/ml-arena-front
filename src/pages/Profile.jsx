@@ -167,6 +167,7 @@ export default function Profile() {
   const competitionsQuery = useQuery({ queryKey: ["profile-rating", "competitions", season], queryFn: () => api.rating.get({ tab: "competitions", season }), enabled: Boolean(isOwner && season) });
   const duelsQuery = useQuery({ queryKey: ["profile-rating", "duels", season], queryFn: () => api.rating.get({ tab: "duels", season }), enabled: Boolean(isOwner && season) });
   const methodologyQuery = useQuery({ queryKey: ["profile-rating-methodology", season], queryFn: () => api.rating.methodology({ season }), enabled: Boolean(isOwner && season), staleTime: 60000 });
+  const practiceDuelsQuery = useQuery({ queryKey: ["profile-practice-duels", profileUserId], queryFn: () => api.duels.list({ status: "completed", sort: "-completed_at", limit: 100 }), enabled: Boolean(isOwner && profileUserId && activeTab === "practice"), staleTime: 60000 });
 
   const badges = list(badgesQuery.data);
   const externalAchievements = list(profile?.external_achievements);
@@ -184,6 +185,7 @@ export default function Profile() {
   const challengeBonus = duelRating?.challenge_bonus_total ?? overall?.challenge_bonus_total ?? 0;
   const seasonalScore = overallQuery.isSuccess ? overallScore : null;
   const seasonalDuelScore = duelsQuery.isSuccess ? duelScore : null;
+  const seasonDuelHistory = duelRating?.history?.length ? duelRating.history : duelRating?.rating_history?.length ? duelRating.rating_history : null;
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
   const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
@@ -234,7 +236,7 @@ export default function Profile() {
 
       <Tabs.Content value="rating" className="outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <ProfileRating seasons={seasons} season={season} onSeasonChange={setSelectedSeason} overall={overall} competition={competitionRating} duels={duelRating} ratingTotal={overallQuery.data?.total ?? overallQuery.data?.meta?.total} methodology={methodologyQuery.data} />}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="practice" className="outline-none"><Reveal><ProfilePractice matches={humanDuels} wins={duelWins} losses={duelLosses} bonus={challengeBonus} rating={seasonalDuelScore} startRating={duelStart} history={duelRating?.history || duelRating?.rating_history || profile.rating_history || []} /></Reveal></Tabs.Content>
+      <Tabs.Content value="practice" className="outline-none"><Reveal><ProfilePractice matches={humanDuels} wins={duelWins} losses={duelLosses} bonus={challengeBonus} rating={seasonalDuelScore} startRating={duelStart} history={seasonDuelHistory || profile.rating_history || []} historySource={seasonDuelHistory ? "season" : "profile"} competitionScore={competitionsQuery.isSuccess ? competitionRating?.competition_score ?? competitionRating?.score : null} competitionsCount={stats.competitions_participated} duels={list(practiceDuelsQuery.data)} duelsLoading={practiceDuelsQuery.isLoading && isOwner} duelsError={practiceDuelsQuery.isError} ownerId={isOwner ? profileUserId : null} /></Reveal></Tabs.Content>
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
 

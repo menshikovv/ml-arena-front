@@ -19,8 +19,8 @@
 .passport-hero__avatar img, .passport-hero__avatar > div { width: 132px !important; height: 132px !important; border-radius: 50%; }
 .passport-hero__identity { position: relative; z-index: 1; min-width: 0; align-self: center; }
 .passport-hero__rating { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid #a8c1ff; border-radius: 8px; background: #ecf2ff; color: #1d56e4; font-size: 13px; font-weight: 700; }
-.passport-hero h1 { margin-top: 10px; overflow-wrap: anywhere; color: #111b34; font-size: 39px; font-weight: 850; line-height: 1.09; }
-.passport-hero__handle { margin-top: 3px; color: #4d6285; font-size: 16px; font-weight: 550; }
+.passport-hero h1 { margin-top: 10px; overflow-wrap: anywhere; color: #111b34; font-size: 39px; font-weight: 800; line-height: 1.09; }
+.passport-hero__handle { margin-top: 3px; color: #4d6285; font-size: 16px; font-weight: 500; }
 .passport-hero__bio { margin-top: 6px; color: #536888; font-size: 15px; line-height: 1.45; }
 .passport-hero__meta { display: flex; flex-wrap: wrap; gap: 8px 19px; margin-top: 13px; color: #4f6489; font-size: 13px; }
 .passport-hero__meta span, .passport-hero__meta a { display: inline-flex; align-items: center; gap: 8px; }
@@ -35,8 +35,8 @@
 .passport-stat--interactive:focus-visible, .passport-tabs__trigger:focus-visible { outline: 2px solid #356cf2; outline-offset: 2px; }
 .passport-stat__icon { display: flex; width: 58px; height: 58px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: var(--stat-soft); color: var(--stat-color); }
 .passport-stat__copy { display: flex; flex: 1; min-width: 0; flex-direction: column; }
-.passport-stat__label { margin: 7px 17px 0 0; color: #2e4163; font-size: 14px; font-weight: 650; line-height: 1.25; }
-.passport-stat__value { margin-top: 9px; color: #101b32; font-size: 30px; font-weight: 850; line-height: 1; font-variant-numeric: tabular-nums; }
+.passport-stat__label { margin: 7px 17px 0 0; color: #2e4163; font-size: 14px; font-weight: 600; line-height: 1.25; }
+.passport-stat__value { margin-top: 9px; color: #101b32; font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .passport-stat__detail { margin-top: 8px; color: #6a7d9d; font-size: 12px; line-height: 1.25; }
 .passport-stat__arrow { position: absolute; top: 22px; right: 15px; color: #526b9e; }
 .passport-stat--blue { --stat-color: #275de5; --stat-soft: #e7efff; }
@@ -46,14 +46,14 @@
 
 .passport-tabs { margin-top: 20px; }
 .passport-tabs__list { display: flex; gap: 7px; overflow-x: auto; padding: 6px; border: 1px solid #d9e4f5; border-radius: 8px; background: #fff; box-shadow: 0 5px 15px rgb(48 82 142 / 5%); scrollbar-width: thin; }
-.passport-tabs__trigger { display: flex; min-width: 150px; min-height: 47px; flex: 1; align-items: center; justify-content: center; gap: 11px; padding: 8px 12px; border-radius: 7px; color: #516687; font-size: 14px; font-weight: 660; white-space: nowrap; }
+.passport-tabs__trigger { display: flex; min-width: 150px; min-height: 47px; flex: 1; align-items: center; justify-content: center; gap: 11px; padding: 8px 12px; border-radius: 7px; color: #516687; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .passport-tabs__trigger[data-state="active"] { background: #3164f1; color: #fff; box-shadow: 0 4px 10px rgb(45 89 217 / 17%); }
 .passport-tabs__trigger:not([data-state="active"]):hover { background: #eef3fc; color: #2759db; }
 .passport-tabs__trigger svg { flex: none; }
 
 .passport-directions { margin-top: 35px; }
 .passport-section-title { display: flex; align-items: center; gap: 21px; margin-bottom: 22px; }
-.passport-section-title h2 { color: #111b34; font-size: 32px; font-weight: 850; line-height: 1.15; }
+.passport-section-title h2 { color: #111b34; font-size: 32px; font-weight: 800; line-height: 1.15; }
 .passport-section-title p { margin-top: 6px; color: #536888; font-size: 15px; }
 .passport-section-title__note { display: flex; align-items: center; gap: 13px; margin-left: auto; padding: 12px 17px; border-radius: 8px; background: #eaf1ff; color: #61759a; font-size: 12px; line-height: 1.35; }
 .passport-section-title__note svg { flex: none; color: #4677f3; }
@@ -62,7 +62,7 @@
 .passport-direction:hover { transform: translateY(-2px); box-shadow: 0 11px 24px rgb(40 79 150 / 11%); }
 .passport-direction__top { display: flex; align-items: center; gap: 16px; }
 .passport-direction__icon { display: flex; width: 52px; height: 52px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: var(--direction-soft); color: var(--direction-accent); }
-.passport-direction__mark { min-width: 0; color: var(--direction-accent); font-size: 25px; font-weight: 850; line-height: 1; white-space: nowrap; }
+.passport-direction__mark { min-width: 0; color: var(--direction-accent); font-size: 25px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .passport-direction__mark span { color: var(--direction-accent); opacity: .28; }
 .passport-direction__brand { margin-left: auto; color: #697b9a; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .passport-direction h3 { margin-top: 9px; overflow-wrap: anywhere; color: #121d37; font-size: 17px; font-weight: 800; line-height: 1.2; }
@@ -72,7 +72,7 @@
 .passport-direction__track div { height: 100%; border-radius: inherit; background: var(--direction-accent); }
 .passport-direction__bottom strong { min-width: 25px; color: #14213e; font-size: 19px; font-weight: 800; text-align: right; }
 
-.dark .passport-page { color: #eef3ff; background: #10172a; }
+.dark .passport-page { color: #eef3ff; background: transparent; }
 .dark .passport-hero, .dark .passport-stat, .dark .passport-tabs__list, .dark .passport-direction { border-color: #2b3955; background: #19243b; }
 .dark .passport-hero h1, .dark .passport-stat__value, .dark .passport-section-title h2, .dark .passport-direction h3, .dark .passport-direction__bottom strong { color: #f2f5ff; }
 .dark .passport-hero__handle, .dark .passport-hero__bio, .dark .passport-hero__meta, .dark .passport-stat__label, .dark .passport-section-title p, .dark .passport-direction p, .dark .passport-direction__brand { color: #a7b6d0; }

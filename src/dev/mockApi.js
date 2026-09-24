@@ -30,7 +30,7 @@ function seedState() {
     metrics: [{ id: "metric-auc", code: "roc_auc", name: "ROC AUC", status: "active", direction: "maximize", current_version: { id: "metric-v1", version: 1, status: "approved" } }, { id: "metric-business", code: "business_score", name: "Business score", owner_organization_id: "org-demo", status: "active", direction: "maximize", current_version: { id: "metric-v2", version: 1, moderation_status: "approved", status: "approved" } }],
     tasks: [{ id: "task-churn", code: "customer_churn", title: "Прогноз оттока", name: "Прогноз оттока", status: "active", task_type: "classification", current_version: { id: "task-v1", version: 1, status: "released" } }],
     subscriptions: [], submissions: [], comments: {}, notes: {}, joined: {},
-    duels: [{ id: "duel-complete", status: "completed", task_type: "classification", created_at: "2026-09-20T12:00:00Z", player1: { user_id: demoUserId, user_name: "menshikov", rating: 1082 }, player2: { user_id: "user-alex", user_name: "alex_flexer", rating: 1061 }, winner_id: demoUserId, rating_change: { [demoUserId]: 18 } }],
+    duels: [{ id: "duel-complete", mode: "rated", status: "completed", task_type: "classification", created_at: "2026-09-20T12:00:00Z", started_at: "2026-09-20T12:05:00Z", completed_at: "2026-09-20T12:49:00Z", player1: { user_id: demoUserId, user_name: "menshikov", rating: 1082, submitted_at: "2026-09-20T12:43:00Z" }, player2: { user_id: "user-alex", user_name: "alex_flexer", rating: 1061, submitted_at: "2026-09-20T12:49:00Z" }, winner_id: demoUserId, rating_change: { [demoUserId]: 18 } }],
     challenges: [], tickets: {}, arenaChallenges: {},
   };
 }
