@@ -227,7 +227,7 @@ export default function Competitions() {
         <div className={cn("competitions-filters", section === "community" && "competitions-filters--community")}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Название, задача или организатор" className="competitions-filters__input pl-10" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Поиск по названию, задаче или организатору" placeholder="Поиск соревнований" className="competitions-filters__input pl-10" />
           </div>
           <SelectControl icon={Layers3} label="Направление" value={typeFilter} onChange={setTypeFilter}>
             <option value="all">Все направления</option>
