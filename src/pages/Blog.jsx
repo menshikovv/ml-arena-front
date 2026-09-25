@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, CalendarDays, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
+import { ArrowRight, Clock3, RotateCcw, Search, Send, X } from "lucide-react";
 import BlogCover, { blogCoverVisual } from "@/components/ml/BlogCover";
-import { Reveal } from "@/components/ml/PageReveal";
+import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/api/mlArenaApi";
 import { formatBlogDate } from "@/lib/blog-data";
 import { useAuth } from "@/lib/AuthContext";
+import "./Blog.css";
 
 const PAGE_SIZE = 6;
 
@@ -41,18 +42,18 @@ function materialWord(count) {
 
 function ArticleCard({ post }) {
   return (
-    <Link to={`/blog/${post.slug}`} className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <BlogCover visual={post.visual} compact className="aspect-video shrink-0" />
-      <div className="flex flex-1 flex-col p-5">
-        <h2 className="line-clamp-3 font-heading text-xl font-extrabold leading-tight transition-colors group-hover:text-primary">{post.title}</h2>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
-          {post.categoryName && <span className="font-semibold text-primary">{post.categoryName}</span>}
-          {post.readingTime != null && <span className="flex items-center gap-1.5 text-muted-foreground"><Clock3 size={13} /> {post.readingTime} мин</span>}
+    <Link to={`/blog/${post.slug}`} className="blog-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+      <BlogCover visual={post.visual} compact className="blog-card__cover" />
+      <div className="blog-card__body">
+        <h3 className="blog-card__title">{post.title}</h3>
+        <div className="blog-card__meta">
+          {post.categoryName && <span className="blog-card__category">{post.categoryName}</span>}
+          {post.readingTime != null && <span className="blog-card__reading"><Clock3 size={14} /> {post.readingTime} мин</span>}
         </div>
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
-        <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
+        <p className="blog-card__excerpt">{post.excerpt}</p>
+        <div className="blog-card__footer">
           <span>{formatBlogDate(post.publishedAt)}</span>
-          <span className="flex items-center gap-1.5 font-semibold text-primary">Читать <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" /></span>
+          <span className="blog-card__read">Читать <ArrowRight size={16} aria-hidden="true" /></span>
         </div>
       </div>
     </Link>
@@ -62,21 +63,12 @@ function ArticleCard({ post }) {
 function BlogLoading() {
   return (
     <div role="status" aria-live="polite" aria-label="Загружаем статьи">
-      <div className="grid overflow-hidden rounded-md border border-border bg-card lg:grid-cols-[1.12fr_0.88fr]">
-        <div className="aspect-[4/3] bg-secondary/55 sm:aspect-video lg:min-h-[390px]" />
-        <div className="space-y-5 p-6 sm:p-8 lg:p-10">
-          <div className="h-6 w-32 rounded-sm bg-secondary" />
-          <div className="h-9 w-4/5 rounded-sm bg-secondary" />
-          <div className="h-4 w-full rounded-sm bg-secondary/80" />
-          <div className="h-4 w-2/3 rounded-sm bg-secondary/80" />
-        </div>
-      </div>
-      <div className="mt-14 border-b border-border pb-6">
+      <div className="blog-results__heading blog-results__heading--loading border-b border-border pb-6">
         <div className="h-8 w-56 rounded-sm bg-secondary" />
         <div className="mt-3 h-4 w-20 rounded-sm bg-secondary/80" />
       </div>
-      <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {[0, 1, 2].map((item) => <div key={item} className="h-80 rounded-md border border-border bg-card"><div className="aspect-video bg-secondary/55" /><div className="space-y-4 p-5"><div className="h-4 w-24 rounded-sm bg-secondary" /><div className="h-6 w-4/5 rounded-sm bg-secondary" /><div className="h-4 w-full rounded-sm bg-secondary/80" /></div></div>)}
+      <div className="blog-card-grid">
+        {[0, 1, 2].map((item) => <div key={item} className="blog-card blog-card--loading"><div className="blog-card__cover bg-secondary/55" /><div className="space-y-4 p-5"><div className="h-6 w-4/5 rounded-sm bg-secondary" /><div className="h-4 w-24 rounded-sm bg-secondary/80" /><div className="h-4 w-full rounded-sm bg-secondary/80" /></div></div>)}
       </div>
     </div>
   );
@@ -145,10 +137,7 @@ export default function Blog() {
     })
     .sort((first, second) => String(second.publishedAt).localeCompare(String(first.publishedAt))), [activeCategory, normalizedQuery, posts]);
 
-  const showFeatured = activeCategory === "all" && normalizedQuery.length < 2;
-  const featured = posts.find((post) => post.featured);
-  const listPosts = showFeatured ? filteredPosts.filter((post) => !post.featured) : filteredPosts;
-  const visiblePosts = listPosts.slice(0, visibleCount);
+  const visiblePosts = filteredPosts.slice(0, visibleCount);
 
   const selectCategory = (slug) => {
     const next = new URLSearchParams(searchParams);
@@ -188,23 +177,23 @@ export default function Blog() {
   };
 
   return (
-    <div className="min-h-full bg-background text-foreground">
-      <section className="border-b border-border bg-secondary/25">
-        <Reveal className="mx-auto grid max-w-[1380px] gap-8 px-4 py-12 sm:px-6 lg:px-8 lg:grid-cols-[1fr_0.78fr] lg:items-end">
-          <div>
-            <h1 className="mt-5 max-w-3xl font-heading text-3xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">Новости ML-Арены</h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Разборы ML-задач, подготовка к соревнованиям, новости платформы и практические материалы без лишней теории.</p>
+    <div className="blog-page">
+      <section className="blog-hero">
+        <Reveal className="blog-hero__inner">
+          <div className="blog-hero__copy">
+            <h1>Новости<br />ML-Арены</h1>
+            <p>Разборы ML-задач, подготовка к соревнованиям, новости платформы и практические материалы без лишней теории.</p>
           </div>
-          <form onSubmit={submitSearch} className="relative lg:mb-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
-            <Input value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Найти материал..." className="h-[52px] rounded-md bg-card pl-12 pr-24 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20" aria-label="Поиск по блогу" />
-            {search && <button type="button" onClick={() => updateSearch("")} className="absolute right-12 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Очистить поиск" title="Очистить поиск"><X size={16} /></button>}
-            <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 h-9 w-9 -translate-y-1/2 rounded-md" aria-label="Показать результаты поиска" title="Показать результаты поиска"><Search size={17} /></Button>
+          <form onSubmit={submitSearch} className="blog-hero__search">
+            <Search className="blog-hero__search-icon" size={20} aria-hidden="true" />
+            <Input value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Найти материал..." className="blog-hero__search-input" aria-label="Поиск по блогу" />
+            {search && <button type="button" onClick={() => updateSearch("")} className="blog-hero__clear" aria-label="Очистить поиск" title="Очистить поиск"><X size={16} /></button>}
+            <Button type="submit" size="icon" className="blog-hero__search-button" aria-label="Показать результаты поиска" title="Показать результаты поиска"><Search size={19} /></Button>
           </form>
         </Reveal>
       </section>
 
-      <main className="mx-auto max-w-[1380px] px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <main className="blog-main">
         {postsQuery.isPending ? <BlogLoading /> : postsQuery.isError ? (
           <div className="border border-destructive/25 bg-destructive/5 px-5 py-14 text-center">
             <h2 className="font-heading text-2xl font-extrabold">Не удалось загрузить статьи</h2>
@@ -212,46 +201,28 @@ export default function Blog() {
             <Button type="button" variant="outline" className="mt-6" onClick={() => postsQuery.refetch()}><RotateCcw size={15} /> Повторить</Button>
           </div>
         ) : <>
-        {showFeatured && featured && (
-          <div>
-            <Link to={`/blog/${featured.slug}`} className="group grid overflow-hidden rounded-md border border-border bg-card shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:grid-cols-[1.12fr_0.88fr]">
-              <BlogCover visual={featured.visual} className="aspect-[4/3] sm:aspect-video lg:min-h-[390px]" />
-              <div className="flex flex-col justify-center p-5 sm:p-8 lg:p-10">
-                <h2 className="font-heading text-2xl font-extrabold leading-tight transition-colors group-hover:text-primary sm:text-4xl">{featured.title}</h2>
-                {featured.categoryName && <span className="mt-4 text-xs font-semibold text-primary">{featured.categoryName}</span>}
-                <p className="mt-4 text-base leading-7 text-muted-foreground">{featured.excerpt}</p>
-                <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {formatBlogDate(featured.publishedAt)}</span>
-                  {featured.readingTime != null && <span className="flex items-center gap-1.5"><Clock3 size={14} /> {featured.readingTime} мин</span>}
-                </div>
-                <span className="mt-7 inline-flex items-center gap-2 font-semibold text-primary">Читать материал <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
-              </div>
-            </Link>
-          </div>
-        )}
-
-        <section id="blog-results" className={`${showFeatured ? "mt-14 " : ""}scroll-mt-24`}>
-          <Reveal className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <section id="blog-results" className="blog-results scroll-mt-24">
+          <Reveal className="blog-results__heading">
             <div>
-              <h2 className="font-heading text-3xl font-extrabold">{normalizedQuery ? "Результаты поиска" : activeCategory === "all" ? "Последние материалы" : categories.find((item) => item.slug === activeCategory)?.name || "Материалы"}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{filteredPosts.length} {materialWord(filteredPosts.length)}</p>
+              <h2>{normalizedQuery ? "Результаты поиска" : activeCategory === "all" ? "Последние материалы" : categories.find((item) => item.slug === activeCategory)?.name || "Материалы"}</h2>
+              <p>{filteredPosts.length} {materialWord(filteredPosts.length)}</p>
             </div>
-            <div className="scrollbar-thin flex max-w-full gap-2 overflow-x-auto pb-1">
+            <div className="blog-categories scrollbar-thin" role="group" aria-label="Категории материалов">
               {categories.map((category) => (
-                <button key={category.slug} type="button" onClick={() => selectCategory(category.slug)} className={`shrink-0 rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors ${activeCategory === category.slug ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary"}`}>{category.name}</button>
+                <button key={category.slug} type="button" onClick={() => selectCategory(category.slug)} className={`blog-categories__button ${activeCategory === category.slug ? "blog-categories__button--active" : ""}`} aria-pressed={activeCategory === category.slug}>{category.name}</button>
               ))}
             </div>
           </Reveal>
 
           {visiblePosts.length ? (
             <>
-              <div key={`${activeCategory}-${queryParam}`} className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {visiblePosts.map((post) => <ArticleCard key={post.slug} post={post} />)}
-              </div>
-              {visibleCount < listPosts.length && <div className="mt-10 text-center"><Button type="button" variant="outline" size="lg" onClick={() => setVisibleCount((count) => count + 3)}>Показать ещё <ArrowRight size={16} /></Button></div>}
+              <Stagger key={`${activeCategory}-${queryParam}`} className="blog-card-grid" viewportReveal>
+                {visiblePosts.map((post) => <StaggerItem key={post.slug} className="blog-card-grid__item"><ArticleCard post={post} /></StaggerItem>)}
+              </Stagger>
+              {visibleCount < filteredPosts.length && <div className="blog-results__more"><Button type="button" variant="outline" size="lg" onClick={() => setVisibleCount((count) => count + 3)}>Показать ещё <ArrowRight size={16} /></Button></div>}
             </>
           ) : (
-            <Reveal className="mt-8 border border-border bg-card px-5 py-14 text-center shadow-sm">
+            <Reveal className="blog-results__empty">
               <Search className="mx-auto text-muted-foreground" size={30} />
               <h3 className="mt-5 font-heading text-2xl font-extrabold">{normalizedQuery ? "Ничего не нашли" : "В этой категории пока нет материалов"}</h3>
               <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">Попробуйте изменить запрос или вернуться ко всем публикациям.</p>
@@ -262,13 +233,13 @@ export default function Blog() {
         </>}
       </main>
 
-      <section className="border-y border-primary/20 bg-primary text-primary-foreground">
-        <Reveal className="mx-auto flex max-w-[1380px] flex-col justify-between gap-7 px-4 py-10 sm:px-6 md:flex-row md:items-center md:py-12 lg:px-8">
+      <section className="blog-telegram">
+        <Reveal className="blog-telegram__inner">
           <div>
             <p className="font-heading text-2xl font-extrabold sm:text-3xl">Активности Founder Season — в Telegram</p>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/75">Мини-задачи, быстрые разборы и анонсы первого соревнования выходят в официальном канале ML-Арены.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Мини-задачи, быстрые разборы и анонсы первого соревнования выходят в официальном канале ML-Арены.</p>
           </div>
-          {telegramUrl && <Button asChild size="lg" variant="secondary" className="shrink-0"><a href={telegramUrl} target="_blank" rel="noopener noreferrer"><Send size={17} /> Открыть Telegram</a></Button>}
+          {telegramUrl && <Button asChild size="lg" variant="outline" className="shrink-0"><a href={telegramUrl} target="_blank" rel="noopener noreferrer"><Send size={17} /> Открыть Telegram</a></Button>}
         </Reveal>
       </section>
     </div>
