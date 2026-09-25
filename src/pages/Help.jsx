@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
+  BookOpen,
+  ChartNoAxesColumn,
   Check,
   CheckCircle2,
   ChevronDown,
   CircleHelp,
   Copy,
+  Headset,
+  LayoutGrid,
   LifeBuoy,
   Loader2,
   Mail,
@@ -14,7 +18,7 @@ import {
   Search,
   Send,
   ShieldCheck,
-  Sparkles,
+  Trophy,
   UserRound,
   X,
 } from "lucide-react";
@@ -28,16 +32,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/AuthContext";
+import "./Help.css";
 
 const SUPPORT_EMAIL = "support@mlarena.ru";
 
 const TOPICS = [
-  { id: "about", title: "Об ML-Арене", text: "Как устроена платформа и чем она отличается", icon: CircleHelp },
+  { id: "about", title: "Об ML-Арене", text: "Как устроена платформа и чем она отличается", icon: BookOpen },
   { id: "account", title: "Аккаунт", text: "Регистрация, подтверждение почты и вход", icon: UserRound },
-  { id: "activities", title: "Активности", text: "Соревнования, решения, правила и команды", icon: Sparkles },
-  { id: "passport", title: "Рейтинг и ML-паспорт", text: "Результаты, компетенции и внешние достижения", icon: ShieldCheck },
+  { id: "activities", title: "Активности", text: "Соревнования, решения, правила и команды", icon: Trophy },
+  { id: "passport", title: "Рейтинг и ML-паспорт", text: "Результаты, компетенции и внешние достижения", icon: ChartNoAxesColumn },
   { id: "career", title: "Компании", text: "Карьерные возможности и видимость данных", icon: BriefcaseBusiness },
-  { id: "support", title: "Поддержка", text: "Ошибки, безопасность и удаление аккаунта", icon: LifeBuoy },
+  { id: "support", title: "Поддержка", text: "Ошибки, безопасность и удаление аккаунта", icon: Headset },
 ];
 
 const FAQ_ITEMS = [
@@ -296,6 +301,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openItem, setOpenItem] = useState(null);
+  const [showAllFaq, setShowAllFaq] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mailPrepared, setMailPrepared] = useState(false);
   const [form, setForm] = useState({ category: initialSupportCategory, subject: "", message: "", reply_email: user?.email || "", consent: false });
@@ -326,6 +332,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
       .slice(0, 8)
       .map(({ item }) => item);
   }, [category, debouncedSearch]);
+  const visibleFaq = category === "all" && !debouncedSearch && !showAllFaq ? filteredFaq.slice(0, 11) : filteredFaq;
 
   const scrollToSupport = (preferredCategory) => {
     if (preferredCategory) setForm((current) => ({ ...current, category: preferredCategory }));
@@ -363,54 +370,37 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   }
 
   return (
-    <div className="min-h-full bg-background text-foreground">
+    <div className="support-page min-h-full bg-background text-foreground">
       {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
 
       <main>
-        <section className="relative overflow-hidden border-b border-border bg-secondary/25">
-          <motion.div
-            className="pointer-events-none absolute inset-0"
-            initial={false}
-            animate={{ x: [0, 18, 0], y: [0, -12, 0] }}
-            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-[hsl(var(--chart-4))]/5 blur-3xl" />
-          </motion.div>
-          <Reveal viewportReveal className="relative mx-auto max-w-[1380px] px-4 py-14 text-center sm:px-6 md:py-20 lg:px-8">
-            <motion.span
-              className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/15"
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <LifeBuoy size={23} />
-            </motion.span>
-            <h1 className="mt-5 font-heading text-4xl font-bold sm:text-5xl">Помощь и поддержка</h1>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">Ответы на частые вопросы и связь с командой ML-Арены.</p>
-            <div className="relative mx-auto mt-8 max-w-2xl">
-              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
-              <motion.div whileFocus={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
-                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти ответ..." className="h-12 rounded-lg bg-card pl-12 pr-12 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20" />
-              </motion.div>
-              {search && <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Очистить поиск"><X size={16} /></button>}
-            </div>
+        <section className="support-hero">
+          <Reveal className="support-container support-hero__inner">
+            <h1>Помощь и поддержка</h1>
+            <p>Ответы на частые вопросы и связь с командой ML-Арены.<br />Мы здесь, чтобы помочь вам.</p>
+            <form className="support-hero__search" onSubmit={(event) => { event.preventDefault(); scrollToSection("faq"); }} role="search">
+              <Search size={19} aria-hidden="true" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Найти ответ на вопрос..." aria-label="Найти ответ на вопрос" />
+              {search && <button type="button" onClick={() => setSearch("")} className="support-hero__clear" aria-label="Очистить поиск"><X size={16} /></button>}
+              <button type="submit" className="support-hero__search-button" aria-label="Показать результаты поиска"><Search size={19} /></button>
+            </form>
           </Reveal>
         </section>
 
-        <section className="mx-auto max-w-[1380px] px-4 py-14 sm:px-6 md:py-16 lg:px-8">
-          <Reveal viewportReveal>
-            <h2 className="font-heading text-2xl font-bold sm:text-3xl">Популярные темы</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Выберите направление, чтобы сразу перейти к нужным ответам.</p>
+        <section className="support-container support-topics">
+          <Reveal viewportReveal className="support-section-heading">
+            <h2>Популярные темы</h2>
+            <p>Выберите направление, чтобы сразу перейти к нужным ответам.</p>
           </Reveal>
-          <Stagger viewportReveal className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Stagger viewportReveal className="support-topics__grid">
             {TOPICS.map((topic) => {
               const Icon = topic.icon;
               return (
                 <StaggerItem key={topic.id}>
-                  <button type="button" onClick={() => selectTopic(topic.id)} className="group flex h-full min-h-40 w-full flex-col border border-border bg-card p-5 text-left shadow-sm transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-[transform,background-color] duration-300 group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground"><Icon size={19} /></span>
-                    <span className="mt-6 font-heading text-lg font-bold transition-colors duration-300 group-hover:text-primary">{topic.title}</span>
-                    <span className="mt-2 text-sm leading-6 text-muted-foreground">{topic.text}</span>
+                  <button type="button" onClick={() => selectTopic(topic.id)} className="support-topic">
+                    <span className="support-topic__icon"><Icon size={23} /></span>
+                    <span className="support-topic__copy"><strong>{topic.title}</strong><small>{topic.text}</small></span>
+                    <ChevronDown className="support-topic__arrow" size={18} aria-hidden="true" />
                   </button>
                 </StaggerItem>
               );
@@ -418,27 +408,32 @@ export default function Help({ embedded = false, contactsOnly = false }) {
           </Stagger>
         </section>
 
-        <section id="faq" className="scroll-mt-6 border-y border-border bg-secondary/20">
-          <div className="mx-auto grid max-w-[1380px] gap-8 px-4 py-14 sm:px-6 md:grid-cols-[220px_minmax(0,1fr)] md:py-16 lg:px-8">
-            <Reveal viewportReveal className="min-w-0">
-              <h2 className="font-heading text-2xl font-bold sm:text-3xl">Частые вопросы</h2>
-              <div className="mt-6 flex gap-2 overflow-x-auto pb-1 md:flex-col">
+        <section id="faq" className="support-container support-faq">
+          <div className="support-panel">
+            <div className="support-section-heading support-faq__heading">
+              <h2>Частые вопросы</h2>
+              <p>Выберите категорию, чтобы посмотреть вопросы и ответы.</p>
+            </div>
+            <div className="support-faq__layout">
+            <div className="support-faq__categories">
+              <div className="support-faq__category-list">
                 {[["all", "Все вопросы"], ...TOPICS.map((topic) => [topic.id, topic.title])].map(([id, label]) => {
                   const active = category === id;
+                  const Icon = TOPICS.find((topic) => topic.id === id)?.icon || LayoutGrid;
                   return (
-                    <button key={id} type="button" onClick={() => setCategory(id)} className={`relative shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${active ? "text-primary-foreground" : "text-muted-foreground hover:bg-card hover:text-foreground"}`}>
-                      {active && <motion.span layoutId="faq-filter-pill" className="absolute inset-0 rounded-md bg-primary" transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
-                      <span className="relative z-10">{label}</span>
+                    <button key={id} type="button" onClick={() => setCategory(id)} className={`support-faq__category ${active ? "is-active" : ""}`} aria-pressed={active}>
+                      <Icon size={17} aria-hidden="true" />
+                      <span>{label}</span>
                     </button>
                   );
                 })}
               </div>
-            </Reveal>
+            </div>
 
-            <Reveal viewportReveal delay={0.06} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+            <div className="support-faq__questions">
               {filteredFaq.length ? (
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {filteredFaq.map((item) => {
+                  {visibleFaq.map((item) => {
                     const opened = openItem === item.id;
                     return (
                       <motion.div
@@ -448,15 +443,15 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                        className="border-b border-border last:border-b-0"
+                        className="support-faq__item"
                       >
-                        <button type="button" onClick={() => setOpenItem(opened ? null : item.id)} className="group flex w-full items-center justify-between gap-5 px-5 py-4 text-left transition-colors duration-300 hover:bg-secondary/35 sm:px-6">
-                          <span className="font-semibold">{item.title}</span>
-                          <ChevronDown className={`shrink-0 text-muted-foreground transition-[transform,color] duration-300 group-hover:text-primary ${opened ? "rotate-180" : ""}`} size={18} />
+                        <button type="button" onClick={() => setOpenItem(opened ? null : item.id)} className="support-faq__question" aria-expanded={opened} aria-controls={`faq-answer-${item.id}`}>
+                          <span>{item.title}</span>
+                          <ChevronDown className={opened ? "rotate-180" : ""} size={17} />
                         </button>
                         <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${opened ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                          <div className="overflow-hidden">
-                            <div className="px-5 pb-5 text-sm leading-7 text-muted-foreground sm:px-6">
+                          <div id={`faq-answer-${item.id}`} className="overflow-hidden">
+                            <div className="support-faq__answer">
                               <p className="whitespace-pre-line">{item.body}</p>
                               {item.action?.to && <Button asChild variant="outline" size="sm" className="mt-4"><Link to={item.action.to}>{item.action.label} <ArrowRight size={14} /></Link></Button>}
                               {item.action?.href && <Button asChild variant="outline" size="sm" className="mt-4"><a href={item.action.href} target="_blank" rel="noopener noreferrer">{item.action.label} <ArrowRight size={14} /></a></Button>}
@@ -476,21 +471,26 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                   <Button type="button" className="mt-5" onClick={() => scrollToSupport()}>Написать в поддержку</Button>
                 </div>
               )}
-            </Reveal>
+              {category === "all" && !debouncedSearch && filteredFaq.length > visibleFaq.length && (
+                <button type="button" className="support-faq__more" onClick={() => setShowAllFaq(true)}>Показать все вопросы <ChevronDown size={16} /></button>
+              )}
+            </div>
+            </div>
           </div>
         </section>
 
-        <section id="support" className="scroll-mt-6 mx-auto max-w-[1380px] px-4 py-14 sm:px-6 md:py-20 lg:px-8">
-          <div className="grid gap-9 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
-            <Reveal viewportReveal>
-              <h2 className="font-heading text-3xl font-bold sm:text-4xl">Не нашли ответ? Напишите нам</h2>
-              <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">Опишите вопрос как можно точнее: что произошло, на какой странице и после какого действия.</p>
-              <div className="mt-7 border-l-2 border-primary bg-secondary/35 px-5 py-4 text-sm leading-6 text-muted-foreground">
+        <section id="support" className="support-container support-contact">
+          <div className="support-contact__layout">
+            <Reveal viewportReveal className="support-contact__intro">
+              <h2>Не нашли ответ?<br />Напишите нам</h2>
+              <p>Опишите вопрос как можно точнее: что произошло, на какой странице и после какого действия.</p>
+              <div className="support-contact__notice">
+                <ShieldCheck size={20} aria-hidden="true" />
                 Не отправляйте пароль, cookie, токены доступа, секретные ключи и полные дампы браузера.
               </div>
             </Reveal>
 
-            <Reveal viewportReveal delay={0.06}>
+            <Reveal viewportReveal delay={0.06} className="support-contact__form-wrap">
               {mailPrepared ? (
                 <div className="rounded-lg border border-border bg-card p-7 shadow-sm sm:p-8">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><CheckCircle2 size={21} /></span>
@@ -502,8 +502,8 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={prepareMail} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                  <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+                <form onSubmit={prepareMail} className="support-form">
+                  <div className="support-form__fields">
                     <Field label="Категория" htmlFor="support-category">
                       <select id="support-category" value={form.category} onChange={(event) => updateForm("category", event.target.value)} className="flex h-11 w-full rounded-md border border-input bg-secondary/25 px-3 text-sm shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15">
                         {CATEGORY_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -516,10 +516,10 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                       <Input id="support-subject" value={form.subject} onChange={(event) => updateForm("subject", event.target.value)} minLength={5} maxLength={120} placeholder="Коротко опишите вопрос" className="h-11 bg-secondary/25 shadow-none focus-visible:ring-2 focus-visible:ring-primary/15" required />
                     </Field>
                     <Field label="Сообщение" htmlFor="support-message" className="sm:col-span-2">
-                      <Textarea id="support-message" value={form.message} onChange={(event) => updateForm("message", event.target.value)} minLength={20} maxLength={4000} rows={7} placeholder="Что произошло, где и после какого действия?" className="resize-none bg-secondary/25 shadow-none focus-visible:ring-2 focus-visible:ring-primary/15" required />
+                      <Textarea id="support-message" value={form.message} onChange={(event) => updateForm("message", event.target.value)} minLength={20} maxLength={4000} rows={4} placeholder="Что произошло, где и после какого действия?" className="resize-none bg-secondary/25 shadow-none focus-visible:ring-2 focus-visible:ring-primary/15" required />
                       <span className="mt-1 block text-right text-[11px] tabular-nums text-muted-foreground">{form.message.length}/4000</span>
                     </Field>
-                    <div className="flex items-start gap-3 rounded-md border border-border bg-secondary/20 p-4 sm:col-span-2">
+                    <div className="support-form__consent sm:col-span-2">
                       <Checkbox id="support-consent" checked={form.consent} onCheckedChange={(checked) => updateForm("consent", checked === true)} className="mt-0.5" />
                       <div className="text-xs leading-5 text-muted-foreground">
                         <label htmlFor="support-consent" className="cursor-pointer">Я даю согласие на обработку персональных данных в соответствии с </label>
@@ -528,7 +528,7 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                     </div>
                   </div>
                   {form.category === "security" && <div className="border-t border-destructive/15 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не публикуйте детали уязвимости в открытых каналах. Отправьте их только через приватное письмо.</div>}
-                  <div className="flex flex-col justify-between gap-3 border-t border-border bg-secondary/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7">
+                  <div className="support-form__footer">
                     <p className="text-xs text-muted-foreground">Ответ придёт на указанный email.</p>
                     <Button type="submit" disabled={submitting || !form.consent}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Написать в поддержку</Button>
                   </div>

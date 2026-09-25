@@ -273,7 +273,7 @@ export default function Leaderboard() {
     <PageFrame className="rating-page">
       <Reveal>
       <header className="rating-hero">
-        <div className="rating-hero__content"><h1>Рейтинг ML-Арены</h1><p>Результаты участников в текущем сезоне. Соревнования и дуэли считаются отдельно, а общий рейтинг объединяет их с весами 70% и 30%. Выберите направление, чтобы сравнить участников в конкретной области ML.</p></div>
+        <div className="rating-hero__content"><h1>Рейтинг ML-Арены</h1><p>Результаты участников в текущем сезоне. Соревнования и дуэли считаются отдельно, а общий рейтинг объединяет их с весами 70% и 30%. Выберите направление, чтобы сравнить участников в конкретной области ML.</p><p className="rating-hero__mobile-summary">Рейтинг сезона: 70% — соревнования, 30% — дуэли.</p></div>
         <img className="rating-hero__trophy" src="/rating-trophy.webp" alt="" aria-hidden="true" />
         <div className="rating-hero__actions">{seasons.length ? <SeasonSelector value={season} seasons={seasons} onChange={(value) => updateParam("season", value, activeSeason)} /> : null}<Button asChild variant="outline"><Link to={`/rating/methodology${season ? `?season=${encodeURIComponent(season)}` : ""}`}><BookOpenCheck size={18} />Как считается рейтинг?</Link></Button></div>
       </header>

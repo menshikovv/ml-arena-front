@@ -26,7 +26,8 @@
   pointer-events: none;
 }
 
-.duel-overview__hero-art {
+.duel-overview__hero-art,
+.duel-overview__hero-dark-art {
   position: absolute;
   top: -10px;
   right: -5px;
@@ -62,6 +63,8 @@
   font-size: 14px;
   line-height: 1.45;
 }
+
+.duel-overview__hero-mobile-summary { display: none; }
 
 .duel-overview__hero-actions {
   display: flex;
@@ -441,29 +444,28 @@
 }
 
 .dark .duel-overview__hero-dark-art {
-  position: absolute;
-  top: 0;
-  right: 70px;
   display: block;
-  width: 270px;
-  height: 270px;
-  object-fit: contain;
-  opacity: .85;
-  pointer-events: none;
 }
 
 @media (max-width: 1050px) {
   .duel-overview-frame { padding-top: 24px; }
   .duel-overview__hero-copy { width: 65%; }
-  .duel-overview__hero-art { right: -70px; width: 80%; }
+  .duel-overview__hero-art, .duel-overview__hero-dark-art { right: -70px; width: 80%; }
   .duel-overview__stat { padding: 9px; gap: 8px; }
   .duel-overview__stat-icon { width: 36px; height: 36px; }
   .duel-overview__match-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 
 @media (max-width: 800px) {
-  .duel-overview__hero-copy { width: 70%; }
-  .duel-overview__hero-art { top: 0; right: -85px; width: 82%; opacity: .65; }
+  .duel-overview-frame { padding-top: 18px; }
+  .duel-overview__hero { display: block; min-height: 0; padding: 4px 0 20px; }
+  .duel-overview__hero-copy { width: 100%; padding: 0; }
+  .duel-overview__hero h1 { max-width: 330px; font-size: 30px; line-height: 1.08; }
+  .duel-overview__hero p { display: none; }
+  .duel-overview__hero .duel-overview__hero-mobile-summary { display: block; max-width: 195px; font-size: 12px; line-height: 1.4; }
+  .duel-overview__hero-art, .duel-overview__hero-dark-art { top: 52px; right: 0; width: min(85%, 420px); opacity: .72; }
+  .duel-overview__hero-actions { margin-top: 34px; }
+  .duel-overview__hero-actions > :last-child { flex: 1 1 100%; }
   .duel-overview__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .duel-overview__match-grid { grid-template-columns: 1fr; }
   .duel-overview__direction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -475,15 +477,14 @@
 }
 
 @media (max-width: 560px) {
-  .duel-overview__hero { display: block; min-height: 0; padding: 4px 0 20px; }
-  .duel-overview__hero-art { top: -13px; right: -20px; width: 112%; opacity: .24; }
-  .dark .duel-overview__hero-dark-art { top: -15px; right: -20px; width: 210px; height: 210px; opacity: .28; }
-  .duel-overview__hero-copy { width: 100%; padding: 0; }
-  .duel-overview__hero h1 { max-width: 330px; font-size: 29px; }
-  .duel-overview__hero p { max-width: 340px; font-size: 12px; }
+  .duel-overview__hero-art, .duel-overview__hero-dark-art { top: 65px; right: -20px; width: 112%; opacity: .72; }
+  .duel-overview__hero .duel-overview__hero-mobile-summary { max-width: 180px; }
   .duel-overview__hero-actions { gap: 6px; }
   .duel-overview__hero-actions > button,
   .duel-overview__hero-actions > a { min-height: 38px; padding: 0 10px; font-size: 11px; }
+  .duel-overview__tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; overflow: visible; }
+  .duel-overview__tabs a { min-width: 0; width: 100%; justify-content: center; gap: 4px; padding: 0 2px; font-size: 11px; }
+  .duel-overview__tabs a svg { width: 14px; flex: none; }
   .duel-overview__stat { min-height: 86px; }
   .duel-overview__stat-number { font-size: 23px; }
   .duel-overview__stat-value { font-size: 13px; }

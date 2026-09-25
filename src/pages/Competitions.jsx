@@ -173,6 +173,7 @@ export default function Competitions() {
           <div className="competitions-hero__copy">
             <h1>Соревнования</h1>
             <p>Практические ML-задачи от ML-Арены, партнёров и сообщества. Выбирайте направление, отправляйте решение и сохраняйте результат в ML-паспорте.</p>
+            <p className="competitions-hero__mobile-summary">Решайте ML-задачи и сохраняйте результат в ML-паспорте.</p>
           </div>
         </header>
       </Reveal>
@@ -209,10 +210,10 @@ export default function Competitions() {
             {[
               ["active", "Активные", Zap],
               ["upcoming", "Скоро", CalendarClock],
-              ["finished", "Завершённые", History],
-            ].map(([value, label, Icon]) => (
-              <button key={value} type="button" onClick={() => setStatusFilter(value)} className={cn("competitions-status-tab", statusFilter === value && "competitions-status-tab--active")}>
-                <Icon size={16} />{label}
+              ["finished", "Завершённые", History, "Итоги"],
+            ].map(([value, label, Icon, mobileLabel]) => (
+              <button key={value} type="button" aria-label={label} onClick={() => setStatusFilter(value)} className={cn("competitions-status-tab", statusFilter === value && "competitions-status-tab--active")}>
+                <Icon size={16} />{mobileLabel ? <><span className="competitions-status-tab__full">{label}</span><span className="competitions-status-tab__short">{mobileLabel}</span></> : label}
                 {statusFilter === value && <motion.span layoutId="competition-status" className="absolute inset-x-2 bottom-0 h-0.5 bg-primary" />}
               </button>
             ))}

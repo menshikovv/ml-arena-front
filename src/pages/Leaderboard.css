@@ -22,6 +22,7 @@
 .rating-hero__content { max-width: 640px; align-self: center; }
 .rating-hero h1 { color: #111a33; font-size: 43px; font-weight: 800; line-height: 1.1; }
 .rating-hero__content p { max-width: 630px; margin-top: 9px; color: #526782; font-size: 14px; line-height: 1.55; }
+.rating-hero__mobile-summary { display: none; }
 .rating-hero__trophy { position: absolute; top: -35px; right: 12px; width: 320px; height: 320px; object-fit: contain; opacity: .6; pointer-events: none; }
 .rating-hero__actions { display: flex; flex: none; align-items: center; gap: 9px; margin-bottom: 2px; }
 .rating-hero__actions > a { min-height: 43px; border: 1px solid #d5e1f7; border-radius: 8px; background: #fff; color: #172746; font-size: 12px; font-weight: 700; box-shadow: 0 4px 13px #344f7d12; }
@@ -191,15 +192,16 @@
   .rating-stat strong { font-size: 20px; }
   .rating-extras { grid-template-columns: 1fr; }
 }
-@media (max-width: 700px) {
+@media (max-width: 800px) {
   .rating-page { padding-top: 18px; }
   .rating-hero { display: block; min-height: 0; padding: 4px 0 20px; }
-  .rating-hero h1 { font-size: 30px; }
-  .rating-hero__content p { font-size: 12px; }
-  .rating-hero__trophy { display: none; }
-  .rating-hero__actions { flex-wrap: wrap; margin-top: 16px; }
+  .rating-hero h1 { max-width: 300px; font-size: 30px; }
+  .rating-hero__content p { display: none; }
+  .rating-hero__content .rating-hero__mobile-summary { display: block; max-width: 190px; font-size: 12px; line-height: 1.4; }
+  .rating-hero__trophy { display: block; top: 48px; right: 0; width: 142px; height: 142px; opacity: .85; }
+  .rating-hero__actions { display: grid; grid-template-columns: 1fr; margin-top: 64px; }
   .rating-season-select { flex: 1; }
-  .rating-hero__actions > a { flex: 1; font-size: 11px; }
+  .rating-hero__actions > a { width: 100%; font-size: 11px; }
   .rating-season-card { margin-top: 3px; }
   .rating-season-card__copy h2 { font-size: 22px; }
   .rating-season-card__copy p { font-size: 12px; }

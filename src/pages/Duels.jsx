@@ -620,6 +620,7 @@ function OverviewView({ duels, challenges, opponents, isLoading, createDuel, isC
             <div className="duel-overview__hero-copy">
               <h1>Дуэли по машинному обучению</h1>
               <p>Выберите направление, получите одинаковую задачу с соперником и за 60 минут покажите лучший результат.</p>
+              <p className="duel-overview__hero-mobile-summary">Одна задача на двоих и 60 минут на лучший результат.</p>
               <div className="duel-overview__hero-actions">
                 <Button asChild>
                   <Link to="/duels/matchmaking">

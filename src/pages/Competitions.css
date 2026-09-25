@@ -19,7 +19,8 @@
   pointer-events: none;
 }
 
-.competitions-hero__art {
+.competitions-hero__art,
+.competitions-hero__dark-art {
   position: absolute;
   top: -10px;
   right: -5px;
@@ -53,6 +54,8 @@
   font-size: 14px;
   line-height: 1.55;
 }
+
+.competitions-hero__mobile-summary { display: none; }
 
 .competitions-sections {
   display: grid;
@@ -148,6 +151,8 @@
   gap: 3px;
   overflow-x: auto;
 }
+
+.competitions-status-tab__short { display: none; }
 
 .competitions-status-tab {
   position: relative;
@@ -607,15 +612,7 @@
 }
 
 .dark .competitions-hero__dark-art {
-  position: absolute;
-  top: -14px;
-  right: 68px;
   display: block;
-  width: 290px;
-  height: 290px;
-  object-fit: contain;
-  opacity: .76;
-  pointer-events: none;
 }
 
 .dark .competitions-hero p {
@@ -624,7 +621,7 @@
 
 @media (max-width: 1100px) {
   .competitions-page { padding-top: 24px; }
-  .competitions-hero__art { right: -70px; width: 80%; }
+  .competitions-hero__art, .competitions-hero__dark-art { right: -70px; width: 80%; }
   .competitions-filters,
   .competitions-filters--community { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .competitions-filters > :first-child { grid-column: 1 / -1; }
@@ -634,8 +631,7 @@
 
 @media (max-width: 800px) {
   .competitions-hero__copy { max-width: min(100%, 430px); }
-  .competitions-hero__art { top: 0; right: -85px; width: 82%; opacity: .18; }
-  .dark .competitions-hero__dark-art { right: -55px; opacity: .22; }
+  .competitions-hero__art, .competitions-hero__dark-art { top: 0; right: -85px; width: 82%; opacity: .18; }
   .competitions-sections { grid-template-columns: 1fr; }
   .competitions-toolbar { flex-wrap: wrap; }
   .competitions-status-tabs { width: 100%; }
@@ -649,14 +645,14 @@
   .competitions-fairness__grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 800px) {
   .competitions-page { padding-top: 18px; }
-  .competitions-hero { min-height: 0; padding: 4px 0 20px; }
+  .competitions-hero { min-height: 150px; padding: 4px 0 20px; }
   .competitions-hero__copy { max-width: 100%; padding-top: 0; }
   .competitions-hero h1 { font-size: 30px; }
-  .competitions-hero p { max-width: 410px; font-size: 12px; }
-  .competitions-hero__art { right: -100px; width: 110%; opacity: .24; }
-  .dark .competitions-hero__dark-art { top: -18px; right: -50px; width: 210px; height: 210px; opacity: .27; }
+  .competitions-hero p { display: none; }
+  .competitions-hero .competitions-hero__mobile-summary { display: block; max-width: 185px; font-size: 12px; line-height: 1.4; }
+  .competitions-hero__art, .competitions-hero__dark-art { top: 35px; right: -20px; width: 110%; opacity: .72; }
   .competitions-section { min-height: 96px; }
   .competitions-section strong { font-size: 16px; }
   .competitions-section > span:last-child > span { font-size: 12px; }
@@ -666,6 +662,11 @@
 }
 
 @media (max-width: 500px) {
+  .competitions-status-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; overflow: visible; }
+  .competitions-status-tab { min-width: 0; width: 100%; justify-content: center; gap: 4px; padding: 0 2px; font-size: 11px; }
+  .competitions-status-tab svg { width: 14px; flex: none; }
+  .competitions-status-tab__full { display: none; }
+  .competitions-status-tab__short { display: inline; }
   .competitions-sections { grid-template-columns: 1fr; }
   .competitions-section { min-height: 88px; }
   .competitions-status-tab { padding: 0 7px; font-size: 12px; }
