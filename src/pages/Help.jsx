@@ -375,6 +375,8 @@ export default function Help({ embedded = false, contactsOnly = false }) {
 
       <main>
         <section className="support-hero">
+          <img className="support-hero__art" src="/support-hero.webp" alt="" aria-hidden="true" fetchPriority="high" />
+          <img className="support-hero__dark-art" src="/support-hero-dark.webp" alt="" aria-hidden="true" loading="lazy" />
           <Reveal className="support-container support-hero__inner">
             <h1>Помощь и поддержка</h1>
             <p>Ответы на частые вопросы и связь с командой ML-Арены.<br />Мы здесь, чтобы помочь вам.</p>

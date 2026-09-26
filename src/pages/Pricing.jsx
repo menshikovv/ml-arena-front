@@ -1,23 +1,19 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
   BrainCircuit,
-  BriefcaseBusiness,
   CalendarCheck2,
   Check,
   CheckCircle2,
   ChevronDown,
   ClipboardCheck,
   Compass,
-  FileText,
   FlaskConical,
   LineChart,
-  LockKeyhole,
-  MessagesSquare,
-  Presentation,
   Route,
   ShieldCheck,
   Target,
@@ -29,55 +25,44 @@ import { api } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import "./Pricing.css";
 
 const FEATURES = [
   {
     icon: BrainCircuit,
     title: "ML Coach",
-    description: "После активности получайте понятный разбор результата: что получилось, что стоит проверить и какой следующий шаг выбрать.",
-    note: "После значимой активности",
+    description: "Понятный разбор результата и рекомендации по следующему шагу.",
+    note: "После активности",
   },
   {
     icon: Route,
     title: "Персональный план",
-    description: "Вместо случайного набора задач — несколько приоритетных шагов, подобранных по вашему ML-паспорту и цели.",
-    note: "2–4 приоритетных шага",
+    description: "Набор приоритетных задач по вашему ML-паспорту и целям.",
+    note: "2–4 шага вперёд",
   },
   {
     icon: LineChart,
     title: "Расширенная аналитика",
-    description: "Следите за динамикой по направлениям, стабильностью результатов, свежестью и достаточностью подтверждений.",
-    note: "Полная картина прогресса",
+    description: "Динамика по направлениям, стабильность результатов и ключевые показатели.",
+    note: "Полная картина",
   },
   {
     icon: FlaskConical,
     title: "Лаборатория практики",
-    description: "Получайте нерейтинговые задачи, подсказки и подробные разборы подходов после основной попытки.",
+    description: "Нерейтинговые задачи, подсказки и подробные разборы подходов.",
     note: "Без влияния на рейтинг",
   },
   {
     icon: ClipboardCheck,
     title: "Экспертный разбор",
-    description: "Раз в месяц отправляйте один результат на стандартизированный письменный разбор специалисту ML-Арены.",
+    description: "Письменный разбор решения специалистом ML-Арены.",
     note: "1 разбор в месяц",
   },
   {
-    icon: BriefcaseBusiness,
-    title: "Карьерная готовность",
-    description: "Понимайте, какие компетенции уже подтверждены под выбранное направление и где пока недостаточно данных.",
-    note: "Без платного продвижения",
-  },
-  {
-    icon: Presentation,
-    title: "Вебинары",
-    description: "Встречи и групповые разборы от экспертов, которые помогают развивать навыки и выбирать следующий шаг.",
-    note: "Встречи с экспертами",
-  },
-  {
-    icon: MessagesSquare,
-    title: "Сообщество",
-    description: "Общий чат участников и разработчиков ML-Арены для вопросов, обмена опытом и обсуждения платформы.",
-    note: "Чат участников",
+    icon: LineChart,
+    title: "Еженедельный прогресс",
+    description: "Сводка с новыми подтверждениями, изменениями стабильности и следующими шагами.",
+    note: "Полная картина прогресса",
   },
 ];
 
@@ -163,7 +148,7 @@ const FAQ_ITEMS = [
 
 function SectionTitle({ title, description }) {
   return (
-    <div className="mb-7 max-w-3xl">
+    <div className="pricing-section-title">
       <h2 className="font-heading text-3xl font-extrabold leading-tight md:text-4xl">{title}</h2>
       {description && <p className="mt-3 text-base leading-7 text-muted-foreground">{description}</p>}
     </div>
@@ -182,7 +167,7 @@ function ComparisonValue({ value, premium }) {
 
 export default function Pricing() {
   const [period, setPeriod] = useState("month");
-  const [openFaq, setOpenFaq] = useState(0);
+  const [openFaq, setOpenFaq] = useState(-1);
   const reduceMotion = useReducedMotion();
   const { toast } = useToast();
   const annual = period === "year";
@@ -204,13 +189,14 @@ export default function Pricing() {
   };
 
   return (
-    <PageFrame>
-      <Reveal viewportReveal>
-        <section className="relative -mx-4 grid items-center gap-10 overflow-hidden border-y border-primary/15 bg-primary/[0.045] px-5 py-9 sm:-mx-6 sm:px-8 sm:py-11 lg:-mx-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:gap-16 lg:px-12 lg:py-14">
-          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />
-          <div className="relative max-w-3xl">
+    <PageFrame className="pricing-page">
+      <Reveal viewportReveal className="pricing-hero-reveal">
+        <section className="pricing-hero">
+          <div className="pricing-hero__copy relative max-w-3xl">
             <h1 className="font-heading text-4xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">
-              Разбирайте результаты глубже. Развивайтесь точнее.
+              <span>Разбирайте</span>{" "}
+              <span>результаты глубже.</span>{" "}
+              <span>Развивайтесь точнее.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
               Персональная аналитика, ML Coach, план развития, тренировочный режим и обратная связь от специалистов — поверх ваших практических результатов в ML-Арене.
@@ -229,13 +215,12 @@ export default function Pricing() {
             </p>
           </div>
 
-          <div className="group relative overflow-hidden border border-primary/20 bg-background p-5 shadow-2xl shadow-primary/10 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 sm:p-7 motion-reduce:transform-none">
+          <div className="pricing-hero__plan group relative overflow-hidden border border-primary/20 bg-background p-5 shadow-2xl shadow-primary/10 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 sm:p-7 motion-reduce:transform-none">
             <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
               <div>
                 <p className="font-heading text-xl font-extrabold">ML-Арена Premium</p>
                 <p className="mt-1 text-sm text-muted-foreground">Один тариф, полный набор функций</p>
               </div>
-              <span className="border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] font-bold text-primary">Founder Season</span>
             </div>
 
             <div className="my-6 grid grid-cols-2 border border-border bg-secondary/45 p-1" role="group" aria-label="Период оплаты">
@@ -261,10 +246,9 @@ export default function Pricing() {
             </AnimatePresence>
 
             <div className="my-6 space-y-3 border-y border-border py-5 text-sm">
-              {(premiumPlan?.features || []).map((item) => (
+              {(premiumPlan?.features?.length ? premiumPlan.features : ["Расширенная аналитика", "ML Coach", "Персональный план"]).slice(0, 3).map((item) => (
                 <div key={item} className="flex items-center gap-2.5"><CheckCircle2 size={17} className="shrink-0 text-accent" />{item}</div>
               ))}
-              {!premiumPlan?.features?.length && <p className="text-muted-foreground">Состав тарифа пока не опубликован.</p>}
             </div>
             <Button size="lg" onClick={requestPremium} className="h-12 w-full overflow-hidden">
               Оформить Premium
@@ -275,21 +259,21 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-14" viewportReveal>
-        <section>
+      <Reveal className="pricing-comparison-reveal" viewportReveal>
+        <section className="pricing-comparison">
           <SectionTitle title="Free подтверждает навык. Premium помогает расти быстрее." description="Базовые результаты, рейтинг и ML-паспорт остаются бесплатными. Подписка добавляет анализ, обучение и понятный следующий шаг." />
-          <div className="overflow-x-auto border border-border bg-card shadow-sm">
+          <div className="pricing-comparison__table overflow-x-auto border border-border bg-card shadow-sm">
             <div className="min-w-[680px]">
-              <div className="grid grid-cols-[minmax(340px,1fr)_150px_170px] border-b border-border bg-secondary/60">
+              <div className="pricing-comparison__head grid grid-cols-[minmax(340px,1fr)_150px_170px] border-b border-border bg-secondary/60">
                 <div className="p-4 text-sm font-bold">Возможность</div>
                 <div className="p-4 text-center text-sm font-bold">Free</div>
                 <div className="border-l border-primary/15 bg-primary/10 p-4 text-center text-sm font-bold text-primary">Premium</div>
               </div>
               {COMPARISON_ROWS.map((row) => (
-                <div key={row.label} className="grid grid-cols-[minmax(340px,1fr)_150px_170px] items-stretch border-b border-border last:border-b-0 hover:bg-secondary/25">
+                <div key={row.label} className="pricing-comparison__row grid grid-cols-[minmax(340px,1fr)_150px_170px] items-stretch border-b border-border last:border-b-0 hover:bg-secondary/25">
                   <div className="p-4 text-sm font-medium">{row.label}</div>
-                  <div className="flex items-center justify-center p-4"><ComparisonValue value={row.free} /></div>
-                  <div className="flex items-center justify-center border-l border-primary/10 bg-primary/[0.035] p-4"><ComparisonValue value={row.premium} premium /></div>
+                  <div className="pricing-comparison__value flex items-center justify-center p-4"><ComparisonValue value={row.free} /></div>
+                  <div className="pricing-comparison__value pricing-comparison__value--premium flex items-center justify-center border-l border-primary/10 bg-primary/[0.035] p-4"><ComparisonValue value={row.premium} premium /></div>
                 </div>
               ))}
             </div>
@@ -297,106 +281,87 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <div id="premium-includes" className="mt-16">
-        <section>
-          <Reveal viewportReveal><SectionTitle title="Персональный слой развития" description="Каждая функция отвечает на один вопрос: что делать дальше, чтобы подтверждённый уровень действительно рос." /></Reveal>
-          <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" viewportReveal>
-            {FEATURES.map((feature, index) => (
-              <StaggerItem key={feature.title} className={cn("h-full", index === 0 && "lg:col-span-2")}>
-                <article className="group relative h-full overflow-hidden border border-border bg-card p-5 shadow-sm transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/35 hover:shadow-xl hover:shadow-primary/10 sm:p-6 motion-reduce:transform-none">
-                  <span className="absolute inset-y-0 left-0 w-1 bg-primary/0 transition-colors group-hover:bg-primary" />
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-primary/15 bg-primary/10 text-primary"><feature.icon size={21} /></span>
-                    <span className="border border-border bg-secondary/60 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{feature.note}</span>
-                  </div>
-                  <h3 className="mt-6 font-heading text-xl font-extrabold">{feature.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{feature.description}</p>
-                  <span className="absolute bottom-0 left-0 h-0.5 w-full bg-primary" />
-                </article>
-              </StaggerItem>
-            ))}
-          </Stagger>
+      <div id="premium-includes" className="pricing-features-reveal">
+        <section className="pricing-growth">
+          <Reveal viewportReveal className="pricing-growth__heading">
+            <h2>Персональный слой<br />развития</h2>
+            <p>Каждая функция помогает делать следующий шаг — от анализа текущих результатов до уверенного роста в ML-Арене.</p>
+          </Reveal>
+          <div className="pricing-growth__content">
+            <Stagger className="pricing-features__grid" viewportReveal>
+              {FEATURES.map((feature) => (
+                <StaggerItem key={feature.title} className="h-full">
+                  <article className="pricing-feature">
+                    <div className="pricing-feature__top">
+                      <span className="pricing-feature__icon"><feature.icon size={22} /></span>
+                      <span className="pricing-feature__note">{feature.note}</span>
+                    </div>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.description}</p>
+                  </article>
+                </StaggerItem>
+              ))}
+            </Stagger>
+            <Reveal viewportReveal className="pricing-progress">
+              <div className="pricing-progress__header"><h3>Еженедельный прогресс</h3><CalendarCheck2 size={21} /></div>
+              <ol className="pricing-progress__timeline">
+                {["Новые подтверждения", "Изменение стабильности", "Следующие шаги", "Рекомендации ML Coach", "Обновление целей"].map((label, index) => (
+                  <li key={label} className={index < 2 ? "is-done" : ""}><span>{index < 2 && <Check size={15} />}</span>{label}</li>
+                ))}
+              </ol>
+              <div className="pricing-progress__note"><Target size={22} /><span>Сводка обновляется автоматически вместе с вашим прогрессом.</span></div>
+            </Reveal>
+          </div>
         </section>
       </div>
 
-      <Reveal className="mt-16" viewportReveal>
-        <section className="relative grid gap-8 overflow-hidden border-y border-border bg-secondary/30 px-0 py-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-8">
-          <div className="px-4 sm:px-6 lg:px-0">
-            <span className="flex h-12 w-12 items-center justify-center border border-primary/20 bg-primary/10 text-primary"><BrainCircuit size={23} /></span>
-            <h2 className="mt-6 font-heading text-3xl font-extrabold leading-tight md:text-4xl">Не ещё одна цифра, а понятный разбор результата</h2>
-            <p className="mt-4 text-base leading-7 text-muted-foreground">ML Coach анализирует доступную статистику, формулирует проверяемые гипотезы и предлагает следующий практический шаг.</p>
-            <p className="mt-5 flex gap-2 text-sm leading-6 text-muted-foreground"><LockKeyhole size={17} className="mt-0.5 shrink-0 text-primary" />Он не придумывает причины ошибок и не создаёт неподтверждённые факты в ML-паспорте.</p>
-          </div>
-          <div className="grid gap-px border border-border bg-border sm:grid-cols-2">
+      <Reveal className="pricing-coach-reveal" viewportReveal>
+        <section className="pricing-coach">
+          <h2>Понятный разбор результата</h2>
+          <ul>
             {COACH_INSIGHTS.map((insight) => (
-              <div key={insight.title} className="group relative overflow-hidden bg-card p-5 transition-colors hover:bg-background sm:p-6">
-                <insight.icon size={20} className={insight.tone} />
-                <h3 className="mt-5 font-heading text-lg font-extrabold">{insight.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{insight.text}</p>
-                <span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 w-1/2 bg-primary" />
-              </div>
+              <li key={insight.title}><insight.icon size={20} className={insight.tone} /><strong>{insight.title}</strong></li>
             ))}
-          </div>
+          </ul>
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" viewportReveal>
-        <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
+      <Reveal className="pricing-plan-reveal" viewportReveal>
+        <section className="pricing-plan">
+          <h2>План, который<br />меняется вместе с вами</h2>
+          <ol>
+            {DEVELOPMENT_STEPS.map((step, index) => (
+              <li key={step.title}>
+                <span className="pricing-plan__number">{String(index + 1).padStart(2, "0")}</span>
+                <strong>{step.title}</strong>
+                <span className="pricing-plan__status">{step.status}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </Reveal>
+
+      <Reveal className="pricing-practice-reveal" viewportReveal>
+        <section className="pricing-practice">
           <div>
-            <SectionTitle title="План, который меняется вместе с результатами" description="Не бесконечная лента рекомендаций, а несколько приоритетных действий, пересчитанных после значимых новых подтверждений." />
-            <div className="relative space-y-3">
-              <span aria-hidden="true" className="absolute bottom-5 left-5 top-5 w-px bg-primary/25" />
-              {DEVELOPMENT_STEPS.map((step, index) => (
-                <div key={step.title} className="group relative grid grid-cols-[42px_minmax(0,1fr)] gap-4 border border-border bg-card p-4 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:p-5">
-                  <span className="relative z-10 flex h-10 w-10 items-center justify-center border border-primary/15 bg-card font-heading text-sm font-extrabold text-primary">{String(index + 1).padStart(2, "0")}</span>
-                  <div><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-heading font-extrabold">{step.title}</h3><span className="text-xs font-semibold text-primary">{step.status}</span></div><p className="mt-2 text-sm leading-6 text-muted-foreground">{step.description}</p></div>
-                </div>
-              ))}
-            </div>
+            <h2>Продолжайте практику после рейтинговой попытки</h2>
+            <p>Рейтинговый результат фиксируется, а дальше можно открыть тренировочный режим: проверить гипотезы, использовать подсказки и изучить разбор организатора.</p>
           </div>
-
-          <div className="relative flex h-full flex-col overflow-hidden border border-border bg-card p-5 shadow-sm sm:p-7">
-            <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
-              <div><p className="font-heading text-lg font-extrabold">Еженедельный прогресс</p><p className="mt-1 text-xs text-muted-foreground">Обновлено сегодня</p></div>
-              <CalendarCheck2 size={22} className="text-primary" />
-            </div>
-            <div className="grid gap-3 py-5 sm:grid-cols-3">
-              {["Новые подтверждения", "Изменение стабильности", "Следующие шаги"].map((label) => <div key={label} className="relative overflow-hidden bg-secondary/55 p-4 transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transform-none"><CheckCircle2 size={17} className="text-primary" /><p className="mt-3 text-sm font-semibold">{label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Сводка обновляется вместе с вашим прогрессом.</p><span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 w-3/4 bg-primary" /></div>)}
-            </div>
-            <div className="mt-auto pt-6"><div className="flex items-start gap-3 border border-primary/15 bg-primary/5 p-4"><Target size={19} className="mt-0.5 shrink-0 text-primary" /><div><p className="text-sm font-bold">Рекомендуемый следующий шаг</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Закрепить временную валидацию в тренировочной задаче без влияния на рейтинг.</p></div></div></div>
-          </div>
+          <Button asChild variant="secondary"><Link to="/competitions">Перейти к практике <ArrowRight size={17} /></Link></Button>
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" viewportReveal>
-        <section className="grid gap-4 lg:grid-cols-3">
-          <div className="group relative overflow-hidden border border-border bg-card p-6 lg:col-span-2">
-            <FlaskConical size={24} className="text-primary" />
-            <h2 className="mt-6 font-heading text-3xl font-extrabold">Продолжайте практику после рейтинговой попытки</h2>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">Рейтинговый результат фиксируется, а дальше можно открыть тренировочный режим: проверить гипотезы, использовать подсказки и изучить разбор организатора.</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">{["Рейтинг больше не меняется", "Подсказки открываются поэтапно", "Следующая задача подбирается по направлению"].map((item) => <div key={item} className="border-t-2 border-primary bg-secondary/40 p-4 text-sm font-semibold leading-6 transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transform-none">{item}</div>)}</div>
-          </div>
-          <div className="group relative overflow-hidden border border-border bg-foreground p-6 text-background dark:bg-primary dark:text-primary-foreground">
-            <FileText size={24} />
-            <h3 className="mt-6 font-heading text-2xl font-extrabold">1 экспертный разбор в месяц</h3>
-            <p className="mt-4 text-sm leading-6 opacity-75">Письменный разбор одного выбранного результата с конкретными рекомендациями. Формат и срок видны до отправки.</p>
-            <div className="mt-7 border-t border-current/20 pt-5 text-sm font-semibold">Разбор не превращается в преимущество в рейтинге.</div>
-            <span aria-hidden="true" className="absolute bottom-0 left-0 h-1 w-full bg-accent" />
-          </div>
-        </section>
-      </Reveal>
-
-      <Reveal className="mt-16" viewportReveal>
-        <section className="border border-primary/25 bg-primary/[0.055] p-6 sm:p-8">
+      <Reveal className="pricing-fairness-reveal" viewportReveal>
+        <section className="pricing-fairness border border-primary/25 bg-primary/[0.055] p-6 sm:p-8">
           <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
-            <div><ShieldCheck size={28} className="text-primary" /><h2 className="mt-5 font-heading text-3xl font-extrabold">Premium не покупает результат</h2></div>
+            <div><ShieldCheck size={28} className="text-primary" /><h2 className="mt-5 font-heading text-3xl font-extrabold">Premium не покупает результат</h2><p className="pricing-fairness__intro">Оплата не должна менять доказательную ценность рейтинга и ML-паспорта.</p></div>
             <div className="grid gap-3 sm:grid-cols-2">{["Не повышает рейтинг", "Не даёт рейтинговых попыток", "Не подбирает слабых соперников", "Не добавляет подтверждения без результата", "Не повышает профиль в выдаче компаний", "Не меняет правила соревнований"].map((item) => <div key={item} className="flex items-center gap-2.5 border border-border bg-card px-4 py-3 text-sm font-semibold transition-[transform,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/35 motion-reduce:transform-none"><ShieldCheck size={16} className="shrink-0 text-primary" />{item}</div>)}</div>
           </div>
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" viewportReveal>
-        <section className="grid gap-8 lg:grid-cols-[0.58fr_1.42fr]">
+      <Reveal className="pricing-faq-reveal" viewportReveal>
+        <section className="pricing-faq grid gap-8 lg:grid-cols-[0.58fr_1.42fr]">
           <SectionTitle title="Вопросы о Premium" description="Оплата не должна менять доказательную ценность рейтинга и ML-паспорта." />
           <div className="border-t border-border">
             {FAQ_ITEMS.map((item, index) => {
@@ -417,8 +382,8 @@ export default function Pricing() {
         </section>
       </Reveal>
 
-      <Reveal className="mt-16" viewportReveal>
-        <section className="group relative flex flex-col gap-7 overflow-hidden border-t border-border bg-foreground px-6 py-9 text-background sm:px-8 lg:flex-row lg:items-center lg:justify-between dark:bg-card dark:text-foreground">
+      <Reveal className="pricing-final-reveal" viewportReveal>
+        <section className="pricing-final group relative flex flex-col gap-7 overflow-hidden border-t border-border bg-foreground px-6 py-9 text-background sm:px-8 lg:flex-row lg:items-center lg:justify-between dark:bg-card dark:text-foreground">
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-accent" />
           <div><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">{monthlyPlan ? `От ${Math.round(Number(monthlyPlan.amount) / 100).toLocaleString("ru-RU")} ${monthlyPlan.currency === "RUB" ? "₽" : monthlyPlan.currency} в месяц.` : "Стоимость пока не опубликована."}</p></div>
           <Button size="lg" variant="secondary" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
