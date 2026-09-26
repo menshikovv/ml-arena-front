@@ -46,7 +46,7 @@
 
 .passport-tabs { margin-top: 20px; }
 .passport-tabs__list { display: flex; gap: 7px; overflow-x: auto; padding: 6px; border: 1px solid #d9e4f5; border-radius: 8px; background: #fff; box-shadow: 0 5px 15px rgb(48 82 142 / 5%); scrollbar-width: thin; }
-.passport-tabs__trigger { display: flex; min-width: 150px; min-height: 47px; flex: 1; align-items: center; justify-content: center; gap: 11px; padding: 8px 12px; border-radius: 7px; color: #516687; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.passport-tabs__trigger { display: flex; min-width: 150px; min-height: 47px; flex: 1 0 max-content; align-items: center; justify-content: center; gap: 11px; padding: 8px 12px; border-radius: 7px; color: #516687; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .passport-tabs__trigger[data-state="active"] { background: #3164f1; color: #fff; box-shadow: 0 4px 10px rgb(45 89 217 / 17%); }
 .passport-tabs__trigger:not([data-state="active"]):hover { background: #eef3fc; color: #2759db; }
 .passport-tabs__trigger svg { flex: none; }
