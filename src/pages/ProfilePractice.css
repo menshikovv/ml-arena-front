@@ -58,6 +58,16 @@
 .passport-practice-recent__row > strong:last-child { text-align: right; }
 .passport-practice-recent__row .is-win { color: #0b9560; }
 .passport-practice-recent__empty { display: flex; min-height: 128px; align-items: center; color: #6d82a3; font-size: 12px; line-height: 1.5; }
+.passport-practice-results { margin-top: 26px; color: hsl(var(--foreground)); }
+.passport-practice-results h2 { font-size: 22px; font-weight: 800; }
+.passport-practice-results > p { margin-top: 8px; font-size: 13px; color: hsl(var(--muted-foreground)); }
+.passport-practice-results__list { margin-top: 16px; border-block: 1px solid hsl(var(--border)); }
+.passport-practice-results__row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 16px 0; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; }
+.passport-practice-results__row:last-child { border-bottom: 0; }
+.passport-practice-results__row > span { flex: 1; min-width: 170px; }
+.passport-practice-results__row a { font-weight: 700; }
+.passport-practice-results__row small { display: block; margin-top: 6px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+.passport-practice-results__row button { color: hsl(var(--primary)); font-weight: 600; }
 
 .dark .passport-practice__heading h2, .dark .passport-practice__history h2, .dark .passport-practice-stat__head h3, .dark .passport-practice-stat__value, .dark .passport-practice-chart__empty strong, .dark .passport-practice-panel__heading h2, .dark .passport-practice-detail strong, .dark .passport-practice-recent__row { color: #f2f5ff; }
 .dark .passport-practice__heading p, .dark .passport-practice__history > p, .dark .passport-practice-stat p { color: #a7b6d0; }

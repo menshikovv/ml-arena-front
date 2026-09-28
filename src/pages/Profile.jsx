@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Activity, Award, BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, ChevronRight, CircleDot, Crown, ExternalLink, FileText, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, ListFilter, Loader2, MapPin, Medal, Network, Pencil, ScanEye, ShieldCheck, Sparkles, Star, Swords, Target, TrendingUp, Trophy, UserRoundSearch } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
@@ -10,9 +10,11 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
+import { directionEvidence, loadPassportEvidence } from "@/lib/passport";
 import ProfileRating from "./ProfileRating";
 import ProfileCareer from "./ProfileCareer";
 import ProfilePractice from "./ProfilePractice";
+import ProfileDirection from "./ProfileDirection";
 import "./Profile.css";
 
 const DIRECTIONS = [
@@ -71,17 +73,18 @@ const DIRECTION_STYLE = {
   recsys: ["RS", Network, "#7045e9", "#ece8ff"],
 };
 
-function DirectionCard({ code, title, score }) {
+function DirectionCard({ code, title, score, evidence, onOpen }) {
   const value = Number(score);
   const hasData = score != null && Number.isFinite(value) && value > 0;
   const progress = hasData ? Math.max(0, Math.min(100, value)) : 0;
   const [mark, Icon, accent, soft] = DIRECTION_STYLE[code] || DIRECTION_STYLE.classification;
-  return <article className="passport-direction" style={{ "--direction-accent": accent, "--direction-soft": soft }}>
+  return <button type="button" onClick={onOpen} aria-label={`Открыть направление: ${title}`} className="passport-direction" style={{ "--direction-accent": accent, "--direction-soft": soft }}>
     <div className="passport-direction__top"><span className="passport-direction__icon"><Icon size={27} strokeWidth={2.4} /></span><span className="passport-direction__mark" aria-hidden="true">{mark}<span>/</span></span><span className="passport-direction__brand">ML-ARENA</span></div>
     <h3>{title}</h3>
-    <p>{hasData ? "Подтверждено" : "Пока нет результатов"}</p>
-    <div className="passport-direction__bottom"><span>Уровень</span><div className="passport-direction__track"><div style={{ width: `${progress}%` }} /></div><strong>{hasData ? `${value}%` : "—"}</strong></div>
-  </article>;
+    <p>{evidence ? `${evidence.official.length} официальных финалов · ${evidence.duels.length} дуэлей` : hasData ? "Есть результаты профиля" : "Пока нет результатов"}</p>
+    <div className="passport-direction__bottom"><span>Индекс профиля</span><div className="passport-direction__track"><div style={{ width: `${progress}%` }} /></div><strong>{hasData ? value : "—"}</strong></div>
+    <span className="passport-direction__action">Результаты и решения<ChevronRight size={16} /></span>
+  </button>;
 }
 
 function BadgeCard({ grant }) {
@@ -152,6 +155,7 @@ function ExternalAchievementCard({ achievement }) {
 export default function Profile() {
   const { id } = useParams();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("directions");
   const [selectedSeason, setSelectedSeason] = useState("");
   const ownerIds = [user?.id, user?.user_id, user?.profile_id].filter(Boolean).map(String);
@@ -167,7 +171,8 @@ export default function Profile() {
   const competitionsQuery = useQuery({ queryKey: ["profile-rating", "competitions", season], queryFn: () => api.rating.get({ tab: "competitions", season }), enabled: Boolean(isOwner && season) });
   const duelsQuery = useQuery({ queryKey: ["profile-rating", "duels", season], queryFn: () => api.rating.get({ tab: "duels", season }), enabled: Boolean(isOwner && season) });
   const methodologyQuery = useQuery({ queryKey: ["profile-rating-methodology", season], queryFn: () => api.rating.methodology({ season }), enabled: Boolean(isOwner && season), staleTime: 60000 });
-  const practiceDuelsQuery = useQuery({ queryKey: ["profile-practice-duels", profileUserId], queryFn: () => api.duels.list({ status: "completed", sort: "-completed_at", limit: 100 }), enabled: Boolean(isOwner && profileUserId && activeTab === "practice"), staleTime: 60000 });
+  const evidenceQuery = useQuery({ queryKey: ["passport-evidence", profileUserId], queryFn: () => loadPassportEvidence(api), enabled: Boolean(isOwner && profileUserId && ["directions", "practice"].includes(activeTab)), staleTime: 60000, retry: 1 });
+  const metricsQuery = useQuery({ queryKey: ["catalog-metrics"], queryFn: api.catalogs.metrics, enabled: Boolean(isOwner && activeTab === "directions"), staleTime: 60000 });
 
   const badges = list(badgesQuery.data);
   const externalAchievements = list(profile?.external_achievements);
@@ -188,7 +193,12 @@ export default function Profile() {
   const seasonDuelHistory = duelRating?.history?.length ? duelRating.history : duelRating?.rating_history?.length ? duelRating.rating_history : null;
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
-  const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] })), [skills]);
+  const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] ?? (code === "cv" ? skills.computer_vision : null), evidence: isOwner && evidenceQuery.data ? directionEvidence(evidenceQuery.data, code, profileUserId) : null })), [skills, evidenceQuery.data, isOwner, profileUserId]);
+  const selectedDirection = directionCards.find((item) => item.code === searchParams.get("direction"));
+  const openDirection = (code) => {
+    setSearchParams((previous) => { const params = new URLSearchParams(previous); if (code) params.set("direction", code); else params.delete("direction"); return params; });
+    setActiveTab("directions");
+  };
   const passportTabs = [
     ["directions", "Направления", Target],
     ["rating", "Рейтинг", Trophy],
@@ -232,11 +242,11 @@ export default function Profile() {
     <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="passport-tabs">
       <Tabs.List className="passport-tabs__list" aria-label="Разделы ML-паспорта">{passportTabs.map(([value, label, Icon]) => <Tabs.Trigger key={value} value={value} className="passport-tabs__trigger"><Icon size={19} />{label}</Tabs.Trigger>)}</Tabs.List>
 
-      <Tabs.Content value="directions" className="passport-directions outline-none"><Reveal><div className="passport-section-title"><div><h2>Карта компетенций</h2><p>Ваши подтверждённые результаты в машинном обучении.</p></div><div className="passport-section-title__note"><BarChart3 size={26} /><span>Развивайтесь в разных направлениях<br />и получайте новые достижения!</span></div></div><div className="passport-directions__grid">{directionCards.map((item) => <DirectionCard key={item.code} {...item} />)}</div></Reveal></Tabs.Content>
+      <Tabs.Content value="directions" className="passport-directions outline-none"><Reveal key={selectedDirection?.code || "map"}>{selectedDirection ? <ProfileDirection direction={selectedDirection} evidenceQuery={evidenceQuery} isOwner={isOwner} ownerId={profileUserId} season={season} onBack={() => openDirection(null)} metrics={list(metricsQuery.data)} externalAchievements={externalAchievements} /> : <><div className="passport-section-title"><div><h2>Карта компетенций</h2><p>Ваши подтверждённые результаты в машинном обучении.</p></div><div className="passport-section-title__note"><BarChart3 size={26} /><span>Развивайтесь в разных направлениях<br />и получайте новые достижения!</span></div></div><div className="passport-directions__grid">{directionCards.map((item) => <DirectionCard key={item.code} {...item} onOpen={() => openDirection(item.code)} />)}</div>{evidenceQuery.isLoading && <p className="passport-evidence-loading"><Loader2 size={18} className="animate-spin" />Загружаем историю результатов…</p>}{(evidenceQuery.isError || evidenceQuery.data?.errors > 0) && <p className="passport-evidence-notice">Часть подробной истории недоступна. Откройте направление, чтобы повторить загрузку.</p>}</>}</Reveal></Tabs.Content>
 
       <Tabs.Content value="rating" className="outline-none"><Reveal>{isOwner && !seasonsQuery.isLoading && !season ? <EmptyState title="Новый сезон ещё не начался" text="После старта сезона здесь появятся общий рейтинг, результаты соревнований и дуэлей." /> : <ProfileRating seasons={seasons} season={season} onSeasonChange={setSelectedSeason} overall={overall} competition={competitionRating} duels={duelRating} ratingTotal={overallQuery.data?.total ?? overallQuery.data?.meta?.total} methodology={methodologyQuery.data} />}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="practice" className="outline-none"><Reveal><ProfilePractice matches={humanDuels} wins={duelWins} losses={duelLosses} bonus={challengeBonus} rating={seasonalDuelScore} startRating={duelStart} history={seasonDuelHistory || profile.rating_history || []} historySource={seasonDuelHistory ? "season" : "profile"} competitionScore={competitionsQuery.isSuccess ? competitionRating?.competition_score ?? competitionRating?.score : null} competitionsCount={stats.competitions_participated} duels={list(practiceDuelsQuery.data)} duelsLoading={practiceDuelsQuery.isLoading && isOwner} duelsError={practiceDuelsQuery.isError} ownerId={isOwner ? profileUserId : null} /></Reveal></Tabs.Content>
+      <Tabs.Content value="practice" className="outline-none"><Reveal>{(evidenceQuery.isError || evidenceQuery.data?.errors > 0) && <p className="passport-evidence-notice">Часть истории результатов недоступна. Показатели рассчитаны по загруженным данным.</p>}<ProfilePractice matches={humanDuels} wins={duelWins} losses={duelLosses} bonus={challengeBonus} rating={seasonalDuelScore} startRating={duelStart} history={seasonDuelHistory || profile.rating_history || []} historySource={seasonDuelHistory ? "season" : "profile"} competitionScore={competitionsQuery.isSuccess ? competitionRating?.competition_score ?? competitionRating?.score : null} competitionsCount={stats.competitions_participated} competitions={evidenceQuery.data?.competitions || []} duels={evidenceQuery.data?.duels || []} duelsLoading={evidenceQuery.isLoading && isOwner} duelsError={evidenceQuery.isError || evidenceQuery.data?.duelsError} ownerId={isOwner ? profileUserId : null} onOpenDirection={openDirection} /></Reveal></Tabs.Content>
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
 

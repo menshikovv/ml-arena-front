@@ -51,7 +51,7 @@
 .passport-tabs__trigger:not([data-state="active"]):hover { background: #eef3fc; color: #2759db; }
 .passport-tabs__trigger svg { flex: none; }
 
-.passport-directions { margin-top: 35px; }
+.passport-directions { margin-top: 35px; container-type: inline-size; }
 .passport-section-title { display: flex; align-items: center; gap: 21px; margin-bottom: 22px; }
 .passport-section-title h2 { color: #111b34; font-size: 32px; font-weight: 800; line-height: 1.15; }
 .passport-section-title p { margin-top: 6px; color: #536888; font-size: 15px; }
@@ -60,6 +60,9 @@
 .passport-directions__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
 .passport-direction { display: flex; min-width: 0; min-height: 190px; flex-direction: column; overflow: hidden; padding: 17px 20px 18px; border: 1px solid #dce6f5; border-top: 4px solid var(--direction-accent); border-radius: 8px; background: #fff; box-shadow: 0 7px 18px rgb(40 79 150 / 5%); transition: transform .2s, box-shadow .2s; }
 .passport-direction:hover { transform: translateY(-2px); box-shadow: 0 11px 24px rgb(40 79 150 / 11%); }
+.passport-direction { text-align: left; cursor: pointer; }
+.passport-direction__action { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid hsl(var(--border)); color: hsl(var(--primary)); font-size: 12px; font-weight: 600; }
+.passport-direction__action svg { flex: none; }
 .passport-direction__top { display: flex; align-items: center; gap: 16px; }
 .passport-direction__icon { display: flex; width: 52px; height: 52px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: var(--direction-soft); color: var(--direction-accent); }
 .passport-direction__mark { min-width: 0; color: var(--direction-accent); font-size: 25px; font-weight: 800; line-height: 1; white-space: nowrap; }
@@ -129,6 +132,10 @@
   .passport-stat__arrow { top: 19px; right: 10px; width: 16px; }
   .passport-directions__grid { grid-template-columns: 1fr; }
   .passport-direction { min-height: 170px; }
+}
+
+@container (max-width: 600px) {
+  .passport-direction__brand { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

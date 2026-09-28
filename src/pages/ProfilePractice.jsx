@@ -1,4 +1,6 @@
 import { Award, BarChart3, Check, History, Swords, Target, TrendingUp, UsersRound } from "lucide-react";
+import { Link } from "react-router-dom";
+import { directionKey, isFinalCompetition, isOfficialResult, topPercent } from "@/lib/passport";
 import "./ProfilePractice.css";
 
 const formatNumber = (value) => value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toLocaleString("ru-RU", { useGrouping: false });
@@ -86,7 +88,7 @@ function duelDetails(duel, ownerId) {
   };
 }
 
-function ActivityChart({ duels, loading, unavailableMessage }) {
+export function ActivityChart({ duels, loading, unavailableMessage }) {
   const today = new Date();
   const weekStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - ((today.getUTCDay() + 6) % 7)));
   const weeks = Array.from({ length: 8 }, (_, index) => {
@@ -111,14 +113,16 @@ function DetailMetric({ label, value, note }) {
   return <div className="passport-practice-detail"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>;
 }
 
-export default function ProfilePractice({ matches, wins, losses, bonus, rating, startRating, history, historySource, competitionScore, competitionsCount, duels = [], duelsLoading = false, duelsError = false, ownerId }) {
-  const completedDuels = ownerId ? duels.filter((duel) => duel.status === "completed" && duel.mode !== "unrated" && [duel.player1?.user_id, duel.player2?.user_id].some((id) => String(id) === String(ownerId))).map((duel) => duelDetails(duel, ownerId)) : [];
+export default function ProfilePractice({ matches, wins, losses, bonus, rating, startRating, history, historySource, competitionScore, competitionsCount, competitions = [], duels = [], duelsLoading = false, duelsError = false, ownerId, onOpenDirection }) {
+  const completedDuels = ownerId ? duels.filter((duel) => duel.status === "completed" && (duel.mode == null || duel.mode === "rated") && [duel.player1?.user_id, duel.player2?.user_id].some((id) => String(id) === String(ownerId))).map((duel) => duelDetails(duel, ownerId)) : [];
   const submittedDuels = completedDuels.filter((duel) => duel.minutes != null);
   const ratedOpponents = completedDuels.filter((duel) => duel.opponentRating != null);
   const average = (items, field) => items.length ? Math.round(items.reduce((sum, item) => sum + item[field], 0) / items.length) : null;
   const matchesNumber = Number(matches);
   const winsNumber = Number(wins);
   const winRate = matchesNumber > 0 && Number.isFinite(winsNumber) ? `${Math.round(winsNumber / matchesNumber * 100)}%` : "—";
+  const officialFinals = competitions.filter((item) => isOfficialResult(item) && isFinalCompetition(item.competition) && item.result.leaderboard_kind === "private" && topPercent(item) != null);
+  const averageTop = officialFinals.length ? officialFinals.reduce((sum, item) => sum + topPercent(item), 0) / officialFinals.length : null;
   const unavailableMessage = !ownerId ? "Подробная история матчей доступна владельцу паспорта." : duelsError ? "Не удалось загрузить историю матчей." : null;
   const stats = [
     { icon: Swords, tone: "blue", label: "Дуэли с людьми", value: matches, detail: "Завершённые матчи" },
@@ -141,8 +145,9 @@ export default function ProfilePractice({ matches, wins, losses, bonus, rating, 
     </div>
     <div className="passport-practice__history"><h2>{historySource === "season" ? "История рейтинга дуэлей" : "История рейтинга профиля"}</h2><p>{historySource === "season" ? "Изменения сезонного рейтинга в завершённых матчах." : "Изменения рейтинга профиля после дуэлей; это не сезонный рейтинг."}</p><div className="passport-practice-chart"><PracticeChart history={history} historySource={historySource} /></div></div>
     <div className="passport-practice__lower">
-      <section className="passport-practice-panel"><div className="passport-practice-panel__heading"><BarChart3 size={20} aria-hidden="true" /><div><h2>Соревнования</h2><p>Сезонный рейтинг и участия</p></div></div><div className="passport-practice-panel__metrics"><DetailMetric label="Рейтинг сезона" value={formatNumber(competitionScore)} note="Баллы соревнований" /><DetailMetric label="Участий" value={formatNumber(competitionsCount)} note="За всё время" /><DetailMetric label="Средний результат" value="—" note="Нет истории финалов" /></div></section>
+      <section className="passport-practice-panel"><div className="passport-practice-panel__heading"><BarChart3 size={20} aria-hidden="true" /><div><h2>Соревнования</h2><p>Сезонный рейтинг и участия</p></div></div><div className="passport-practice-panel__metrics"><DetailMetric label="Рейтинг сезона" value={formatNumber(competitionScore)} note="Баллы соревнований" /><DetailMetric label="Участий" value={formatNumber(competitionsCount)} note="За всё время" /><DetailMetric label="Средний результат" value={averageTop == null ? "—" : `Топ-${averageTop.toLocaleString("ru-RU", { maximumFractionDigits: 1 })}%`} note={officialFinals.length ? `По ${officialFinals.length} официальным финалам` : duelsLoading ? "Загружаем финалы" : "Нет доступных официальных финалов"} /></div></section>
       <section className="passport-practice-panel"><div className="passport-practice-panel__heading"><UsersRound size={20} aria-hidden="true" /><div><h2>Последние дуэли</h2><p>Соперник, исход и изменение рейтинга</p></div></div>{completedDuels.length ? <div className="passport-practice-recent">{completedDuels.slice(0, 4).map((duel) => <div className="passport-practice-recent__row" key={duel.id}><span><strong>{duel.opponentName}</strong><small>{duel.task_type || duel.task_title || "Дуэль"}</small></span><span className={duel.result === "Победа" ? "is-win" : ""}>{duel.result}</span><strong>{duel.ratingDelta == null ? "—" : `${Number(duel.ratingDelta) > 0 ? "+" : ""}${formatNumber(duel.ratingDelta)}`}</strong></div>)}</div> : <div className="passport-practice-recent__empty">{duelsLoading ? "Загружаем матчи…" : unavailableMessage || "Дуэльная статистика появится после первых матчей с людьми."}</div>}</section>
     </div>
+    <section className="passport-practice-results"><h2>Результаты соревнований</h2><p>Официальные результаты и практика сообщества отображаются отдельно.</p><div className="passport-practice-results__list">{competitions.map(({ competition, result }) => <div key={competition.id} className="passport-practice-results__row"><span><Link to={`/competitions/${competition.id}`}>{competition.title}</Link><small>{isOfficialResult({ competition, result }) ? "Официальное" : "Сообщество · код не проверен ML-Ареной"}</small></span><strong>#{result.rank} из {result.participants_count}</strong><button type="button" onClick={() => onOpenDirection(directionKey(competition.task_type))}>Результаты и решения</button></div>)}{!competitions.length && <p className="passport-practice-recent__empty">{duelsLoading ? "Загружаем результаты…" : "Доступных результатов соревнований пока нет."}</p>}</div></section>
   </section>;
 }

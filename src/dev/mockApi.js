@@ -55,6 +55,41 @@ const account = () => ({ id: demoUserId, email: role() === "admin" ? "admin@demo
 const reply = (data, status = 200, extra = {}) => new Response(JSON.stringify(status >= 400 ? { error: data } : { data, ...extra }), { status, headers: { "Content-Type": "application/json" } });
 const notFound = () => reply({ code: "RESOURCE_NOT_FOUND", message: "В демо-данных запись не найдена" }, 404);
 const rows = (items, params) => reply(list(items, params), 200, { meta: { total: items.length } });
+if (!state.passportDemoVersion) {
+  state.resultCards ||= {};
+  const examples = [
+    ["passport-churn", "Классификация клиентов", "classification", "roc_auc", "official_platform", 4, 100, 0.931, 14],
+    ["passport-fraud", "Выявление подозрительных операций", "classification", "roc_auc", "official_partner", 16, 120, 0.902, 35],
+    ["passport-risk", "Оценка кредитного риска", "classification", "roc_auc", "official_platform", 8, 80, 0.918, 65],
+    ["passport-housing", "Стоимость недвижимости", "regression", "mae", "official_platform", 12, 90, 14200, 21],
+    ["passport-sales", "Продажи следующего месяца", "time_series", "mae", "official_partner", 7, 70, 12.8, 42],
+    ["passport-reviews", "Отзывы сообщества", "nlp", "f1", "community", 3, 40, 0.86, 18],
+    ["passport-community", "Открытая задача классификации", "classification", "roc_auc", "community", 1, 50, 0.94, 28],
+  ];
+  const daysAgo = (days) => new Date(Date.now() - days * 86400000).toISOString();
+  for (const [competitionId, title, taskType, metric, origin, rank, count, score, days] of examples) {
+    if (!state.competitions.some((item) => item.id === competitionId)) state.competitions.push({ id: competitionId, slug: competitionId, title, description: "Архивная задача для визуальной проверки ML-паспорта в дев-режиме.", origin, status: "finished", task_type: taskType, direction: taskType, metric, metric_name: metric.toUpperCase(), difficulty: "Средняя", domain: "Retail", starts_at: daysAgo(days + 12), deadline: daysAgo(days + 1), final_results_at: daysAgo(days), participants_count: count, user_state: "has_valid_submit", baseline_score: metric === "mae" ? score * 1.25 : score - 0.08, current_dataset_version_id: `dataset-${competitionId}`, organizer_name: "ML-Арена", rules_version: 1, access: "public" });
+    state.resultCards[competitionId] = { competition_id: competitionId, competition_title: title, user_id: demoUserId, user_name: "menshikov", score, rank, participants_count: count, origin, leaderboard_kind: "private", evidence_level: origin === "community" ? "community_activity" : "arena_verified", code_reviewed: competitionId === "passport-churn", reproduced: false, expert_defended: false, verified_technologies: competitionId === "passport-churn" ? ["CatBoost", "pandas"] : [] };
+    state.joined[competitionId] = true;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      const publicScore = metric === "mae" ? score * (1.3 - attempt * 0.06) : score - 0.12 + attempt * 0.028;
+      const submissionId = `${competitionId}-submit-${attempt}`;
+      if (!state.submissions.some((item) => item.id === submissionId)) state.submissions.push({ id: submissionId, competition_id: competitionId, user_id: demoUserId, status: "scored", original_filename: `predictions-v${attempt}.csv`, file_url: "/demo-solution.csv", attempt_number: attempt, public_score: publicScore, private_score: attempt === 4 ? score : metric === "mae" ? publicScore * 1.01 : publicScore - 0.007, private_score_revealed: true, created_at: daysAgo(days + 11 - attempt * 2) });
+    }
+  }
+  if (state.profiles?.[0]?.user_id === demoUserId) state.profiles[0].stats.competitions_participated = Math.max(state.profiles[0].stats.competitions_participated || 0, examples.length);
+  for (let index = 1; index < 10; index++) {
+    const duelId = `passport-duel-${index}`;
+    if (state.duels.some((item) => item.id === duelId)) continue;
+    const won = index <= 6;
+    state.duels.push({ id: duelId, mode: "rated", status: "completed", task_type: index % 3 === 0 ? "regression" : "classification", task_title: index % 3 === 0 ? "Предсказание числового результата" : "Классификация табличных данных", metric: index % 3 === 0 ? "mae" : "roc_auc", created_at: daysAgo(index * 3), started_at: daysAgo(index * 3), completed_at: new Date(Date.parse(daysAgo(index * 3)) + 50 * 60000).toISOString(), player1: { user_id: demoUserId, user_name: "menshikov", rating: 1082, score: won ? 0.92 : 0.83, file_url: "/demo-solution.csv", submitted_at: new Date(Date.parse(daysAgo(index * 3)) + (25 + index) * 60000).toISOString() }, player2: { user_id: index % 2 ? "user-alex" : "user-norm", user_name: index % 2 ? "alex_flexer" : "norm_tip", rating: 1040 + index * 9, score: 0.87 }, winner_id: won ? demoUserId : index % 2 ? "user-alex" : "user-norm", rating_change: { [demoUserId]: won ? 16 : -12 } });
+  }
+  state.passportDemoVersion = 1;
+  save();
+}
+for (const [code, name, direction] of [["mae", "MAE", "minimize"], ["f1", "F1", "maximize"]]) {
+  if (!state.metrics.some((item) => item.code === code)) state.metrics.push({ id: `metric-${code}`, code, name, direction, status: "active" });
+}
 state.uploads ||= {};
 for (const metric of state.metrics) {
   if (metric.current_version && !metric.current_version.implementation_type) metric.current_version.implementation_type = metric.owner_organization_id ? "custom" : "builtin";
@@ -249,9 +284,16 @@ function request(path, method, body, params) {
     if (tail.includes("download-url")) return reply({ url: "data:text/csv;charset=utf-8,id,prediction%0A1,0.82%0A2,0.17" });
     if (tail === "leaderboard") return reply({ items: rating(new URLSearchParams()).items.map((entry) => ({ id: entry.user_id, user_id: entry.user_id, profile: entry.profile, rank: entry.rank, score: 0.91 - entry.rank * 0.025 })) });
     if (tail === "submissions/me") return rows(state.submissions.filter((entry) => entry.competition_id === item.id), params);
-    if (tail === "submissions" && method === "POST") { const submission = { id: id("submission"), competition_id: item.id, status: "scored", public_score: 0.87, score: 0.87, created_at: now }; state.submissions.unshift(submission); save(); return reply(submission); }
+    if (tail === "submissions" && method === "POST") { const submission = { id: id("submission"), competition_id: item.id, user_id: demoUserId, status: "scored", public_score: 0.87, score: 0.87, created_at: now }; state.submissions.unshift(submission); item.user_state = "has_valid_submit"; save(); return reply(submission); }
     if (tail === "discussion") return reply({ items: [] });
-    if (tail === "result-card") return reply({ status: "published", rank: 14, score: 0.91, percentile: 86 });
+    if (tail === "result-card") {
+      if (state.resultCards?.[item.id]) return reply(state.resultCards[item.id]);
+      const final = ["finished", "completed", "archived"].includes(item.status);
+      const scores = state.submissions.filter((entry) => entry.competition_id === item.id && (!entry.user_id || entry.user_id === demoUserId) && ["scored", "evaluated"].includes(entry.status)).map((entry) => final ? entry.private_score_revealed ? entry.private_score : null : entry.public_score).filter((value) => value != null && Number.isFinite(Number(value))).map(Number);
+      if (!scores.length) return notFound();
+      const higher = state.metrics.find((metric) => metric.code === item.metric)?.direction !== "minimize";
+      return reply({ competition_id: item.id, competition_title: item.title, user_id: demoUserId, user_name: profile().user_name, score: higher ? Math.max(...scores) : Math.min(...scores), rank: 1, participants_count: 1, origin: item.origin, evidence_level: item.origin === "community" ? "community_activity" : "arena_verified", leaderboard_kind: final ? "private" : "public" });
+    }
     if (tail === "applications" || tail === "submit-for-review" || tail === "community" || tail.startsWith("community/")) { if (method === "POST" && tail === "submit-for-review") item.status = "submitted_for_review"; if (method === "PATCH") Object.assign(item, body); save(); return reply(item); }
     if (tail.startsWith("manage/")) return method === "GET" ? rows([], params) : reply({ id: id("invite"), status: "pending" });
   }
