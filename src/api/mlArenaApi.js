@@ -194,6 +194,7 @@ export const api = {
     metric: (id) => apiData(`/api/v1/admin/metrics/${id}`),
     createMetric: (body) => apiData("/api/v1/admin/metrics", { method: "POST", body: json(body) }),
     createCustomMetric: (body) => apiData("/api/v1/admin/metrics/custom", { method: "POST", body: json(body) }),
+    submitMetricVersion: (metricId, versionId) => apiData(`/api/v1/admin/metrics/${metricId}/versions/${versionId}/submit-for-moderation`, { method: "POST" }),
     updateMetric: (id, body) => apiData(`/api/v1/admin/metrics/${id}`, { method: "PATCH", body: json(body) }),
     createMetricVersion: (id, body) => apiData(`/api/v1/admin/metrics/${id}/versions`, { method: "POST", body: json(body) }),
     metricAction: (id, action, body) => apiData(`/api/v1/admin/metrics/${id}/${action}`, { method: "POST", ...(body ? { body: json(body) } : {}) }),
@@ -426,10 +427,10 @@ export async function sha256Hex(file) {
   return sha256Fallback(buffer);
 }
 
-export async function uploadFile(file, purpose, context = {}) {
+export async function uploadFile(file, purpose, context = {}, options = {}) {
   const checksum = await sha256Hex(file);
   const extension = file.name.split(".").pop()?.toLowerCase();
-  const contentType = extension === "zip" ? "application/zip" : file.type || {
+  const contentType = options.contentType || (extension === "zip" ? "application/zip" : file.type || {
     csv: "text/csv",
     json: "application/json",
     ipynb: "application/x-ipynb+json",
@@ -440,7 +441,7 @@ export async function uploadFile(file, purpose, context = {}) {
     webp: "image/webp",
     pdf: "application/pdf",
     zip: "application/zip",
-  }[extension] || "application/octet-stream";
+  }[extension] || "application/octet-stream");
   const intent = await apiData("/api/v1/files/upload-intents", {
     method: "POST",
     body: json({
@@ -452,6 +453,9 @@ export async function uploadFile(file, purpose, context = {}) {
       context,
     }),
   });
+  if (Number.isFinite(intent.max_size_bytes) && file.size > intent.max_size_bytes) {
+    throw new ApiError(413, { code: "FILE_TOO_LARGE", message: `Файл ${file.name} превышает лимит сервера (${intent.max_size_bytes} байт)` });
+  }
   const put = await fetch(intent.upload_url, { method: intent.method || "PUT", headers: intent.required_headers || {}, body: file });
   if (!put.ok) throw new ApiError(put.status, { code: "UPLOAD_FAILED", message: "Не удалось загрузить файл в хранилище" });
   return apiData(`/api/v1/files/uploads/${intent.id}/complete`, { method: "POST", body: json({ checksum_sha256: checksum }) });

@@ -27,7 +27,7 @@ function seedState() {
     plans: [{ id: "plan-month", code: "premium_month", name: "ML-Арена Premium", amount: 69000, compare_at_amount: 99000, billing_period: "month", currency: "RUB", status: "active" }, { id: "plan-year", code: "premium_year", name: "ML-Арена Premium", amount: 599000, compare_at_amount: 828000, billing_period: "year", currency: "RUB", status: "active" }],
     organizations: [{ id: "org-demo", name: "DataLab", slug: "datalab", status: "active", description: "Команда прикладного машинного обучения" }],
     datasets: [{ id: "dataset-demo", code: "customer_churn", name: "Клиенты и отток", status: "active", current_version: { id: "dataset-v1", version: 1, status: "validated" } }],
-    metrics: [{ id: "metric-auc", code: "roc_auc", name: "ROC AUC", status: "active", direction: "maximize", current_version: { id: "metric-v1", version: 1, status: "approved" } }, { id: "metric-business", code: "business_score", name: "Business score", owner_organization_id: "org-demo", status: "active", direction: "maximize", current_version: { id: "metric-v2", version: 1, moderation_status: "approved", status: "approved" } }],
+    metrics: [{ id: "metric-auc", code: "roc_auc", name: "ROC AUC", status: "active", direction: "maximize", current_version: { id: "metric-v1", version: 1, implementation_type: "builtin", status: "approved" } }, { id: "metric-business", code: "business_score", name: "Business score", owner_organization_id: "org-demo", status: "active", direction: "maximize", current_version: { id: "metric-v2", version: 1, implementation_type: "custom", moderation_status: "approved", status: "approved" } }],
     tasks: [{ id: "task-churn", code: "customer_churn", title: "Прогноз оттока", name: "Прогноз оттока", status: "active", task_type: "classification", current_version: { id: "task-v1", version: 1, status: "released" } }],
     subscriptions: [], submissions: [], comments: {}, notes: {}, joined: {},
     duels: [{ id: "duel-complete", mode: "rated", status: "completed", task_type: "classification", created_at: "2026-09-20T12:00:00Z", started_at: "2026-09-20T12:05:00Z", completed_at: "2026-09-20T12:49:00Z", player1: { user_id: demoUserId, user_name: "menshikov", rating: 1082, submitted_at: "2026-09-20T12:43:00Z" }, player2: { user_id: "user-alex", user_name: "alex_flexer", rating: 1061, submitted_at: "2026-09-20T12:49:00Z" }, winner_id: demoUserId, rating_change: { [demoUserId]: 18 } }],
@@ -55,6 +55,31 @@ const account = () => ({ id: demoUserId, email: role() === "admin" ? "admin@demo
 const reply = (data, status = 200, extra = {}) => new Response(JSON.stringify(status >= 400 ? { error: data } : { data, ...extra }), { status, headers: { "Content-Type": "application/json" } });
 const notFound = () => reply({ code: "RESOURCE_NOT_FOUND", message: "В демо-данных запись не найдена" }, 404);
 const rows = (items, params) => reply(list(items, params), 200, { meta: { total: items.length } });
+state.uploads ||= {};
+for (const metric of state.metrics) {
+  if (metric.current_version && !metric.current_version.implementation_type) metric.current_version.implementation_type = metric.owner_organization_id ? "custom" : "builtin";
+}
+
+function customMetricFilesError(body) {
+  for (const [field, purpose] of [["source_upload_id", "metric_source"], ["validation_solution_upload_id", "metric_validation_solution"], ["validation_submission_upload_id", "metric_validation_submission"]]) {
+    const upload = state.uploads[body[field]];
+    if (!upload || upload.purpose !== purpose) return reply({ code: "VALIDATION_ERROR", message: `Проверьте ${field}` }, 422);
+    if (upload.status !== "ready") return reply({ code: "UPLOAD_NOT_READY", message: `${field}: файл не готов или уже прикреплён` }, 409);
+  }
+  return null;
+}
+
+function attachMetricUploads(body) {
+  for (const field of ["source_upload_id", "validation_solution_upload_id", "validation_submission_upload_id"]) state.uploads[body[field]].status = "attached";
+}
+
+function submitCustomMetric(metric, versionId) {
+  if (!metric?.current_version || metric.current_version.id !== versionId) return notFound();
+  if (metric.current_version.moderation_status !== "draft") return reply({ code: "METRIC_VERSION_STATE_INVALID", message: "Версию нельзя повторно отправить" }, 409);
+  metric.current_version.moderation_status = "pending_review";
+  save();
+  return reply({ metric, validation: { id: id("validation"), metric_version_id: versionId, status: "passed", test_suite_version: "dataframe-fixture-v1", checks: [{ name: "static_validation", passed: true }, { name: "fixture_contract", passed: true, row_count: 4 }, { name: "fixture_execution", passed: true, deterministic: true, score: 0.75 }], error_code: null, error_message: null } });
+}
 
 function rating(params) {
   const tab = params.get("tab") || "overall";
@@ -88,11 +113,18 @@ function adminRequest(path, method, body, params) {
   if (path === "/api/v1/admin/roles") return reply([{ code: "super_admin", name: "Суперадминистратор" }, { code: "content_editor", name: "Редактор" }]);
   if (path === "/api/v1/admin/metrics/pending-review") return reply(state.metrics.filter((item) => item.current_version?.moderation_status === "pending_review").map((metric) => ({ metric, version: metric.current_version })));
   if (path === "/api/v1/admin/metrics/custom" && method === "POST") {
-    const version = { id: id("metric-version"), version: 1, moderation_status: "draft", ...body };
-    const metric = { id: id("metric"), code: body.code, name: body.name, description: body.description, status: "draft", current_version: version, current_version_id: version.id };
+    const error = customMetricFilesError(body);
+    if (error) return error;
+    const version = { id: id("metric-version"), version: 1, moderation_status: "draft", ...body, implementation_type: "custom", input_contract: "dataframe_v1", sdk_version: "2" };
+    const metric = { id: id("metric"), code: body.code, name: body.name, description: body.description, visibility: body.visibility, usage_scopes: body.usage_scopes, status: "draft", current_version: version, current_version_id: version.id };
+    attachMetricUploads(body);
     state.metrics.unshift(metric);
     save();
-    return reply(metric);
+    return reply(metric, 201);
+  }
+  if (/^\/api\/v1\/admin\/metrics\/[^/]+\/versions\/[^/]+\/submit-for-moderation$/.test(path) && method === "POST") {
+    const parts = path.split("/");
+    return submitCustomMetric(state.metrics.find((item) => item.id === parts[5]), parts[7]);
   }
   if (path.startsWith("/api/v1/admin/metric-versions/")) {
     const parts = path.split("/");
@@ -100,7 +132,7 @@ function adminRequest(path, method, body, params) {
     if (!metric) return notFound();
     const action = parts[6];
     if (action === "validation-runs") return reply([]);
-    if (action === "source") return reply({ url: "data:text/plain;charset=utf-8,def%20score(data)%3A%0A%20%20%20%20return%200.9" });
+    if (action === "source") return reply({ url: "data:text/plain;charset=utf-8,def%20score(solution%2C%20submission%2C%20row_id_column_name)%3A%0A%20%20%20%20return%200.9" });
     if (action === "test") return reply({ id: id("test"), status: "passed" });
     if (method === "POST") {
       metric.current_version.moderation_status = ({ approve: "approved", reject: "rejected", "request-changes": "changes_requested" })[action] || metric.current_version.moderation_status;
@@ -144,7 +176,12 @@ function adminRequest(path, method, body, params) {
       if (method === "PATCH" || method === "PUT") { Object.assign(item, body); save(); return reply(item); }
       if (method === "DELETE") { if (key !== "badges") items.splice(items.indexOf(item), 1); save(); return reply(item); }
     }
-    if (rest[1] === "versions" && method === "POST") { const version = { id: id("version"), version: (item.current_version?.version || 0) + 1, status: "draft", ...body }; item.current_version = version; item.current_version_id = version.id; save(); return reply(version); }
+    if (rest[1] === "versions" && method === "POST") {
+      const custom = key === "metrics" && item.current_version?.implementation_type === "custom";
+      if (custom) { const error = customMetricFilesError(body); if (error) return error; attachMetricUploads(body); }
+      const version = { id: id("version"), version: (item.current_version?.version || 0) + 1, status: "draft", ...body, ...(custom ? { implementation_type: "custom", input_contract: "dataframe_v1", moderation_status: "draft" } : {}) };
+      item.current_version = version; item.current_version_id = version.id; save(); return reply(version);
+    }
     if (rest[1] === "notes") return reply(state.notes[rest[0]] || []);
     if (rest[1] === "badges") { if (method === "POST") return reply({ id: id("grant"), badge: state.badge, status: "active" }); return reply([]); }
     if (rest[1] === "duplicate" && method === "POST") { const copy = { ...item, id: id("copy"), title: `${item.title || item.name} (копия)`, status: "draft" }; items.unshift(copy); save(); return reply(copy); }
@@ -232,15 +269,54 @@ function request(path, method, body, params) {
   if (/^\/api\/v1\/organizations\/[^/]+\/metrics\/[^/]+\/versions\/[^/]+\/submit-for-moderation$/.test(path) && method === "POST") {
     const parts = path.split("/");
     const metric = state.metrics.find((item) => item.owner_organization_id === parts[4] && item.id === parts[6]);
-    if (!metric?.current_version || metric.current_version.id !== parts[8]) return notFound();
-    metric.current_version.moderation_status = "pending_review";
-    save();
-    return reply(metric.current_version);
+    return submitCustomMetric(metric, parts[8]);
   }
-  if (path.startsWith("/api/v1/organizations/")) { const parts = path.split("/"); const org = state.organizations.find((item) => item.id === parts[4]); if (!org) return notFound(); if (parts.length === 5) { if (method === "PATCH") { Object.assign(org, body); save(); } return reply(org); } if (parts[5] === "competitions") { if (method === "GET") return rows(state.competitions.filter((item) => item.organization_id === org.id), params); if (method === "POST") { const item = { id: id("competition"), organization_id: org.id, origin: "official", status: "draft", ...body }; state.competitions.unshift(item); save(); return reply(item); } } if (parts[5] === "metrics") { if (parts.length === 6) { if (method === "GET") return reply(state.metrics.filter((item) => item.owner_organization_id === org.id)); const metric = { id: id("metric"), owner_organization_id: org.id, status: "draft", ...body }; metric.current_version = { id: id("version"), version: 1, moderation_status: "draft", ...body }; state.metrics.push(metric); save(); return reply(metric); } const metric = state.metrics.find((item) => item.id === parts[6]); if (parts[7] === "versions") { if (method === "GET") return reply(metric?.current_version ? [metric.current_version] : []); const version = { id: id("version"), version: (metric?.current_version?.version || 0) + 1, moderation_status: "draft", ...body }; if (metric) metric.current_version = version; save(); return reply(version); } if (parts[7] === "versions" && parts[9] === "submit-for-moderation") { if (metric?.current_version) metric.current_version.moderation_status = "pending_review"; save(); return reply(metric?.current_version || {}); } } if (method === "POST") return reply({ id: id("action"), status: "pending_review" }); }
+  if (path.startsWith("/api/v1/organizations/")) {
+    const parts = path.split("/");
+    const org = state.organizations.find((item) => item.id === parts[4]);
+    if (!org) return notFound();
+    if (parts.length === 5) { if (method === "PATCH") { Object.assign(org, body); save(); } return reply(org); }
+    if (parts[5] === "competitions") {
+      if (method === "GET") return rows(state.competitions.filter((item) => item.organization_id === org.id), params);
+      if (method === "POST") { const item = { id: id("competition"), organization_id: org.id, origin: "official", status: "draft", ...body }; state.competitions.unshift(item); save(); return reply(item); }
+    }
+    if (parts[5] === "metrics") {
+      if (parts.length === 6) {
+        if (method === "GET") return reply(state.metrics.filter((item) => item.owner_organization_id === org.id));
+        const error = customMetricFilesError(body); if (error) return error;
+        const metric = { id: id("metric"), owner_organization_id: org.id, status: "draft", ...body };
+        metric.current_version = { id: id("version"), version: 1, moderation_status: "draft", ...body, implementation_type: "custom", input_contract: "dataframe_v1" };
+        metric.current_version_id = metric.current_version.id;
+        attachMetricUploads(body); state.metrics.push(metric); save(); return reply(metric, 201);
+      }
+      const metric = state.metrics.find((item) => item.id === parts[6] && item.owner_organization_id === org.id);
+      if (!metric) return notFound();
+      if (parts[7] === "versions") {
+        if (method === "GET") return reply(metric.current_version ? [metric.current_version] : []);
+        const error = customMetricFilesError(body); if (error) return error;
+        const version = { id: id("version"), version: (metric.current_version?.version || 0) + 1, moderation_status: "draft", ...body, implementation_type: "custom", input_contract: "dataframe_v1" };
+        metric.current_version = version; metric.current_version_id = version.id;
+        attachMetricUploads(body); save(); return reply(version, 201);
+      }
+    }
+    if (method === "POST") return reply({ id: id("action"), status: "pending_review" });
+  }
   if (path === "/api/v1/cooperation/leads" || path === "/api/v1/moderation/reports") return reply({ id: id("request"), status: "received", ...body });
-  if (path === "/api/v1/files/upload-intents") { const uploadId = id("upload"); return reply({ id: uploadId, upload_url: `${location.origin}/__mock-upload/${uploadId}`, method: "PUT", required_headers: {} }); }
-  if (path.startsWith("/api/v1/files/uploads/")) return reply({ id: path.split("/")[5], status: "completed" });
+  if (path === "/api/v1/files/upload-intents") {
+    const uploadId = id("upload");
+    const maxSize = body.purpose === "metric_source" ? 128 * 1024 : ["metric_validation_solution", "metric_validation_submission"].includes(body.purpose) ? 10 * 1024 * 1024 : undefined;
+    const upload = { id: uploadId, ...body, status: "pending", max_size_bytes: maxSize, upload_url: `${location.origin}/__mock-upload/${uploadId}`, method: "PUT", required_headers: { "Content-Type": body.content_type } };
+    state.uploads[uploadId] = upload; save(); return reply(upload);
+  }
+  if (path.startsWith("/api/v1/files/uploads/")) {
+    const upload = state.uploads[path.split("/")[5]];
+    if (!upload) return notFound();
+    if (path.endsWith("/complete")) {
+      if (upload.status !== "uploaded" || body.checksum_sha256 !== upload.checksum_sha256) return reply({ code: "UPLOAD_NOT_READY", message: "Загрузка не завершена" }, 409);
+      upload.status = "ready"; save();
+    }
+    return reply(upload);
+  }
   console.warn(`[demo API] Unhandled ${method} ${path}`);
   return reply({ code: "DEMO_UNHANDLED", message: "Это действие пока не смоделировано в локальном демо" }, 501);
 }
@@ -249,7 +325,11 @@ export function installMockApi() {
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = new URL(input instanceof Request ? input.url : input, location.href);
-    if (url.pathname.startsWith("/__mock-upload/")) return new Response(null, { status: 200 });
+    if (url.pathname.startsWith("/__mock-upload/")) {
+      const upload = state.uploads[url.pathname.split("/")[2]];
+      if (upload) { upload.status = "uploaded"; save(); }
+      return new Response(null, { status: 200 });
+    }
     if (url.pathname === "/api/v1/blog/rss.xml") return new Response("<?xml version=\"1.0\"?><rss version=\"2.0\"><channel><title>ML-Арена</title></channel></rss>", { status: 200, headers: { "Content-Type": "application/xml" } });
     if (url.pathname.startsWith("/api/v1/") || url.pathname === "/health") {
       const method = (init.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
