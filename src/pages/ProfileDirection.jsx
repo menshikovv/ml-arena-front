@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, Check, ChevronDown, Download, FileText, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import * as Tabs from "@radix-ui/react-tabs";
+import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, Download, FileText, History, Layers3, Loader2, RefreshCw, ShieldCheck, Swords, Target, TrendingUp, Trophy } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,13 @@ const statuses = { scored: "Рассчитано", evaluated: "Рассчита�
 
 function Metric({ label, value, note, compact = false }) {
   return <div className="passport-evidence-metric"><span>{label}</span><strong className={compact ? "is-compact" : undefined}>{value}</strong>{note && <small>{note}</small>}</div>;
+}
+
+function PerformanceMetric({ icon: Icon, tone, label, value, note }) {
+  return <article className={`passport-performance passport-performance--${tone}`}>
+    <div className="passport-performance__heading"><span><Icon size={20} aria-hidden="true" /></span><h4>{label}</h4></div>
+    <strong>{value}</strong><p>{note}</p>
+  </article>;
 }
 
 function ScoreChart({ submissions }) {
@@ -40,7 +48,7 @@ function Verification({ result }) {
     ["Воспроизведено", result.reproduced],
     ["Решение защищено", result.expert_defended],
   ];
-  return <ul className="passport-verification" aria-label="Проверка результата">{levels.map(([label, confirmed]) => <li key={label} className={confirmed === true ? "is-confirmed" : ""}><span>{confirmed === true ? <Check size={15} /> : <span aria-hidden="true">—</span>}</span><div>{label}<small>{confirmed === true ? "Подтверждено" : confirmed === false ? "Не подтверждено" : "Нет данных о проверке"}</small></div></li>)}</ul>;
+  return <ul className="passport-verification" aria-label="Проверка результата">{levels.map(([label, confirmed]) => { const status = confirmed === true ? "Подтверждено" : confirmed === false ? "Не подтверждено" : "Нет данных о проверке"; return <li key={label} title={status} className={confirmed === true ? "is-confirmed" : ""}><span aria-hidden="true">{confirmed === true ? <Check size={15} /> : "—"}</span><div>{label}<span className="sr-only">: {status}</span></div></li>; })}</ul>;
 }
 
 function SubmissionRow({ submission }) {
@@ -77,8 +85,8 @@ function CompetitionEvidence({ item, metrics }) {
       <h4>История решений</h4>
       {query.isLoading ? <p className="passport-evidence-loading"><Loader2 size={18} className="animate-spin" />Загружаем отправки…</p> : query.isError ? <div className="passport-evidence-notice">Не удалось загрузить решения.<Button size="sm" variant="outline" onClick={() => query.refetch()}><RefreshCw size={14} />Повторить</Button></div> : <>
         <div className="passport-evidence-metrics"><Metric label="Отправок" value={query.data?.length || 0} /><Metric label="Рассчитано" value={stats.valid.length} /><Metric label="Лучший публичный результат" value={numeric(stats.best?.public_score, 5)} /><Metric label="Превышение базового решения" value={stats.beaten ? "Да" : !stats.baselineKnown ? "Нет данных" : "Пока нет"} note={stats.beaten ? `${stats.attemptsToBaseline} отправок · ${numeric(stats.minutes, 0)} мин от старта` : undefined} /></div>
-        <div className="passport-evidence-metrics"><Metric label="Улучшение базового решения" value={numeric(stats.improvement, 5)} note={stats.improvementPercent == null ? "Базовое решение или направление метрики не передано" : `${numeric(stats.improvementPercent)}% относительно базового решения`} /><Metric label="Первое принятое решение" value={date(stats.valid[0]?.created_at)} compact /><Metric label="Лучшее публичное решение" value={date(stats.best?.created_at)} compact /><Metric label="Разница публичного и закрытого результата" value={numeric(scoreGap, 5)} note="Для одной и той же финальной отправки" /></div>
         <ScoreChart submissions={stats.valid} />
+        <details className="passport-evidence-extra"><summary><BarChart3 size={17} aria-hidden="true" />Подробная статистика отправок<ChevronDown size={16} /></summary><div className="passport-evidence-metrics"><Metric label="Улучшение базового решения" value={numeric(stats.improvement, 5)} note={stats.improvementPercent == null ? "Базовое решение или направление метрики не передано" : `${numeric(stats.improvementPercent)}% относительно базового решения`} /><Metric label="Первое принятое решение" value={date(stats.valid[0]?.created_at)} compact /><Metric label="Лучшее публичное решение" value={date(stats.best?.created_at)} compact /><Metric label="Разница публичного и закрытого результата" value={numeric(scoreGap, 5)} note="Для одной и той же финальной отправки" /></div></details>
         <div className="passport-submissions">{stats.ordered.slice().reverse().map((submission) => <SubmissionRow key={submission.id} submission={submission} />)}{!stats.ordered.length && <p className="passport-evidence-empty">История отправок пуста.</p>}</div>
       </>}
     </div>
@@ -102,6 +110,7 @@ function DuelEvidence({ duel, ownerId }) {
 
 export default function ProfileDirection({ direction, evidenceQuery, isOwner, ownerId, season, onBack, metrics = [], externalAchievements = [] }) {
   const [filter, setFilter] = useState("all");
+  const [view, setView] = useState("overview");
   const heading = useRef(null);
   const data = directionEvidence(evidenceQuery.data, direction.code, ownerId);
   const ratingQueries = useQueries({ queries: ["overall", "competitions", "duels"].map((tab) => ({ queryKey: ["passport-direction-rating", ownerId, direction.code, season, tab], queryFn: () => api.rating.get({ tab, season, direction: direction.code === "cv" ? "computer_vision" : direction.code }), enabled: Boolean(isOwner && season), staleTime: 60000, retry: 1 })) });
@@ -111,17 +120,44 @@ export default function ProfileDirection({ direction, evidenceQuery, isOwner, ow
   const results = filter === "community" ? data.community : filter === "official" ? official : filter === "duels" ? [] : data.competitions;
   const duels = ["all", "duels"].includes(filter) ? data.duels : [];
   const externalCount = externalAchievements.filter((item) => (item.verified === true || ["verified", "approved", "confirmed"].includes(item.verification_status || item.status)) && (item.directions || []).some((code) => code === direction.code || direction.code === "cv" && code === "computer_vision")).length;
+  const losses = data.duels.length - data.wins - data.draws;
+  const resultCount = data.competitions.length + data.duels.length;
   return <section className="passport-direction-detail">
     <button type="button" onClick={onBack} className="passport-evidence-back"><ArrowLeft size={18} />Карта компетенций</button>
     <header className="passport-direction-detail__heading"><div><h2 ref={heading} tabIndex={-1}>{direction.title}</h2><p>Результаты, решения и подтверждения по направлению.</p></div><span className="passport-evidence-status" title="Стартовые пороги ТЗ: достаточно — 2 официальных результата либо 1 результат и 10 дуэлей, подтверждение не старше года; высокая подтверждённость — 4 официальных результата, проверенный код и подтверждение не старше 180 дней.">{ready ? data.status : "Нет данных о подтверждениях"}</span></header>
     {!isOwner && <p className="passport-evidence-notice">Подробная история этого профиля пока не опубликована. Файлы решений доступны владельцу ML-паспорта.</p>}
     {isOwner && evidenceQuery.isLoading && <p className="passport-evidence-loading"><Loader2 size={18} className="animate-spin" />Собираем результаты…</p>}
     {(evidenceQuery.isError || evidenceQuery.data?.errors > 0) && <div className="passport-evidence-notice">Часть истории недоступна. Показатели рассчитаны только по загруженным результатам.<Button variant="outline" size="sm" onClick={() => evidenceQuery.refetch()}><RefreshCw size={14} />Повторить</Button></div>}
-    <section className="passport-evidence-section"><h3>Текущий сезон</h3><div className="passport-evidence-metrics">{["Общий индекс", "Соревнования", "Рейтинг дуэлей"].map((label, index) => { const query = ratingQueries[index]; const entry = query.data?.current_user; return <Metric key={label} label={label} value={query.isLoading && query.fetchStatus === "fetching" ? "…" : numeric(entry?.score, 0)} note={entry?.rank ? `Место #${entry.rank}` : query.isError ? "Не удалось загрузить" : "Нет сезонной позиции"} />; })}</div></section>
-    <section className="passport-evidence-section"><h3>Официальные подтверждения</h3><div className="passport-evidence-metrics"><Metric label="Финальных соревнований" value={ready ? data.official.length : "—"} /><Metric label="Дуэлей с людьми" value={ready ? data.duels.length : "—"} /><Metric label="Результатов в топ-10%" value={ready ? data.top10 : "—"} /><Metric label="Последнее подтверждение" value={date(data.lastConfirmed)} compact /></div><div className="passport-evidence-metrics passport-evidence-metrics--results"><Metric label="Лучший результат" value={top(data.peak)} note="Лучший итог официального соревнования" /><Metric label="Типичный результат" value={top(data.typical)} note={`Медиана последних ${Math.min(data.official.length, 5)} финалов`} /><Metric label="Свежая форма" value={top(data.recent)} note={data.recentCount >= 2 ? `${data.recentCount} финала за 180 дней` : "Нужно не менее 2 финалов за 180 дней"} /></div></section>
-    <section className="passport-evidence-section"><h3>Регулярность и дуэли</h3><div className="passport-evidence-metrics"><Metric label="Побед" value={ready ? data.wins : "—"} /><Metric label="Ничьих" value={ready ? data.draws : "—"} /><Metric label="Доля побед" value={data.duels.length ? `${numeric(data.wins / data.duels.length * 100, 0)}%` : "—"} /><Metric label="Среднее время отправки" value={data.averageSubmissionMinutes == null ? "—" : `${numeric(data.averageSubmissionMinutes, 0)} мин`} note={`По ${data.submissionTimeCount} матчам с отправкой`} /><Metric label="Средний рейтинг соперников" value={numeric(data.averageOpponentRating, 0)} note="Текущие рейтинги из API" /></div><ActivityChart duels={data.duels} loading={evidenceQuery.isLoading} unavailableMessage={!isOwner ? "История доступна владельцу паспорта." : undefined} /></section>
-    <section className="passport-evidence-section"><h3>Дополнительный контекст</h3><div className="passport-evidence-metrics"><Metric label="Соревнования сообщества" value={ready ? data.community.filter((item) => isFinalCompetition(item.competition)).length : "—"} note="Отдельно от официальных подтверждений" /><Metric label="Подтверждённые внешние достижения" value={externalCount} note="Не повышают внутренний рейтинг" /><Metric label="Проверенный код / воспроизведение" value={ready ? numeric(data.reviewed, 0) : "—"} note="Только явно переданные статусы проверки" /></div></section>
-    <section className="passport-evidence-section"><div className="passport-evidence-list-heading"><h3>История результатов и решений</h3><div className="passport-evidence-filters" role="group" aria-label="Источник результатов">{[["all", "Все"], ["official", "Официальные"], ["community", "Сообщество"], ["duels", "Дуэли"]].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div></div><div className="passport-evidence-list">{results.map((item) => <CompetitionEvidence key={item.competition.id} item={item} metrics={metrics} />)}{duels.map((duel) => <DuelEvidence key={duel.id} duel={duel} ownerId={ownerId} />)}{!results.length && !duels.length && !evidenceQuery.isLoading && <p className="passport-evidence-empty">{isOwner ? "По этому направлению пока нет доступных результатов выбранного типа." : "Подробная история не опубликована."}</p>}</div></section>
+    <Tabs.Root className="passport-detail-views" value={view} onValueChange={setView}>
+      <Tabs.List className="passport-detail-tabs" aria-label="Детали направления">
+        <Tabs.Trigger value="overview"><BarChart3 size={18} aria-hidden="true" />Обзор</Tabs.Trigger>
+        <Tabs.Trigger value="results"><FileText size={18} aria-hidden="true" />Результаты{ready && <span>{resultCount}</span>}</Tabs.Trigger>
+      </Tabs.List>
+      <Tabs.Content value="overview" className="passport-detail-view">
+        <section className="passport-evidence-section passport-season"><h3>Текущий сезон</h3><div className="passport-season__metrics">{[["Общий индекс", Trophy], ["Соревнования", BarChart3], ["Рейтинг дуэлей", Swords]].map(([label, Icon], index) => { const query = ratingQueries[index]; const entry = query.data?.current_user; return <div key={label} className="passport-season__item"><Icon size={21} aria-hidden="true" /><Metric label={label} value={query.isLoading && query.fetchStatus === "fetching" ? "…" : numeric(entry?.score, 0)} note={entry?.rank ? `Место #${entry.rank}` : query.isError ? "Не удалось загрузить" : "Нет сезонной позиции"} /></div>; })}</div></section>
+        <section className="passport-evidence-section"><div className="passport-evidence-list-heading"><h3>Официальные результаты</h3><button type="button" className="passport-evidence-link" onClick={() => { setFilter("official"); setView("results"); }}>Все решения<ArrowRight size={16} /></button></div>
+          <div className="passport-performance-grid">
+            <PerformanceMetric icon={Trophy} tone="amber" label="Лучший результат" value={top(data.peak)} note="Лучший официальный финал" />
+            <PerformanceMetric icon={Target} tone="blue" label="Типичный результат" value={top(data.typical)} note={`Медиана последних ${Math.min(data.official.length, 5)} финалов`} />
+            <PerformanceMetric icon={TrendingUp} tone="green" label="Свежая форма" value={top(data.recent)} note={data.recentCount >= 2 ? `${data.recentCount} финала за 180 дней` : "Нужно 2 финала за 180 дней"} />
+          </div>
+          <div className="passport-evidence-metrics passport-confirmation-counts"><Metric label="Финальных соревнований" value={ready ? data.official.length : "—"} /><Metric label="Дуэлей с людьми" value={ready ? data.duels.length : "—"} /><Metric label="Результатов в топ-10%" value={ready ? data.top10 : "—"} /><Metric label="Последнее подтверждение" value={date(data.lastConfirmed)} compact /></div>
+        </section>
+        <div className="passport-detail-insights">
+          <section className="passport-evidence-section passport-detail-activity"><h3><Activity size={20} aria-hidden="true" />Активность в дуэлях</h3><p className="passport-detail-caption">Завершённые матчи · последние 8 недель</p><ActivityChart duels={data.duels} loading={evidenceQuery.isLoading} unavailableMessage={!isOwner ? "История доступна владельцу паспорта." : undefined} /></section>
+          <section className="passport-evidence-section passport-duel-summary"><h3><Swords size={20} aria-hidden="true" />Результаты дуэлей</h3>
+            <div className="passport-duel-summary__winrate"><strong>{data.duels.length ? `${numeric(data.wins / data.duels.length * 100, 0)}%` : "—"}</strong><span>побед в направлении</span></div>
+            <div className="passport-duel-balance" role="img" aria-label={ready ? `${data.wins} побед, ${data.draws} ничьих, ${losses} поражений` : "Нет данных о дуэлях"}>{data.duels.length > 0 && [["wins", data.wins], ["draws", data.draws], ["losses", losses]].map(([key, count]) => count > 0 && <span key={key} className={`is-${key}`} style={{ width: `${count / data.duels.length * 100}%` }} />)}</div>
+            <div className="passport-duel-legend">{[["wins", "Побед", data.wins], ["draws", "Ничьих", data.draws], ["losses", "Поражений", losses]].map(([key, label, count]) => <span key={key}><i className={`is-${key}`} aria-hidden="true" />{label}<strong>{ready ? count : "—"}</strong></span>)}</div>
+            <div className="passport-evidence-metrics"><Metric label="Среднее время отправки" value={data.averageSubmissionMinutes == null ? "—" : `${numeric(data.averageSubmissionMinutes, 0)} мин`} note={`По ${data.submissionTimeCount} матчам с отправкой`} /><Metric label="Средний рейтинг соперников" value={numeric(data.averageOpponentRating, 0)} note="Текущие рейтинги из API" /></div>
+          </section>
+        </div>
+        <details className="passport-evidence-extra passport-detail-context"><summary><Layers3 size={18} aria-hidden="true" />Дополнительный контекст<ChevronDown size={16} /></summary><div className="passport-evidence-metrics"><Metric label="Соревнования сообщества" value={ready ? data.community.filter((item) => isFinalCompetition(item.competition)).length : "—"} note="Отдельно от официальных подтверждений" /><Metric label="Подтверждённые внешние достижения" value={externalCount} note="Не повышают внутренний рейтинг" /><Metric label="Проверенный код / воспроизведение" value={ready ? numeric(data.reviewed, 0) : "—"} note="Только явно переданные статусы проверки" /></div></details>
+      </Tabs.Content>
+      <Tabs.Content value="results" className="passport-detail-view">
+        <section className="passport-evidence-section"><div className="passport-evidence-list-heading"><h3><History size={20} aria-hidden="true" />История результатов и решений</h3><div className="passport-evidence-filters" role="group" aria-label="Источник результатов">{[["all", "Все"], ["official", "Официальные"], ["community", "Сообщество"], ["duels", "Дуэли"]].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div></div><div className="passport-evidence-list">{results.map((item) => <CompetitionEvidence key={item.competition.id} item={item} metrics={metrics} />)}{duels.map((duel) => <DuelEvidence key={duel.id} duel={duel} ownerId={ownerId} />)}{!results.length && !duels.length && !evidenceQuery.isLoading && <p className="passport-evidence-empty">{isOwner ? "По этому направлению пока нет доступных результатов выбранного типа." : "Подробная история не опубликована."}</p>}</div></section>
+      </Tabs.Content>
+    </Tabs.Root>
     <p className="passport-evidence-muted"><ShieldCheck size={16} />Проверка кода, воспроизведение и стек учитываются только при наличии подтверждения. История вызовов ML-Арены пока недоступна.</p>
   </section>;
 }
