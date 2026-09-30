@@ -211,8 +211,10 @@ function adminRequest(path, method, body, params) {
       if (method === "PATCH" || method === "PUT") { Object.assign(item, body); save(); return reply(item); }
       if (method === "DELETE") { if (key !== "badges") items.splice(items.indexOf(item), 1); save(); return reply(item); }
     }
-    if (rest[1] === "versions" && method === "POST") {
-      const custom = key === "metrics" && item.current_version?.implementation_type === "custom";
+    if ((rest[1] === "versions" || rest[1] === "custom-versions") && method === "POST") {
+      const custom = key === "metrics" && rest[1] === "custom-versions";
+      if (custom && item.current_version?.implementation_type !== "custom") return notFound();
+      if (key === "metrics" && !custom && item.current_version?.implementation_type === "custom") return reply({ code: "VALIDATION_ERROR", message: "Для custom-метрики используйте custom-versions" }, 422);
       if (custom) { const error = customMetricFilesError(body); if (error) return error; attachMetricUploads(body); }
       const version = { id: id("version"), version: (item.current_version?.version || 0) + 1, status: "draft", ...body, ...(custom ? { implementation_type: "custom", input_contract: "dataframe_v1", moderation_status: "draft" } : {}) };
       item.current_version = version; item.current_version_id = version.id; save(); return reply(version);

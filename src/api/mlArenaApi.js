@@ -197,6 +197,7 @@ export const api = {
     submitMetricVersion: (metricId, versionId) => apiData(`/api/v1/admin/metrics/${metricId}/versions/${versionId}/submit-for-moderation`, { method: "POST" }),
     updateMetric: (id, body) => apiData(`/api/v1/admin/metrics/${id}`, { method: "PATCH", body: json(body) }),
     createMetricVersion: (id, body) => apiData(`/api/v1/admin/metrics/${id}/versions`, { method: "POST", body: json(body) }),
+    createCustomMetricVersion: (id, body) => apiData(`/api/v1/admin/metrics/${id}/custom-versions`, { method: "POST", body: json(body) }),
     metricAction: (id, action, body) => apiData(`/api/v1/admin/metrics/${id}/${action}`, { method: "POST", ...(body ? { body: json(body) } : {}) }),
     publishMetric: (id) => apiData(`/api/v1/admin/metrics/${id}/publish`, { method: "POST" }),
     archiveMetric: (id) => apiData(`/api/v1/admin/metrics/${id}/archive`, { method: "POST" }),

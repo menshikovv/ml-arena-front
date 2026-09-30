@@ -45,6 +45,7 @@ export default function CustomMetricDialog({ organizationId = null, metric = nul
   const id = useId();
   const busy = useRef(false);
   const feedback = useRef(null);
+  const readyUploads = useRef({});
   const [versionTarget, setVersionTarget] = useState(metric);
   const [form, setForm] = useState({
     code: metric?.code || "", name: metric?.name || "", description: metric?.description || "",
@@ -96,16 +97,22 @@ export default function CustomMetricDialog({ organizationId = null, metric = nul
       if (!record) {
         const uploads = {};
         for (const entry of FILE_FIELDS) {
+          const cached = readyUploads.current[entry.key];
+          if (cached?.file === files[entry.key]) {
+            uploads[entry.field] = cached.id;
+            continue;
+          }
           setPhase(`Загрузка: ${entry.label.toLowerCase()}...`);
           const upload = await uploadFile(files[entry.key], entry.purpose, {}, { contentType: entry.type });
           if (!upload?.id || upload.status !== "ready") throw new Error(`${entry.label}: загрузка не перешла в статус ready.`);
+          readyUploads.current[entry.key] = { file: files[entry.key], id: upload.id };
           uploads[entry.field] = upload.id;
         }
         const versionBody = { ...uploads, direction: form.direction, display_format: form.display_format.trim(), allowed_task_types: form.allowed_task_types, forked_from_metric_version_id: form.forked_from_metric_version_id || null };
         setPhase(versionTarget ? "Создание новой версии..." : "Сохранение черновика...");
         let created;
         if (versionTarget) {
-          const version = platform ? await api.admin.createMetricVersion(versionTarget.id, versionBody) : await api.organizations.createMetricVersion(organizationId, versionTarget.id, versionBody);
+          const version = platform ? await api.admin.createCustomMetricVersion(versionTarget.id, versionBody) : await api.organizations.createMetricVersion(organizationId, versionTarget.id, versionBody);
           created = { ...versionTarget, current_version: version, current_version_id: version.id };
         } else {
           const body = { ...versionBody, code: form.code.trim(), name: form.name.trim(), description: form.description.trim() || null, visibility: form.visibility, ...(platform ? { usage_scopes: form.usage_scopes } : {}) };
@@ -128,6 +135,7 @@ export default function CustomMetricDialog({ organizationId = null, metric = nul
     }
   };
   const newVersion = () => {
+    readyUploads.current = {};
     setVersionTarget(saved.metric);
     setSaved(null);
     setValidation(null);
