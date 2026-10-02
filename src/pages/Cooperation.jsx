@@ -3,19 +3,16 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BarChart3,
-  BriefcaseBusiness,
   Building2,
   Check,
   CheckCircle2,
   ClipboardCheck,
-  Code2,
   Database,
   Gauge,
   Layers3,
   Loader2,
   Mail,
   SearchCheck,
-  ShieldCheck,
   Sparkles,
   Target,
   Trophy,
@@ -30,14 +27,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/AuthContext";
+import "./Cooperation.css";
 
 const RESULT_ITEMS = [
-  { icon: Target, title: "Практическая ML-задача", text: "Превращаем прикладной кейс в постановку, данные, правила оценки и базовое решение для проверки корректности." },
-  { icon: Users, title: "Целевая аудитория", text: "Привлекаем участников через профильные сообщества, университеты, каналы ML-Арены и каналы компании." },
-  { icon: BarChart3, title: "Измеримые результаты", text: "Все работают с одной задачей, а результаты сравниваются по единой методике и скрытой части данных." },
-  { icon: SearchCheck, title: "Проверка лучших решений", text: "Для финалистов можно запросить код, описание подхода и провести проверку воспроизводимости или онлайн-защиту." },
-  { icon: UserRoundCheck, title: "ML-паспорта участников", text: "Компания видит подтверждённую историю результатов человека, а не только итог одного соревнования." },
-  { icon: ClipboardCheck, title: "Список специалистов", text: "С согласия пользователей формируем список участников, подходящих по специализации и подтверждённым результатам." },
+  { icon: Target, title: "Практическая ML-задача", text: "Реальные навыки вместо только теоретических знаний." },
+  { icon: Users, title: "Целевая аудитория", text: "Специалисты, которым действительно интересна работа с ML." },
+  { icon: BarChart3, title: "Измеримые результаты", text: "Единая задача и объективная методика оценки." },
+  { icon: SearchCheck, title: "Проверка лучших решений", text: "Код, подход и воспроизводимость решений финалистов." },
+  { icon: UserRoundCheck, title: "ML-паспорт участника", text: "Подтверждённые результаты по задачам и направлениям." },
+  { icon: ClipboardCheck, title: "Список специалистов", text: "Кандидаты под ваши требования, с их согласия." },
 ];
 
 const PILOT_STEPS = [
@@ -59,18 +57,18 @@ const PASSPORT_ITEMS = [
 ];
 
 const EMPLOYER_QUESTIONS = [
-  "В каких направлениях ML человек показывает сильные результаты?",
-  "Это один удачный результат или стабильный уровень на нескольких задачах?",
-  "Сохранился ли результат на скрытой части данных?",
-  "Проходило ли решение дополнительную проверку или воспроизведение?",
-  "Есть ли подтверждённые достижения на других ML-площадках?",
-  "Открыт ли человек к стажировке или предложению о работе?",
+  "В ваших соревнованиях может участвовать несколько команд",
+  "Эти специалисты доступны и для будущих поисков в компании",
+  "Сохраняем все результаты в ML-паспорте",
+  "Формируем пул кандидатов по направлениям",
+  "Есть настраиваемые условия и формат участия",
+  "Отчёты и аналитика остаются после завершения",
 ];
 
 const FORMATS = [
-  { icon: Trophy, title: "Корпоративное ML-соревнование", text: "Для проверки практической задачи, привлечения ML-аудитории и сравнения участников в одинаковых условиях." },
-  { icon: SearchCheck, title: "Поиск специалистов через задачу", text: "Когда главный результат — выявить кандидатов в конкретном направлении: рекомендации, временные ряды, CV и другие." },
-  { icon: Layers3, title: "Серия задач и долгосрочная программа", text: "Для регулярного контакта с ML-аудиторией, нескольких направлений и накопления пула сильных специалистов." },
+  { icon: Trophy, title: "Корпоративное ML-соревнование", text: "Для решения конкретной задачи среди проверенных специалистов." },
+  { icon: SearchCheck, title: "Поиск специалистов через задачу", text: "Задача, специально под вашу тематику и данные." },
+  { icon: Layers3, title: "Серия задач длительного отбора", text: "Для регулярного поиска по ключевым направлениям." },
 ];
 
 const COMPANY_NEEDS = ["Ответственный человек", "Бизнес-задача или направление", "Доменный эксперт", "Безопасные данные или описание доступных данных", "Критерии полезного результата", "Участие в оценке финалистов при необходимости"];
@@ -177,93 +175,89 @@ export default function Cooperation({ embedded = false }) {
   };
 
   return (
-    <div className="min-h-full bg-background text-foreground">
+    <div className="companies-page min-h-full bg-background text-foreground">
       {!embedded && <PublicHeader isAuthenticated={isAuthenticated} />}
       <main>
-        <section className="relative overflow-hidden border-b border-border bg-card">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--primary)/.07)_1px,transparent_1px),linear-gradient(hsl(var(--primary)/.07)_1px,transparent_1px)] bg-[size:56px_56px] opacity-50" />
-          <Reveal viewportReveal className="relative mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-20 lg:px-8 xl:py-24">
-            <div>
-              <h1 className="max-w-5xl font-heading text-4xl font-extrabold leading-[1.04] sm:text-5xl lg:text-6xl">Находите ML-специалистов по нашей системе ML-паспорта, а не только по резюме</h1>
-              <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">ML-Арена помогает компаниям проводить практические ML-соревнования, проверять участников на реальных задачах и находить сильных специалистов по измеримым результатам.</p>
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-                <Button type="button" size="lg" onClick={scrollToForm} className="group h-12 px-6">Обсудить сотрудничество <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1" /></Button>
-                <p className="max-w-xl text-xs leading-5 text-muted-foreground">Можно прийти с готовой задачей или только с бизнес-проблемой — формат соревнования и способ оценки спроектируем вместе.</p>
-              </div>
-            </div>
-          </Reveal>
+        <section className="companies-hero">
+          <div className="companies-container companies-hero-inner">
+            <Reveal viewportReveal className="companies-hero-copy">
+              <h1 className="font-heading">Находите ML-специалистов по нашей системе ML-паспорта, а не только по резюме</h1>
+              <p>ML-паспорт показывает практические результаты, задачи и исследовательские способности. Вы видите не только опыт из резюме, но и то, как кандидат работает с реальными результатами.</p>
+              <Button type="button" onClick={scrollToForm} className="group companies-primary-button">Обсудить сотрудничество <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" /></Button>
+            </Reveal>
+            <div className="companies-hero-art" aria-hidden="true"><img src="/companies-hero.png" alt="" /></div>
+          </div>
         </section>
 
-        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-          <Reveal viewportReveal><h2 className="max-w-5xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">Резюме показывает опыт. Практическая задача показывает, как человек работает с ML.</h2><p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground">По резюме сложно сравнить кандидатов с похожим стеком. Практическая задача ставит участников в одинаковые условия и позволяет увидеть результат на одной шкале.</p></Reveal>
-          <div className="mt-10 grid border border-border lg:grid-cols-2">
-            <Reveal className="border-b border-border bg-secondary/25 p-6 lg:border-b-0 lg:border-r md:p-8">
-              <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center bg-card text-muted-foreground shadow-sm"><BriefcaseBusiness size={19} /></span><h3 className="font-heading text-xl font-bold">Что написано в резюме</h3></div>
-              <div className="mt-8 grid grid-cols-2 gap-px bg-border">{["Стек технологий", "Роль в команде", "Опыт в годах", "Описание проектов"].map((item) => <div key={item} className="bg-card px-4 py-5 text-sm font-semibold">{item}</div>)}</div>
+        <section className="companies-section companies-container companies-comparison">
+          <Reveal viewportReveal><h2 className="companies-heading font-heading">Резюме показывает опыт.<br />Практическая задача показывает,<br className="companies-desktop-break" /> как человек работает с ML.</h2></Reveal>
+          <div className="companies-comparison-grid">
+            <Reveal className="companies-panel companies-resume">
+              <h3 className="companies-card-heading font-heading"><span className="companies-icon"><Users size={20} /></span>Что включено в резюме</h3>
+              <div className="companies-resume-table">{[["Опыт работы", "Python, PyTorch, NLP..."], ["Роль в команде", "ML Engineer / Data Scientist"], ["Опыт и навыки", "3–6 лет"], ["Описание проектов", "Краткие описания, ссылки"]].map(([label, value]) => <div className="companies-resume-row" key={label}><span>{label}</span><span>{value}</span></div>)}</div>
             </Reveal>
-            <Reveal className="bg-card p-6 md:p-8">
-              <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center bg-primary text-primary-foreground shadow-sm"><Gauge size={19} /></span><h3 className="font-heading text-xl font-bold">Что подтверждается на практике</h3></div>
-              <ul className="mt-7 space-y-4">{["Одинаковая постановка для всех участников", "Единая метрика оценки", "Скрытая часть данных для итоговой проверки", "Дополнительная проверка лучших решений"].map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary" /><span>{item}</span></li>)}</ul>
+            <Reveal className="companies-panel companies-practice">
+              <h3 className="companies-card-heading font-heading"><span className="companies-icon companies-icon-filled"><Gauge size={20} /></span>Что подтверждено на практике</h3>
+              <ul>{["Решение технических задач с реальными данными", "Качество кода и анализа", "Способность предлагать и запускать решения", "Самостоятельное мышление и суждение"].map((item) => <li key={item}><Check size={15} /><span>{item}</span></li>)}</ul>
             </Reveal>
           </div>
         </section>
 
-        <section className="border-y border-border bg-secondary/25">
-          <div className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-            <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Что получает компания</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">Не набор функций платформы, а готовый путь от бизнес-задачи до измеримых результатов и подходящих специалистов.</p></Reveal>
-            <Stagger viewportReveal className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{RESULT_ITEMS.map((item) => { const Icon = item.icon; return <StaggerItem key={item.title} className="h-full"><article className="group flex h-full min-h-64 flex-col border border-border bg-card p-6 shadow-sm transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"><span className="flex h-11 w-11 items-center justify-center bg-primary/10 text-primary transition-[transform,background-color] duration-300 group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground"><Icon size={20} /></span><h3 className="mt-8 font-heading text-xl font-bold transition-colors duration-300 group-hover:text-primary">{item.title}</h3><p className="mt-3 text-sm leading-7 text-muted-foreground">{item.text}</p></article></StaggerItem>; })}</Stagger>
+        <section className="companies-band companies-benefits">
+          <div className="companies-container companies-section">
+            <Reveal viewportReveal><h2 className="companies-heading font-heading">Что получает компания</h2><p className="companies-intro">Мы подбираем специалистов, начиная с доказанных результатов, а не только с резюме.</p></Reveal>
+            <Stagger viewportReveal className="companies-benefit-grid">{RESULT_ITEMS.map((item) => { const Icon = item.icon; return <StaggerItem key={item.title} className="h-full"><article className="companies-benefit-card"><span className="companies-icon"><Icon size={20} /></span><div><h3 className="font-heading">{item.title}</h3><p>{item.text}</p></div></article></StaggerItem>; })}</Stagger>
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-          <Reveal viewportReveal className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Как проходит пилот</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">Компании не нужно самостоятельно придумывать механику конкурса и собирать все части проекта.</p></div><p className="max-w-md border-l-2 border-primary pl-4 text-sm leading-6 text-muted-foreground">Ориентир для полноценного корпоративного пилота — 8–10 недель. График зависит от готовности данных и сложности задачи.</p></Reveal>
-          <Stagger viewportReveal className="relative mt-12 grid gap-3 md:grid-cols-2 xl:grid-cols-6"><div className="absolute left-8 right-8 top-5 hidden h-px bg-border xl:block" />{PILOT_STEPS.map((step, index) => <StaggerItem key={step} className="relative"><div className="group grid h-full grid-cols-[42px_1fr] gap-3 border border-border bg-card p-4 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-md xl:block xl:min-h-48"><span className="relative z-[1] flex h-10 w-10 items-center justify-center bg-primary font-mono text-xs font-bold text-primary-foreground transition-transform duration-300 group-hover:-translate-y-0.5">0{index + 1}</span><p className="self-center font-heading text-sm font-bold leading-6 xl:mt-10">{step}</p></div></StaggerItem>)}</Stagger>
+        <section className="companies-section companies-container companies-pilot">
+          <Reveal viewportReveal><h2 className="companies-heading font-heading">Как проходит пилот</h2><p className="companies-intro">Мы проводим короткое соревнование под вашу задачу и критерии. Организацию и методическую часть берём на себя.</p></Reveal>
+          <Stagger viewportReveal className="companies-pilot-grid">{PILOT_STEPS.map((step, index) => <StaggerItem key={step}><div className="companies-pilot-card"><span className="companies-pilot-number">0{index + 1}</span><span className="companies-icon"><PilotIcon index={index} /></span><p className="font-heading">{step}</p></div></StaggerItem>)}</Stagger>
         </section>
 
-        <section className="overflow-hidden border-y border-border bg-card">
-          <div className="mx-auto grid max-w-[1380px] gap-10 px-4 py-16 sm:px-6 md:py-24 lg:px-8 xl:grid-cols-[.92fr_1.08fr] xl:items-center">
-            <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">Соревнование заканчивается. Выгода для компании только начинается.</h2><p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">ML-паспорт собирает результаты человека по разным задачам и направлениям. Так виден не один удачный результат, а история навыков на дистанции.</p><ul className="mt-8 grid gap-3 sm:grid-cols-2">{PASSPORT_ITEMS.map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"><Check size={16} className="mt-1 shrink-0 text-primary" /><span>{item}</span></li>)}</ul></Reveal>
-            <Reveal viewportReveal delay={0.08} className="border border-border bg-background p-5 shadow-xl shadow-primary/5 sm:p-7">
-              <div className="flex items-center justify-between gap-4 border-b border-border pb-5"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground"><UserRoundCheck size={20} /></span><div><p className="font-heading text-lg font-bold">ML-паспорт специалиста</p><p className="mt-1 text-xs text-muted-foreground">Подтверждённая история результатов</p></div></div><span className="border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">Проверено</span></div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">{[{ icon: Database, text: "Несколько задач" }, { icon: ShieldCheck, text: "Скрытая проверка" }, { icon: Code2, text: "Воспроизводимость" }].map((item) => { const Icon = item.icon; return <div key={item.text} className="group border border-border bg-card p-4 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"><Icon size={18} className="text-primary transition-transform duration-300 group-hover:scale-110" /><p className="mt-4 text-xs font-bold">{item.text}</p></div>; })}</div>
-              <div className="mt-5 grid gap-px overflow-hidden border border-border bg-border">{["Классификация", "Временные ряды", "Рекомендательные системы"].map((label) => <div key={label} className="flex items-center justify-between gap-4 bg-card px-4 py-3 text-xs"><span className="font-semibold">{label}</span><span className="flex items-center gap-1.5 text-muted-foreground"><CheckCircle2 size={14} className="text-emerald-500" /> подтверждено</span></div>)}</div>
+        <section className="companies-band companies-passport-band">
+          <div className="companies-container companies-section companies-passport-layout">
+            <Reveal viewportReveal><h2 className="companies-heading font-heading">Соревнование заканчивается.<br />Выгода для компании только начинается.</h2><p className="companies-intro">ML-паспорт собирает результаты участника по разным задачам и направлениям. Так вы видите сильные стороны, динамику развития и подходящих кандидатов в одном отчёте.</p><ul className="companies-check-grid">{PASSPORT_ITEMS.map((item) => <li key={item}><Check size={15} /><span>{item}</span></li>)}</ul></Reveal>
+            <Reveal viewportReveal delay={0.08} className="companies-passport-demo">
+              <div className="companies-demo-header"><span className="companies-demo-avatar"><UserRoundCheck size={26} /></span><div><h3 className="font-heading">ML-паспорт специалиста</h3><p>Пример подтверждённых результатов</p></div><span className="companies-verified">Подходит</span></div>
+              <div className="companies-demo-stats"><div><strong>12</strong><span>проектов</span></div><div><strong>Топ 5%</strong><span>среди участников</span></div><div><strong>87%</strong><span>задач решено</span></div></div>
+              <div className="companies-demo-bars">{[["Анализ данных", 92, "Топ 3%"], ["Моделирование", 76, "Топ 7%"], ["Исследовательский подход", 84, "Топ 10%"]].map(([label, value, rank]) => <div className="companies-demo-bar" key={label}><span>{label}</span><span className="companies-demo-track"><i style={{ width: `${value}%` }} /></span><small>{rank}</small></div>)}</div>
             </Reveal>
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-          <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Не просто место в одном соревновании</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">ML-паспорт помогает отвечать на прикладные вопросы о кандидате до следующего этапа отбора.</p></Reveal>
-          <Stagger viewportReveal className="mt-10 grid border-l border-t border-border md:grid-cols-2 xl:grid-cols-3">{EMPLOYER_QUESTIONS.map((question, index) => <StaggerItem key={question} className="group min-h-40 border-b border-r border-border bg-card p-5 transition-colors duration-300 hover:bg-primary/[0.035]"><div className="flex items-start justify-between gap-5"><p className="max-w-sm font-heading text-base font-bold leading-6 transition-colors duration-300 group-hover:text-primary">{question}</p><span className="font-mono text-[10px] text-primary transition-transform duration-300 group-hover:-translate-x-1">0{index + 1}</span></div></StaggerItem>)}</Stagger>
+        <section className="companies-section companies-container companies-evidence">
+          <Reveal viewportReveal><h2 className="companies-heading font-heading">Не пропадает место в одном соревновании</h2></Reveal>
+          <Stagger viewportReveal className="companies-evidence-grid">{EMPLOYER_QUESTIONS.map((question, index) => <StaggerItem key={question}><article className="companies-evidence-card"><span>0{index + 1}</span><p>{question}</p></article></StaggerItem>)}</Stagger>
         </section>
 
-        <section className="border-y border-border bg-secondary/25">
-          <div className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-            <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Форматы сотрудничества</h2></Reveal>
-            <Stagger viewportReveal className="mt-10 grid gap-4 lg:grid-cols-3">{FORMATS.map((item) => { const Icon = item.icon; return <StaggerItem key={item.title} className="h-full"><article className="group flex h-full min-h-64 flex-col border border-border bg-card p-6 transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"><Icon size={22} className="text-primary transition-transform duration-300 group-hover:-translate-y-0.5" /><h3 className="mt-9 font-heading text-xl font-bold transition-colors duration-300 group-hover:text-primary">{item.title}</h3><p className="mt-3 text-sm leading-7 text-muted-foreground">{item.text}</p></article></StaggerItem>; })}</Stagger>
-            <p className="mt-7 max-w-3xl border-l-2 border-primary pl-4 text-sm leading-6 text-muted-foreground">Формат и объём проекта подбираются под задачу компании. Если вы пока не знаете, какой формат нужен, это нормально — начнём с короткого обсуждения цели.</p>
+        <section className="companies-band companies-formats">
+          <div className="companies-container companies-section">
+            <Reveal viewportReveal><h2 className="companies-heading font-heading">Форматы сотрудничества</h2></Reveal>
+            <Stagger viewportReveal className="companies-formats-grid">{FORMATS.map((item) => { const Icon = item.icon; return <StaggerItem key={item.title}><article className="companies-format-card"><span className="companies-icon"><Icon size={20} /></span><div><h3 className="font-heading">{item.title}</h3><p>{item.text}</p></div></article></StaggerItem>; })}</Stagger>
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1380px] px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-          <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Кто за что отвечает</h2><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">Разделяем зоны ответственности заранее, чтобы пилот не превращался в дополнительный проект для команды компании.</p></Reveal>
-          <div className="mt-10 grid border border-border lg:grid-cols-2">
+        <section className="companies-section companies-container companies-responsibilities">
+          <Reveal viewportReveal><h2 className="companies-heading font-heading">Кто за что отвечает</h2><p className="companies-intro">Разделяем зоны ответственности, чтобы пилот не превращался в дополнительный проект для вашей команды.</p></Reveal>
+          <div className="companies-responsibility-grid">
             <Responsibility icon={Building2} title="От компании" items={COMPANY_NEEDS} />
             <Responsibility icon={Sparkles} title="От ML-Арены" items={ARENA_WORK} primary />
           </div>
         </section>
 
-        <section className="bg-primary text-primary-foreground">
-          <Reveal viewportReveal className="mx-auto flex max-w-[1380px] flex-col justify-between gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-center md:py-16 lg:px-8"><div><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Открыты к пилотным проектам с компаниями</h2><p className="mt-4 max-w-3xl text-sm leading-7 text-primary-foreground/75 sm:text-base">Сейчас ML-Арена формирует первые корпоративные кейсы и готова запускать ограниченное число пилотов. Для каждого проекта вместе фиксируем задачу, критерии результата, сроки и объём работ.</p></div><Button type="button" size="lg" variant="secondary" className="group h-12 shrink-0" onClick={scrollToForm}>Обсудить пилот <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1" /></Button></Reveal>
+        <section className="companies-cta">
+          <Reveal viewportReveal className="companies-container companies-cta-inner"><img className="companies-cta-trophy" src="/companies-trophy.png" alt="" aria-hidden="true" /><div><h2 className="font-heading">Открыты к пилотным проектам с компаниями</h2><p>Начните с одного небольшого пилота и получите первые результаты уже в ближайшее время. Мы подберём формат, сроки и задачи исходя из ваших целей.</p></div><Button type="button" variant="secondary" className="group" onClick={scrollToForm}>Обсудить пилот <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1" /></Button></Reveal>
         </section>
 
-        <section id="cooperation-form" className="scroll-mt-6 bg-background">
-          <div className="mx-auto grid max-w-[1380px] gap-10 px-4 py-16 sm:px-6 md:py-24 lg:px-8 xl:grid-cols-[.75fr_1.25fr]">
-            <Reveal viewportReveal><h2 className="font-heading text-3xl font-extrabold sm:text-4xl">Обсудить сотрудничество</h2><p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">Расскажите в двух словах, какую задачу хотите решить. Мы свяжемся с вами по указанной почте и предложим следующий шаг.</p><div className="mt-8 flex items-start gap-3 border-l-2 border-primary bg-secondary/30 p-4 text-sm leading-6 text-muted-foreground"><Mail size={18} className="mt-0.5 shrink-0 text-primary" />Стоимость и объём проекта обсуждаются после знакомства с задачей компании.</div></Reveal>
+        <section id="cooperation-form" className="companies-form-section scroll-mt-6">
+          <div className="companies-container companies-section companies-form-layout">
+            <Reveal viewportReveal><h2 className="companies-heading font-heading">Обсудить сотрудничество</h2><p className="companies-intro">Оставьте контакты и мы свяжемся с вами, чтобы обсудить подходящий формат сотрудничества и ответить на все вопросы.</p><div className="companies-form-note"><Mail size={18} />Мы поможем подобрать формат и ответим на любые вопросы.</div></Reveal>
             <Reveal viewportReveal delay={0.08}>
               {submitted ? (
                 <div className="flex min-h-96 flex-col items-center justify-center border border-emerald-500/20 bg-emerald-500/[0.05] p-8 text-center"><span className="flex h-14 w-14 items-center justify-center bg-emerald-500 text-white"><CheckCircle2 size={25} /></span><h3 className="mt-6 font-heading text-2xl font-extrabold">Спасибо! Заявка получена.</h3><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Мы свяжемся с вами по указанной почте.</p><Button type="button" variant="outline" className="mt-7" onClick={() => setSubmitted(false)}>Отправить ещё одну заявку</Button></div>
               ) : (
-                <form onSubmit={submit} noValidate className="border border-border bg-card shadow-sm">
+                <form onSubmit={submit} noValidate className="companies-lead-form border border-border bg-card shadow-sm">
                   <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
                     <CooperationField id="cooperation-name" label="Имя" error={errors.name}><Input id="cooperation-name" value={form.name} onChange={(event) => update("name", event.target.value)} minLength={2} maxLength={80} autoComplete="name" className="h-11 bg-secondary/20" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? "cooperation-name-error" : undefined} /></CooperationField>
                     <CooperationField id="cooperation-company" label="Компания" error={errors.company}><Input id="cooperation-company" value={form.company} onChange={(event) => update("company", event.target.value)} minLength={2} maxLength={160} autoComplete="organization" className="h-11 bg-secondary/20" aria-invalid={Boolean(errors.company)} aria-describedby={errors.company ? "cooperation-company-error" : undefined} /></CooperationField>
@@ -290,7 +284,13 @@ export default function Cooperation({ embedded = false }) {
 }
 
 function Responsibility({ icon: Icon, title, items, primary = false }) {
-  return <Reveal viewportReveal className={`p-6 md:p-8 ${primary ? "bg-primary text-primary-foreground" : "border-b border-border bg-card lg:border-b-0 lg:border-r"}`}><span className={`flex h-11 w-11 items-center justify-center ${primary ? "bg-primary-foreground/10 text-primary-foreground" : "bg-primary/10 text-primary"}`}><Icon size={20} /></span><h3 className="mt-7 font-heading text-2xl font-bold">{title}</h3><ul className="mt-6 space-y-3">{items.map((item) => <li key={item} className={`flex items-start gap-3 text-sm leading-6 ${primary ? "text-primary-foreground/80" : "text-muted-foreground"}`}><Check size={16} className={`mt-1 shrink-0 ${primary ? "text-primary-foreground" : "text-primary"}`} /><span>{item}</span></li>)}</ul></Reveal>;
+  return <Reveal viewportReveal className={`companies-responsibility-card ${primary ? "companies-responsibility-primary" : ""}`}><h3 className="font-heading"><span className="companies-icon"><Icon size={19} /></span>{title}</h3><ul>{items.map((item) => <li key={item}><Check size={15} /><span>{item}</span></li>)}</ul></Reveal>;
+}
+
+function PilotIcon({ index }) {
+  const icons = [Target, Database, Trophy, BarChart3, Users, ClipboardCheck];
+  const Icon = icons[index];
+  return <Icon size={20} />;
 }
 
 function CooperationField({ id, label, error, className = "", children }) {
