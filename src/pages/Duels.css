@@ -431,7 +431,7 @@
 .duel-overview__rule p {
   margin-top: 3px;
   color: hsl(var(--muted-foreground));
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -494,7 +494,10 @@
   .duel-overview__direction-arrow { display: none; }
   .duel-overview__challenge-bottom { grid-template-columns: 1fr; }
   .duel-overview__challenge-auto { min-width: 0; }
-  .duel-overview__rule { align-items: flex-start; }
+  .duel-overview__rules .duel-overview__panel-head { flex-wrap: wrap; }
+  .duel-overview__rules .duel-overview__section-title { flex-basis: 100%; }
+  .duel-overview__rule-grid { grid-template-columns: 1fr; }
+  .duel-overview__rule { min-height: 0; align-items: center; }
 }
 
 @media (max-width: 360px) {

@@ -149,6 +149,7 @@ export default function AppLayout({ children }) {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
   const pageTitle = PAGE_TITLES.find(([path]) => location.pathname === path || location.pathname.startsWith(`${path}/`))?.[1] || "ML-Арена";
+  const mobilePageTitle = location.pathname === "/profile/edit" ? "Профиль" : pageTitle;
 
   useEffect(() => {
     document.documentElement.classList.add("arena-app-active");
@@ -239,7 +240,7 @@ export default function AppLayout({ children }) {
         </header>
         <header className="relative z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-3 md:hidden">
           <button type="button" onClick={() => setMobileOpen(true)} className="flex h-11 w-11 shrink-0 items-center justify-center border border-border bg-background text-foreground transition-colors active:bg-secondary" title="Открыть меню" aria-label="Открыть меню" aria-expanded={mobileOpen} aria-controls="arena-mobile-navigation"><Menu size={20} /></button>
-          <span className="min-w-0 flex-1 truncate font-heading text-sm font-extrabold">{pageTitle}</span>
+          <span className="min-w-0 flex-1 truncate font-heading text-sm font-extrabold" title={pageTitle}>{mobilePageTitle}</span>
           <UserSearch compact />
           <ThemeToggle />
           <HeaderAccount user={user} isAuthenticated={isAuthenticated} onLogout={handleLogout} />

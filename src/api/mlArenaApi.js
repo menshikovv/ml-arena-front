@@ -52,6 +52,7 @@ export const api = {
   },
   catalogs: {
     metrics: () => apiData("/api/v1/metrics", {}, { auth: false }),
+    builtinMetricSource: (metricId, versionId) => fetchBlob(`/api/v1/metrics/${metricId}/versions/${versionId}/source`),
     tasks: (params) => apiRequest(`/api/v1/tasks${queryString(params)}`, {}, { auth: false }),
     task: (id) => apiData(`/api/v1/tasks/${id}`, {}, { auth: false }),
     badges: () => apiData("/api/v1/badges/catalog", {}, { auth: false }),

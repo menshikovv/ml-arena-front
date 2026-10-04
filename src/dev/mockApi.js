@@ -253,6 +253,13 @@ function request(path, method, body, params) {
   if (path === "/api/v1/leaderboard") return reply(rating(params));
   if (path === "/api/v1/billing/plans") return reply(state.plans);
   if (path === "/api/v1/metrics") return reply(state.metrics);
+  if (/^\/api\/v1\/metrics\/[^/]+\/versions\/[^/]+\/source$/.test(path)) {
+    const parts = path.split("/");
+    const metric = state.metrics.find((item) => item.id === parts[4] && item.current_version?.id === parts[6] && item.current_version.implementation_type === "builtin");
+    if (!metric) return notFound();
+    const source = `# Demo source for ${metric.code}\n\ndef score(solution, submission, row_id_column_name):\n    return 0.9\n`;
+    return new Response(source, { status: 200, headers: { "Content-Type": "text/x-python; charset=utf-8", "Content-Disposition": `attachment; filename="${metric.code}.py"` } });
+  }
   if (path === "/api/v1/tasks") return rows(state.tasks, params);
   if (path.startsWith("/api/v1/tasks/")) return reply(state.tasks.find((item) => item.id === path.split("/")[4]) || state.tasks[0]);
   if (path === "/api/v1/badges/catalog") return reply([state.badge]);

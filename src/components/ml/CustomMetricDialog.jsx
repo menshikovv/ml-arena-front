@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Select from "@radix-ui/react-select";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, CircleAlert, Loader2, Plus, Save, Send, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleAlert, Download, Loader2, Plus, Save, Send, X } from "lucide-react";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { downloadMetricImplementation } from "@/lib/downloadMetricImplementation";
 
 const TASK_TYPES = [
   ["classification", "Классификация"], ["regression", "Регрессия"], ["nlp", "NLP"],
@@ -61,12 +63,27 @@ export default function CustomMetricDialog({ organizationId = null, metric = nul
   const [saved, setSaved] = useState(null);
   const [validation, setValidation] = useState(null);
   const [error, setError] = useState(null);
+  const [sourceDownloading, setSourceDownloading] = useState(false);
+  const [sourceDownloadError, setSourceDownloadError] = useState("");
   useEffect(() => {
     if (phase || saved || validation || error) feedback.current?.scrollIntoView({ block: "nearest" });
   }, [phase, saved, validation, error]);
   const catalog = useQuery({ queryKey: ["custom-metric-builtin-options", platform], queryFn: () => platform ? api.admin.metrics({ limit: 100, offset: 0 }) : api.catalogs.metrics() });
   const builtins = rows(catalog.data).filter((item) => (item.current_version?.implementation_type || item.implementation_type) === "builtin" && item.current_version?.id);
+  const selectedBuiltin = builtins.find((item) => item.current_version.id === form.forked_from_metric_version_id);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const downloadBuiltin = async () => {
+    if (!selectedBuiltin) return;
+    setSourceDownloading(true);
+    setSourceDownloadError("");
+    try {
+      await downloadMetricImplementation(selectedBuiltin);
+    } catch (downloadError) {
+      setSourceDownloadError(downloadError.message || "Не удалось скачать реализацию.");
+    } finally {
+      setSourceDownloading(false);
+    }
+  };
   const toggle = (key, value) => update(key, form[key].includes(value) ? form[key].filter((item) => item !== value) : [...form[key], value]);
   const locked = Boolean(phase || saved);
   const submitSaved = async (record) => {
@@ -156,7 +173,18 @@ export default function CustomMetricDialog({ organizationId = null, metric = nul
           {!versionTarget && <><Field label="Код *"><Input value={form.code} onChange={(event) => update("code", event.target.value.toLowerCase())} placeholder="business_cost" /></Field><Field label="Название *"><Input value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="Business cost" /></Field><Field label="Описание" wide><Textarea maxLength={5000} rows={3} value={form.description} onChange={(event) => update("description", event.target.value)} /></Field></>}
           <Field label="Направление"><select value={form.direction} onChange={(event) => update("direction", event.target.value)} className="h-10 w-full rounded border border-input bg-background px-3 text-sm"><option value="maximize">Больше — лучше</option><option value="minimize">Меньше — лучше</option></select></Field>
           <Field label="Формат результата *"><Input value={form.display_format} onChange={(event) => update("display_format", event.target.value)} placeholder="0.0000" /></Field>
-          <Field label="На основе встроенной версии" wide><select value={form.forked_from_metric_version_id} onChange={(event) => update("forked_from_metric_version_id", event.target.value)} className="h-10 w-full rounded border border-input bg-background px-3 text-sm"><option value="">С нуля, без родительской версии</option>{form.forked_from_metric_version_id && !builtins.some((item) => item.current_version.id === form.forked_from_metric_version_id) && <option value={form.forked_from_metric_version_id}>{form.forked_from_metric_version_id}</option>}{builtins.map((item) => <option key={item.current_version.id} value={item.current_version.id}>{item.name || item.code} · v{item.current_version.version}</option>)}</select>{catalog.isLoading && <span className="block text-xs text-muted-foreground">Загрузка встроенных метрик...</span>}{catalog.error && <span className="block text-xs text-destructive">Не удалось загрузить встроенные метрики.</span>}</Field>
+          <div className="min-w-0 space-y-2 sm:col-span-2"><div className="flex flex-wrap items-center justify-between gap-2"><span id={`${id}-base-version-label`} className="block text-sm font-semibold">На основе встроенной версии</span>{selectedBuiltin && <button type="button" onClick={downloadBuiltin} disabled={sourceDownloading} className="inline-flex min-h-8 items-center gap-1.5 text-sm font-semibold text-primary hover:underline disabled:opacity-50">{sourceDownloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Скачать реализацию</button>}</div>
+            <Select.Root value={form.forked_from_metric_version_id || "none"} onValueChange={(value) => { update("forked_from_metric_version_id", value === "none" ? "" : value); setSourceDownloadError(""); }}>
+              <Select.Trigger aria-labelledby={`${id}-base-version-label`} className="flex h-10 w-full items-center justify-between gap-2 rounded border border-input bg-background px-3 text-left font-body text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Select.Value /><Select.Icon><ChevronDown size={16} /></Select.Icon></Select.Trigger>
+              <Select.Portal><Select.Content position="popper" sideOffset={4} className="z-[110] max-h-[min(320px,50vh)] w-[var(--radix-select-trigger-width)] overflow-hidden rounded border border-border bg-popover font-body text-popover-foreground shadow-xl"><Select.Viewport className="max-h-[min(318px,50vh)] overflow-y-auto p-1">
+                <Select.Item value="none" className="relative flex min-h-9 cursor-pointer items-center rounded px-3 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"><Select.ItemText>С нуля, без родительской версии</Select.ItemText></Select.Item>
+                {form.forked_from_metric_version_id && !builtins.some((item) => item.current_version.id === form.forked_from_metric_version_id) && <Select.Item value={form.forked_from_metric_version_id} className="relative flex min-h-9 cursor-pointer items-center rounded px-3 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"><Select.ItemText>{form.forked_from_metric_version_id}</Select.ItemText></Select.Item>}
+                {builtins.map((item) => <Select.Item key={item.current_version.id} value={item.current_version.id} className="relative flex min-h-9 cursor-pointer items-center rounded px-3 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"><Select.ItemText>{item.name || item.code} · v{item.current_version.version}</Select.ItemText></Select.Item>)}
+              </Select.Viewport></Select.Content></Select.Portal>
+            </Select.Root>
+            {sourceDownloadError && <span role="alert" className="block text-sm text-destructive">{sourceDownloadError}</span>}
+            {catalog.isLoading && <span className="block text-xs text-muted-foreground">Загрузка встроенных метрик...</span>}{catalog.error && <span className="block text-xs text-destructive">Не удалось загрузить встроенные метрики.</span>}
+          </div>
           {FILE_FIELDS.map((entry) => <Field key={entry.key} label={`${entry.label} *`} wide><Input key={`${entry.key}-${fileKey}`} type="file" accept={entry.extension} onChange={(event) => setFiles((current) => ({ ...current, [entry.key]: event.target.files?.[0] || null }))} className="h-auto min-h-11 min-w-0 py-2 text-sm" /><span className="block text-xs text-muted-foreground">{entry.hint}</span></Field>)}
           <div className="border-l-2 border-primary bg-primary/5 p-3 text-xs leading-5 text-muted-foreground sm:col-span-2">CSV: UTF-8, запятая, заголовок и хотя бы одна строка. В обоих файлах нужна колонка id с одинаковым набором уникальных непустых значений. Названия остальных колонок определяет исходник метрики.</div>
           <fieldset className="min-w-0 sm:col-span-2"><legend className="mb-3 text-sm font-semibold">Совместимые типы задач *</legend><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{TASK_TYPES.map(([value, label]) => <label key={value} className="flex min-w-0 items-start gap-2 text-sm"><input type="checkbox" checked={form.allowed_task_types.includes(value)} onChange={() => toggle("allowed_task_types", value)} className="mt-1 accent-primary" /><span>{label}</span></label>)}</div></fieldset>

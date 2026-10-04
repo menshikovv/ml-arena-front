@@ -4,7 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useSearchParams } from "react-router-dom";
 import {
   Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CalendarClock, CheckCircle2, CircleAlert,
-  ClipboardCheck, Database, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
+  ClipboardCheck, Database, Download, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
   Award, Bold, Copy, Crown, EyeOff, Flame, Heading1, Heading2, Heading3, ImageIcon, Italic, Link2, List, ListOrdered, LockKeyhole, Medal, Newspaper, Pause, Pencil, Play, Plus, Quote, RefreshCw, RotateCcw,
   Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Strikethrough, Trash2,
   Sparkles, Star, Swords, Target, Trophy, Undo2, Upload, UserCheck, Users, X,
@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import CustomMetricDialog from "@/components/ml/CustomMetricDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { downloadMetricImplementation } from "@/lib/downloadMetricImplementation";
 
 const STATUS_LABELS = {
   active: "Активен", pending: "Ожидает", pending_email: "Не подтверждён", banned: "Заблокирован",
@@ -1493,6 +1494,7 @@ function ResourcesSection({ permissions, requestAction, isSuperAdmin, initialRes
   const [editor, setEditor] = useState(null);
   const [customMetricOpen, setCustomMetricOpen] = useState(false);
   const [customMetricTarget, setCustomMetricTarget] = useState(null);
+  const [downloadingVersionId, setDownloadingVersionId] = useState(null);
   const [datasetFilesId, setDatasetFilesId] = useState(null);
   const [taskRelease, setTaskRelease] = useState(null);
   const queryClient = useQueryClient();
@@ -1503,10 +1505,24 @@ function ResourcesSection({ permissions, requestAction, isSuperAdmin, initialRes
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin", "resources", active] });
   const saved = () => { invalidate(); setEditor(null); toast({ title: "Ресурс сохранён" }); };
   const run = (item, title, description, action, options = {}) => requestAction({ title, description, confirm: title, danger: options.danger, reason: options.reason ?? false, run: action, invalidate: ["admin", "resources", active] });
+  const downloadSource = async (item) => {
+    const versionId = item.current_version.id;
+    setDownloadingVersionId(versionId);
+    try {
+      await downloadMetricImplementation(item);
+      toast({ title: "Реализация скачана" });
+    } catch (error) {
+      toast({ title: "Не удалось скачать реализацию", description: error.message, variant: "destructive" });
+    } finally {
+      setDownloadingVersionId(null);
+    }
+  };
   const actions = (item) => {
-    if (!can(permissions, current.write)) return null;
+    const sourceAction = active === "metrics" && item.current_version?.id && <ActionButton onClick={() => downloadSource(item)} disabled={Boolean(downloadingVersionId)} title="Скачать исходный код текущей версии"><Download size={13} /> {downloadingVersionId === item.current_version.id ? "Скачиваем..." : "Скачать реализацию"}</ActionButton>;
+    if (!can(permissions, current.write)) return sourceAction ? <ActionMenu>{sourceAction}</ActionMenu> : null;
     if (active === "subscriptions") return <ActionMenu>{item.status === "active" && <ActionButton onClick={() => run(item, "Приостановить подписку", `Подписка ${item.id}`, () => api.admin.subscriptionAction(item.id, "pause"))}><Pause size={13} /> Пауза</ActionButton>}{["active", "paused"].includes(item.status) && <ActionButton tone="danger" onClick={() => run(item, "Отменить подписку", `Подписка ${item.id}`, () => api.admin.subscriptionAction(item.id, "cancel"), { danger: true })}><X size={13} /> Отменить</ActionButton>}</ActionMenu>;
     return <ActionMenu>
+      {sourceAction}
       <ActionButton onClick={() => setEditor({ type: active, mode: "edit", item })}><Pencil size={13} /> Изменить</ActionButton>
       {["metrics", "datasets", "tasks"].includes(active) && item.status !== "archived" && <ActionButton tone="primary" onClick={() => { if (active === "metrics" && item.current_version?.implementation_type === "custom") { setCustomMetricTarget(item); setCustomMetricOpen(true); } else setEditor({ type: active, mode: "version", item }); }}><Plus size={13} /> Версия</ActionButton>}
       {active === "datasets" && <ActionButton onClick={() => setDatasetFilesId(item.id)}><Upload size={13} /> Файлы</ActionButton>}

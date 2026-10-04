@@ -68,7 +68,7 @@
 .companies-benefit-card p, .companies-format-card p { margin-top: 5px; color: hsl(var(--muted-foreground)); font-size: 13px; line-height: 1.45; }
 
 .companies-pilot-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 11px; margin-top: 19px; }
-.companies-pilot-card { display: flex; min-height: 125px; flex-direction: column; align-items: flex-start; padding: 12px; }
+.companies-pilot-card { display: flex; height: 100%; min-height: 125px; flex-direction: column; align-items: flex-start; padding: 12px; }
 .companies-pilot-number { color: hsl(var(--muted-foreground)); font-size: 10px; font-weight: 800; }
 .companies-pilot-card .companies-icon { margin-top: 5px; width: 32px; height: 32px; }
 .companies-pilot-card p { margin-top: 9px; font-size: 12px; font-weight: 750; line-height: 1.25; }
@@ -96,19 +96,19 @@
 
 .companies-evidence { padding-top: 23px; }
 .companies-evidence-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 15px; }
-.companies-evidence-card { min-height: 110px; padding: 11px; }
-.companies-evidence-card span { color: hsl(var(--primary)); font-size: 10px; font-weight: 800; }
-.companies-evidence-card p { margin-top: 7px; font-size: 11px; font-weight: 650; line-height: 1.4; }
+.companies-evidence-card { height: 100%; min-height: 142px; padding: 14px; }
+.companies-evidence-card span { color: hsl(var(--primary)); font-size: 11px; font-weight: 800; }
+.companies-evidence-card p { margin-top: 9px; font-size: 13px; font-weight: 650; line-height: 1.42; }
 
 .companies-formats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 17px; }
 .companies-format-card { display: flex; min-height: 118px; gap: 12px; padding: 15px; }
 .companies-responsibilities { display: grid; grid-template-columns: .68fr 1.32fr; gap: 18px; align-items: start; }
 .companies-responsibility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.companies-responsibility-card { padding: 15px; }
-.companies-responsibility-card h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; }
+.companies-responsibility-card { height: 100%; padding: 18px; }
+.companies-responsibility-card h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; }
 .companies-responsibility-card .companies-icon { width: 29px; height: 29px; }
-.companies-responsibility-card ul { display: grid; gap: 7px; margin-top: 12px; }
-.companies-responsibility-card li { display: flex; gap: 7px; font-size: 11px; line-height: 1.3; }
+.companies-responsibility-card ul { display: grid; gap: 9px; margin-top: 14px; }
+.companies-responsibility-card li { display: flex; gap: 8px; font-size: 13px; line-height: 1.42; }
 .companies-responsibility-card li svg { flex: none; color: hsl(var(--primary)); }
 .companies-responsibility-primary { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: white; }
 .companies-responsibility-primary .companies-icon { background: hsl(0 0% 100% / .15); color: white; }
