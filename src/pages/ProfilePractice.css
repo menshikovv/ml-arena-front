@@ -71,11 +71,20 @@
 
 .dark .passport-practice__heading h2, .dark .passport-practice__history h2, .dark .passport-practice-stat__head h3, .dark .passport-practice-stat__value, .dark .passport-practice-chart__empty strong, .dark .passport-practice-panel__heading h2, .dark .passport-practice-detail strong, .dark .passport-practice-recent__row { color: #f2f5ff; }
 .dark .passport-practice__heading p, .dark .passport-practice__history > p, .dark .passport-practice-stat p { color: #a7b6d0; }
-.dark .passport-practice-stat, .dark .passport-practice-chart, .dark .passport-practice-panel { border-color: #2b3955; background: #19243b; }
+.dark .passport-practice-stat, .dark .passport-practice-chart, .dark .passport-practice-panel { border-color: hsl(var(--border)); background: hsl(var(--card)); }
+.dark .passport-practice-stat--blue { --practice-soft: #193359; --practice-accent: #96b8ff; }
+.dark .passport-practice-stat--green { --practice-soft: #173b35; --practice-accent: #79dab2; }
+.dark .passport-practice-stat--red { --practice-soft: #442430; --practice-accent: #fa93ac; }
+.dark .passport-practice-stat--violet { --practice-soft: #302549; --practice-accent: #c5a1fa; }
+.dark .passport-practice-stat--amber { --practice-soft: #49321f; --practice-accent: #ffbc79; }
 .dark .passport-practice-panel__heading p, .dark .passport-practice-detail > span, .dark .passport-practice-detail small, .dark .passport-practice-panel__footnote, .dark .passport-practice-activity__week small, .dark .passport-practice-recent__row small { color: #a7b6d0; }
 .dark .passport-practice-chart__grid { stroke: #39496a; }
 .dark .passport-practice-chart__grid--vertical { stroke: #2d3c58; }
 .dark .passport-practice-chart__axis { fill: #a7b6d0; }
+.dark .passport-practice-detail { border-color: hsl(var(--border)); }
+.dark .passport-practice-panel__footnote, .dark .passport-practice-recent__row, .dark .passport-practice-activity__bar-track { border-color: hsl(var(--border)); }
+.dark .passport-practice-activity__bar-track { background: repeating-linear-gradient(to top, transparent 0, transparent 40px, hsl(var(--border) / 70%) 41px); }
+.dark .passport-practice-chart__dot { stroke: hsl(var(--card)); }
 
 @media (max-width: 1250px) {
   .passport-practice__stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }

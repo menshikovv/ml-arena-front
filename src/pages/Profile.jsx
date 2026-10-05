@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { Activity, Award, BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, ChevronRight, CircleDot, Crown, ExternalLink, FileText, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, ListFilter, Loader2, MapPin, Medal, Network, Pencil, ScanEye, ShieldCheck, Sparkles, Star, Swords, Target, TrendingUp, Trophy, UserRoundSearch } from "lucide-react";
+import { Activity, Award, BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, ChevronRight, CircleDot, Crown, Download, ExternalLink, FileText, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, ListFilter, Loader2, MapPin, Medal, Network, Pencil, ScanEye, ShieldCheck, Sparkles, Star, Swords, Target, TrendingUp, Trophy, UserRoundSearch, X } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import { PageFrame } from "@/components/ml/PageFrame";
@@ -11,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 import { directionEvidence, loadPassportEvidence } from "@/lib/passport";
+import { downloadPassportPdf } from "@/lib/reportPdf";
+import { toast } from "@/components/ui/use-toast";
 import ProfileRating from "./ProfileRating";
 import ProfileCareer from "./ProfileCareer";
 import ProfilePractice from "./ProfilePractice";
@@ -158,6 +161,9 @@ export default function Profile() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("directions");
   const [selectedSeason, setSelectedSeason] = useState("");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportOptions, setExportOptions] = useState({ includeCareer: false, includeContacts: false, includeExternal: false });
   const ownerIds = [user?.id, user?.user_id, user?.profile_id].filter(Boolean).map(String);
   const isOwner = !id || id === "me" || ownerIds.includes(String(id));
   const profileQuery = useQuery({ queryKey: ["profile", isOwner ? "me" : id], queryFn: () => isOwner ? api.profiles.me() : api.profiles.get(id) });
@@ -209,6 +215,19 @@ export default function Profile() {
   ];
   const tabAction = (tab) => passportTabs.some(([value]) => value === tab) ? () => setActiveTab(tab) : undefined;
 
+  const exportPassport = async () => {
+    if (!profile || exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      await downloadPassportPdf({ profile, name: displayName, rating: overall?.rank ? seasonalScore : null, rank: overall?.rank, directions: directionCards, badges, externalAchievements, options: exportOptions, url: `${window.location.origin}/profile/${profileUserId}` });
+      setExportDialogOpen(false);
+    } catch {
+      toast.error("Не удалось скачать ML-паспорт в PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   useEffect(() => {
     if (passportTabs.length && !passportTabs.some(([value]) => value === activeTab)) {
       setActiveTab(passportTabs[0][0]);
@@ -233,9 +252,23 @@ export default function Profile() {
           <p className="passport-hero__bio">{profile.bio || "Описание профиля пока не заполнено."}</p>
           <div className="passport-hero__meta">{joinedYear && <span><CalendarDays size={17} />ML-Арена с {joinedYear}</span>}<span><BarChart3 size={17} />Участник сообщества</span>{profile.city && <span><MapPin size={17} />{profile.city}</span>}{profile.university && <span><GraduationCap size={17} />{profile.university}</span>}{profile.company && <span><BriefcaseBusiness size={17} />{profile.company}</span>}{profile.github_url && <a href={profile.github_url} target="_blank" rel="noreferrer"><Github size={17} />GitHub</a>}{profile.kaggle_url && <a href={profile.kaggle_url} target="_blank" rel="noreferrer"><LinkIcon size={17} />Kaggle</a>}</div>
         </div>
-        {isOwner && <Button asChild variant="outline" className="passport-hero__edit"><Link to="/profile/edit"><Pencil size={17} />Редактировать профиль</Link></Button>}
+        {isOwner && <div className="passport-hero__actions"><Button type="button" variant="outline" className="passport-hero__edit" onClick={() => setExportDialogOpen(true)}><Download size={17} /> Скачать PDF</Button><Button asChild variant="outline" className="passport-hero__edit"><Link to="/profile/edit"><Pencil size={17} />Редактировать профиль</Link></Button></div>}
       </header>
     </Reveal>
+
+    <Dialog.Root open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/65 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[101] w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-6 text-foreground shadow-2xl">
+          <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="font-heading text-xl font-extrabold">Экспорт ML-паспорта</Dialog.Title><Dialog.Description className="mt-2 text-sm leading-5 text-muted-foreground">PDF можно отправить как резюме. Выберите, какие дополнительные сведения включить.</Dialog.Description></div><Dialog.Close asChild><button type="button" aria-label="Закрыть" className="rounded p-1 text-muted-foreground hover:text-foreground"><X size={18} /></button></Dialog.Close></div>
+          <div className="mt-5 space-y-3">
+            {[["includeCareer", "Город, университет и компания"], ["includeContacts", "Контакты и ссылки"], ["includeExternal", "Подтверждённые внешние достижения"]].map(([key, label]) => <label key={key} className="flex cursor-pointer items-center gap-3 rounded border border-border bg-secondary/35 p-3 text-sm"><input type="checkbox" checked={exportOptions[key]} onChange={(event) => setExportOptions((current) => ({ ...current, [key]: event.target.checked }))} className="h-4 w-4 accent-primary" /><span>{label}</span></label>)}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">Рейтинг и достижения сохраняются по состоянию на момент экспорта. PDF не является официальным сертификатом.</p>
+          <Button type="button" className="mt-5 w-full" onClick={exportPassport} disabled={exportingPdf}>{exportingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Скачать PDF</Button>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
 
     <Stagger className="passport-stats"><StaggerItem><SummaryMetric icon={Trophy} label="Рейтинг сезона" value={overall?.rank ? seasonalScore : null} detail={overall?.rank ? `Место #${overall.rank}` : "Место появится после участия"} tone="blue" onActivate={tabAction("rating")} /></StaggerItem><StaggerItem><SummaryMetric icon={BarChart3} label="Соревнования" value={stats.competitions_participated ?? 0} detail={competitionRating?.rank ? `Место #${competitionRating.rank} в сезоне` : "Завершённые участия"} tone="violet" onActivate={tabAction("rating")} /></StaggerItem><StaggerItem><SummaryMetric icon={Swords} label="Рейтинговые дуэли" value={Number(humanDuels) > 0 ? humanDuels : null} detail="Завершённые матчи" tone="orange" onActivate={tabAction("practice")} /></StaggerItem><StaggerItem><SummaryMetric icon={ShieldCheck} label="Бейджи" value={badges.length} detail="Полученные достижения" tone="green" onActivate={tabAction("badges")} /></StaggerItem></Stagger>
 

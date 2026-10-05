@@ -131,14 +131,15 @@
 .dark .profile-edit-page { background: transparent; color: #eef3ff; }
 .dark .profile-edit-top h1, .dark .profile-edit-hero__identity h2, .dark .profile-edit-card__heading h2, .dark .profile-edit-toggle__copy strong { color: #f2f5ff; }
 .dark .profile-edit-top__copy p, .dark .profile-edit-card__heading p, .dark .profile-edit-toggle__copy small, .dark .profile-edit-hero__handle, .dark .profile-edit-hero__bio { color: #a7b6d0; }
-.dark .profile-edit-hero, .dark .profile-edit-card { border-color: #2b3955; background: #19243b; }
-.dark .profile-edit-hero__avatar-button { background: #19243b; box-shadow: 0 0 0 5px #273958; }
+.dark .profile-edit-hero, .dark .profile-edit-card { border-color: hsl(var(--border)); background: hsl(var(--card)); }
+.dark .profile-edit-hero__avatar-button { background: hsl(var(--card)); box-shadow: 0 0 0 5px hsl(var(--secondary)); }
 .dark .profile-edit-hero__meta { color: #a7b6d0; }
-.dark .profile-edit-input, .dark .profile-edit-textarea, .dark .profile-edit-interests__option, .dark .profile-edit-toggle { border-color: #34445f; background: #202e49; color: #edf3ff; }
+.dark .profile-edit-input, .dark .profile-edit-textarea, .dark .profile-edit-interests__option, .dark .profile-edit-toggle { border-color: hsl(var(--border)); background: hsl(var(--secondary)); color: #edf3ff; }
 .dark .profile-edit-field > label { color: #d7e2f7; }
-.dark .profile-edit-toggle__icon, .dark .profile-edit-card__icon { background: #263b66; color: #a9c4ff; }
-.dark .profile-edit-toggle:hover { background: #263b55; }
+.dark .profile-edit-toggle__icon, .dark .profile-edit-card__icon { background: #193359; color: #a9c4ff; }
+.dark .profile-edit-toggle:hover { background: hsl(var(--secondary) / 80%); }
 .dark .profile-edit-interests__option.is-selected { border-color: #3267eb; background: #3267eb; }
+.dark .profile-edit-hero__art span { background: #25375b; }
 
 @media (max-width: 1200px) {
   .profile-edit-frame { padding-right: 28px; padding-left: 28px; }

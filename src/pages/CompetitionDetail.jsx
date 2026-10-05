@@ -42,6 +42,7 @@ import {
   isHigherBetter,
 } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
+import { downloadCompetitionPdf } from "@/lib/reportPdf";
 
 const TABS = [
   { id: "overview", label: "Обзор", icon: FileText },
@@ -680,6 +681,7 @@ export default function CompetitionDetail() {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const activeTab = TABS.some((tab) => tab.id === section) ? section : "overview";
 
   const { data: competition, isLoading, isError } = useQuery({
@@ -710,7 +712,7 @@ export default function CompetitionDetail() {
   const resultCardQuery = useQuery({
     queryKey: ["competition-result-card", id],
     queryFn: () => api.competitions.resultCard(id),
-    enabled: Boolean(id && competition && ["completed", "finished"].includes(competition.status)),
+    enabled: Boolean(id && competition && ["completed", "finished", "archived"].includes(competition.status)),
     retry: false,
   });
   const { data: discussionsResponse } = useQuery({
@@ -772,6 +774,20 @@ export default function CompetitionDetail() {
     toast.success(`Результат: ${safeScore(score, competition.metric)}`);
   };
 
+  const exportResult = async () => {
+    if (!competition || !resultCardQuery.data || exportingPdf || !["completed", "finished", "archived"].includes(competition.status)) return;
+    setExportingPdf(true);
+    try {
+      const result = resultCardQuery.data;
+      const numericScore = Number(result.score ?? result.final_score);
+      await downloadCompetitionPdf({ competition, result, score: Number.isFinite(numericScore) ? safeScore(numericScore, competition.metric) : "—", metric: METRIC_LABELS[competition.metric] || competition.metric || "—", url: `${window.location.origin}/competitions/${competition.id}` });
+    } catch {
+      toast.error("Не удалось скачать PDF-карточку результата");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-primary" size={28} /></div>;
   }
@@ -816,8 +832,11 @@ export default function CompetitionDetail() {
       )}
 
       {resultCardQuery.data && (
-        <div className="mt-5 grid gap-px border border-border bg-border sm:grid-cols-3">
-          {[["Итоговое место", resultCardQuery.data.rank ? `#${resultCardQuery.data.rank}` : "—"], ["Итоговый результат", safeScore(resultCardQuery.data.score ?? resultCardQuery.data.final_score, competition.metric)], ["Статус проверки", resultCardQuery.data.verification_status || resultCardQuery.data.status || "—"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-lg font-bold">{value}</p></div>)}
+        <div className="mt-5">
+          <div className="grid gap-px border border-border bg-border sm:grid-cols-3">
+            {[["Итоговое место", resultCardQuery.data.rank ? `#${resultCardQuery.data.rank}` : "—"], ["Итоговый результат", safeScore(resultCardQuery.data.score ?? resultCardQuery.data.final_score, competition.metric)], ["Статус проверки", resultCardQuery.data.verification_status || resultCardQuery.data.status || "—"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-lg font-bold">{value}</p></div>)}
+          </div>
+          <Button type="button" variant="outline" className="mt-3" onClick={exportResult} disabled={exportingPdf}>{exportingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Скачать итоговую карточку PDF</Button>
         </div>
       )}
 

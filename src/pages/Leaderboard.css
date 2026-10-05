@@ -142,14 +142,21 @@
 .dark .rating-page { color: #e8efff; }
 .dark .rating-hero::before { background-image: linear-gradient(#79a9ed80 1px, transparent 1px), linear-gradient(90deg, #79a9ed80 1px, transparent 1px), linear-gradient(90deg, transparent, #172b4d 58%, #1b3155); }
 .dark .rating-hero h1, .dark .rating-season-card__copy h2, .dark .rating-season-card__dates strong, .dark .rating-stat strong, .dark .rating-my-position__person strong, .dark .rating-my-position__metric strong, .dark .rating-board__heading h2, .dark .rating-table__person strong, .dark .rating-table__directions strong, .dark .rating-table__score, .dark .rating-extras__passport h2, .dark .rating-empty h2, .dark .rating-empty h3 { color: #f1f5ff; }
-.dark .rating-season-card, .dark .rating-stat, .dark .rating-tabs, .dark .rating-filters__search, .dark .rating-filters__direction, .dark .rating-board, .dark .rating-extras__passport, .dark .rating-extras__faq, .dark .rating-season-select, .dark .rating-hero__actions > a { border-color: #31415f; background: #19263f; color: #e8efff; }
-.dark .rating-my-position, .dark .rating-table__row.is-me, .dark .rating-mobile-row.is-me { border-color: #4264a4; background: #1e3153; }
-.dark .rating-table, .dark .rating-table__head, .dark .rating-table__row, .dark .rating-season-card__dates, .dark .rating-season-card__dates > div + div { border-color: #31415f; }
-.dark .rating-table__row:hover { background: #223657; }
+.dark .rating-season-card, .dark .rating-stat, .dark .rating-tabs, .dark .rating-filters__search, .dark .rating-filters__direction, .dark .rating-board, .dark .rating-extras__passport, .dark .rating-extras__faq, .dark .rating-season-select, .dark .rating-hero__actions > a { border-color: hsl(var(--border)); background: hsl(var(--card)); color: #e8efff; }
+.dark .rating-my-position, .dark .rating-table__row.is-me, .dark .rating-mobile-row.is-me { border-color: hsl(var(--primary) / 48%); background: hsl(var(--primary) / 11%); }
+.dark .rating-table, .dark .rating-table__head, .dark .rating-table__row, .dark .rating-season-card__dates, .dark .rating-season-card__dates > div + div { border-color: hsl(var(--border)); }
+.dark .rating-table__row:hover, .dark .rating-tabs__tab:hover:not(.is-active) { background: hsl(var(--secondary)); }
 .dark .rating-filters input, .dark .rating-filters select, .dark .rating-season-select select, .dark .rating-extras__faq summary { color: #e8efff; }
 .dark .rating-hero__content p, .dark .rating-season-card__copy p, .dark .rating-season-card__dates p, .dark .rating-stat p, .dark .rating-stat small, .dark .rating-controls__description, .dark .rating-my-position__person p, .dark .rating-my-position__metric p, .dark .rating-board__heading p, .dark .rating-table__head, .dark .rating-table__components, .dark .rating-table__directions, .dark .rating-table__person small, .dark .rating-mobile-row__person small, .dark .rating-mobile-row__bottom, .dark .rating-extras__passport p, .dark .rating-extras__faq details p { color: #aec0dd; }
 .dark .rating-tabs__tab:not(.is-active) { color: #c3d1e7; }
 .dark .rating-mobile-row__bottom strong { color: #e8efff; }
+.dark .rating-season-card__date-icon.is-start, .dark .rating-stat__icon.is-people, .dark .rating-extras__icon, .dark .rating-table__me { background: #193359; color: #96b8ff; }
+.dark .rating-season-card__date-icon.is-finish, .dark .rating-stat__icon.is-season { background: #173b35; color: #79dab2; }
+.dark .rating-stat__icon.is-events { background: #302549; color: #c5a1fa; }
+.dark .rating-season-select__dot { box-shadow: 0 0 0 4px #14382f; }
+.dark .rating-archived { border-color: hsl(var(--border)); background: hsl(var(--secondary)); color: #acc8ff; }
+.dark .rating-archived p { color: #aec0dd; }
+.dark .rating-extras__passport a { border-color: hsl(var(--border)); background: hsl(var(--secondary)); color: #a8c2ff; }
 
 @media (max-width: 1320px) {
   .rating-hero { flex-wrap: wrap; }

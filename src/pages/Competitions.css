@@ -619,6 +619,10 @@
   color: #b9c8e3;
 }
 
+.dark .competitions-fairness__icon--0,
+.dark .competitions-fairness__icon--2 { background: #193359; color: #96b8ff; }
+.dark .competitions-fairness__icon--1 { background: #173b35; color: #79dab2; }
+
 @media (max-width: 1100px) {
   .competitions-page { padding-top: 24px; }
   .competitions-hero__art, .competitions-hero__dark-art { right: -70px; width: 80%; }

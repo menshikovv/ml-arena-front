@@ -201,6 +201,11 @@
 .dark .pricing-coach { background-image: url("/pricing-coach-dark.webp"); }
 .dark .pricing-plan { background-image: url("/pricing-path-dark.webp"); }
 .dark .pricing-feature__note { background: hsl(var(--secondary)); }
+.dark .pricing-feature__icon { background: #193359; color: #96b8ff; }
+.dark .pricing-features__grid > div:nth-child(2) .pricing-feature__icon { background: #302549; color: #c5a1fa; }
+.dark .pricing-features__grid > div:nth-child(3) .pricing-feature__icon { background: #173b35; color: #79dab2; }
+.dark .pricing-features__grid > div:nth-child(4) .pricing-feature__icon { background: #49321f; color: #ffbc79; }
+.dark .pricing-features__grid > div:nth-child(6) .pricing-feature__icon { background: #442430; color: #fa93ac; }
 .dark .pricing-plan li { background: hsl(var(--card) / 90%); }
 .dark .pricing-plan__status { background: #263b6a; color: #c7d7ff; }
 .dark .pricing-plan li:last-child .pricing-plan__status { background: #163f39; color: #a4efcf; }

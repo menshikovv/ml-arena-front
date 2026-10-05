@@ -80,10 +80,10 @@
 .passport-rating-best strong { color: #13805d; }
 
 .dark .passport-rating-heading h2, .dark .passport-rating-overall__head h3, .dark .passport-rating-overall__score strong, .dark .passport-rating-overall__facts strong, .dark .passport-rating-structure h3, .dark .passport-rating-dynamics h3, .dark .passport-rating-ring strong, .dark .passport-rating-structure__legend strong, .dark .passport-rating-link__title, .dark .passport-rating-best__title, .dark .passport-rating-link strong { color: #f1f5ff; }
-.dark .passport-rating-board > article, .dark .passport-rating-link, .dark .passport-rating-best, .dark .passport-rating-season, .dark .passport-rating-ring > div, .dark .passport-rating-dynamics__latest { border-color: #2d3d5a; background: #19243b; }
+.dark .passport-rating-board > article, .dark .passport-rating-link, .dark .passport-rating-best, .dark .passport-rating-season, .dark .passport-rating-ring > div, .dark .passport-rating-dynamics__latest { border-color: hsl(var(--border)); background: hsl(var(--card)); }
 .dark .passport-rating-season select, .dark .passport-rating-dynamics__latest { color: #e7edff; }
-.dark .passport-rating-overall__you { border-color: #3c5b9b; background: #233553; }
-.dark .passport-rating-overall__rank, .dark .passport-rating-structure__note { border-color: #34517d; background: #233553; color: #b7ceff; }
+.dark .passport-rating-overall__you { border-color: #345591; background: #193359; color: #a8c2ff; }
+.dark .passport-rating-overall__rank, .dark .passport-rating-structure__note { border-color: #34517d; background: hsl(var(--secondary)); color: #b7ceff; }
 .dark .passport-rating-overall__art span { background: #24466f; }
 .dark .passport-rating-chart__area { fill: #203b62; }
 .dark .passport-rating-chart__grid { color: #364a69; }
@@ -91,6 +91,12 @@
 .dark .passport-rating-heading p, .dark .passport-rating-overall__head p, .dark .passport-rating-overall__note, .dark .passport-rating-overall__facts span, .dark .passport-rating-overall__facts small, .dark .passport-rating-structure__legend > div, .dark .passport-rating-structure__legend small, .dark .passport-rating-link__detail, .dark .passport-rating-best small, .dark .passport-rating-ring span, .dark .passport-rating-chart-empty span { color: #b4c3df; }
 .dark .passport-rating-overall__facts, .dark .passport-rating-overall__facts > div + div { border-color: #344762; }
 .dark .passport-rating-chart__label { fill: #a2b4d2; }
+.dark .passport-rating-overall__icon, .dark .passport-rating-link__icon { background: #193359; color: #96b8ff; }
+.dark .passport-rating-link--competition .passport-rating-link__icon { background: #302549; color: #c5a1fa; }
+.dark .passport-rating-best__icon, .dark .passport-rating-overall__score .is-positive, .dark .passport-rating-dynamics__latest .is-positive { background: #173b35; color: #79dab2; }
+.dark .passport-rating-overall__score .is-negative, .dark .passport-rating-dynamics__latest .is-negative { background: #442430; color: #fa93ac; }
+.dark .passport-rating-link__weight { background: hsl(var(--secondary)); }
+.dark .passport-rating-ring.is-empty { background: hsl(var(--secondary)); }
 
 @media (max-width: 1350px) {
   .passport-rating-board { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto; }

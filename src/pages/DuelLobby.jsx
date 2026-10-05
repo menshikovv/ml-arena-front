@@ -31,6 +31,7 @@ import LeagueBadge from "@/components/ml/LeagueBadge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { METRIC_LABELS, TASK_TYPE_LABELS, formatScore } from "@/lib/ml-arena";
+import { downloadDuelPdf } from "@/lib/reportPdf";
 import { cn } from "@/lib/utils";
 
 const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -467,23 +468,21 @@ function LiveView({ duel, currentUserId, onFinished }) {
 }
 
 function ResultView({ duel }) {
-  const resultRef = useRef(null);
   const navigate = useNavigate();
+  const [exportingPdf, setExportingPdf] = useState(false);
   const userWon = duel.winner_name === "Ты";
   const isDraw = Boolean(duel.is_draw);
   const ratingDelta = duel.current_user_rating_change;
 
   const exportCard = async () => {
-    if (!resultRef.current) return;
+    if (duel.status !== "completed" || exportingPdf) return;
+    setExportingPdf(true);
     try {
-      const { default: html2canvas } = await import("html2canvas");
-      const canvas = await html2canvas(resultRef.current, { scale: 2, backgroundColor: "#ffffff" });
-      const anchor = document.createElement("a");
-      anchor.download = `ml-arena-duel-${duel.id}.png`;
-      anchor.href = canvas.toDataURL("image/png");
-      anchor.click();
+      await downloadDuelPdf({ duel, player1Score: safeScore(duel.player1_score, duel.metric), player2Score: safeScore(duel.player2_score, duel.metric), metric: METRIC_LABELS[duel.metric] || duel.metric || "—", taskType: TASK_TYPE_LABELS[duel.task_type] || duel.task_type || "—", url: `${window.location.origin}/duels/${duel.id}/result` });
     } catch {
-      toast.error("Не удалось скачать карточку");
+      toast.error("Не удалось скачать PDF-карточку");
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -569,7 +568,7 @@ function ResultView({ duel }) {
       </section>
 
       <section className="grid gap-7 py-8 lg:grid-cols-[1fr_360px]">
-        <div ref={resultRef} className="border border-border bg-card p-6">
+        <div className="border border-border bg-card p-6">
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="" className="h-10 w-10 object-contain" />
             <div>
@@ -596,7 +595,7 @@ function ResultView({ duel }) {
           <h2 className="font-heading text-xl font-bold">Продолжить серию</h2>
           <div className="mt-5 space-y-2">
             <Button className="w-full" onClick={() => navigate("/duels/matchmaking")}><RefreshCw size={15} /> Сыграть ещё</Button>
-            <Button variant="outline" className="w-full" onClick={exportCard}><Download size={15} /> Скачать карточку</Button>
+            <Button variant="outline" className="w-full" onClick={exportCard} disabled={duel.status !== "completed" || exportingPdf}>{exportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Скачать PDF-карточку</Button>
             <Button asChild variant="outline" className="w-full"><Link to="/profile/me">Открыть ML-паспорт <ArrowRight size={15} /></Link></Button>
             <Button asChild variant="ghost" className="w-full"><Link to="/rating?tab=duels"><Share2 size={15} /> В рейтинг дуэлей</Link></Button>
           </div>

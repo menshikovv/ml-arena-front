@@ -91,11 +91,11 @@
 .passport-career__edit:hover { background: #eaf1ff; color: #285ee8; }
 .passport-career__edit:focus-visible { outline: 2px solid #356cf2; outline-offset: 2px; }
 
-.dark .passport-career__panel { border-color: #2b3955; background: #19243b; }
+.dark .passport-career__panel { border-color: hsl(var(--border)); background: hsl(var(--card)); }
 .dark .passport-career__panel h2, .dark .passport-career__value { color: #f2f5ff; }
 .dark .passport-career__description, .dark .passport-career__label { color: #a7b6d0; }
 .dark .passport-career__row { border-color: #34445f; }
-.dark .passport-career__icon { background: #263b66; color: #a9c4ff; }
+.dark .passport-career__icon { background: #193359; color: #a9c4ff; }
 .dark .passport-career__edit { color: #b1c3e2; }
 .dark .passport-career__edit:hover { background: #263b66; color: #fff; }
 

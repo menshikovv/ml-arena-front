@@ -447,6 +447,11 @@
   display: block;
 }
 
+.dark .duel-overview__stat-icon--blue, .dark .duel-overview__rule-icon--0 { background: #193359; color: #96b8ff; }
+.dark .duel-overview__stat-icon--amber, .dark .duel-overview__rule-icon--2 { background: #49321f; color: #ffbc79; }
+.dark .duel-overview__stat-icon--green, .dark .duel-overview__rule-icon--1 { background: #173b35; color: #79dab2; }
+.dark .duel-overview__stat-icon--violet, .dark .duel-overview__rule-icon--3 { background: #302549; color: #c5a1fa; }
+
 @media (max-width: 1050px) {
   .duel-overview-frame { padding-top: 24px; }
   .duel-overview__hero-copy { width: 65%; }
