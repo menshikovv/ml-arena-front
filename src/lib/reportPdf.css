@@ -3,12 +3,20 @@
 .report-pdf__mount { position: fixed; top: 0; left: -10000px; z-index: -1; pointer-events: none; }
 .report-pdf__page { position: relative; box-sizing: border-box; width: 794px; height: 1123px; overflow: hidden; padding: 45px 54px 94px; background: #fff; color: #111d39; font-family: "Inter Report", sans-serif; }
 .report-pdf__page * { box-sizing: border-box; letter-spacing: 0; }
-.report-pdf__top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid #dce5f4; }
-.report-pdf__brand { display: flex; align-items: center; gap: 10px; }
-.report-pdf__brand-mark { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 6px; background: #2e62eb; color: white; font-size: 14px; font-weight: 900; }
-.report-pdf__brand-name { font-family: "Science Gothic", sans-serif; font-size: 16px; font-weight: 800; }
+.report-pdf__top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 19px; border-bottom: 1px solid #dce5f4; }
+.report-pdf__brand { display: flex; align-items: center; gap: 12px; }
+.report-pdf__brand-logo { display: block; width: 43px; height: 43px; object-fit: contain; }
+.report-pdf__brand-copy { display: flex; flex-direction: column; gap: 3px; }
+.report-pdf__brand-name { font-family: "Science Gothic", sans-serif; font-size: 17px; font-weight: 800; line-height: 1; }
+.report-pdf__brand-season { color: #667a98; font-size: 9px; font-weight: 750; text-transform: uppercase; }
 .report-pdf__type { color: #557199; font-size: 11px; font-weight: 700; text-align: right; }
 .report-pdf__hero { padding: 28px 0 22px; border-bottom: 1px solid #dce5f4; }
+.report-pdf__hero--passport { display: flex; align-items: center; gap: 23px; min-height: 148px; padding: 21px 0; }
+.report-pdf__hero-copy { min-width: 0; }
+.report-pdf__avatar { display: grid; width: 104px; height: 104px; flex: 0 0 104px; place-items: center; overflow: hidden; border: 5px solid #fff; border-radius: 50%; background: #eaf0ff; box-shadow: 0 0 0 1px #dce5f4, 0 7px 20px #2254b319; }
+.report-pdf__avatar-image, .report-pdf__avatar-fallback { display: block; width: 100%; height: 100%; border-radius: 50%; }
+.report-pdf__avatar-image { object-fit: cover; }
+.report-pdf__avatar-fallback { display: grid; place-items: center; color: #fff; font-family: "Inter Report", sans-serif; font-size: 32px; font-weight: 700; }
 .report-pdf__eyebrow { margin: 0 0 9px; color: #2e62eb; font-size: 12px; font-weight: 800; }
 .report-pdf__title { margin: 0; overflow-wrap: anywhere; font-family: "Science Gothic", sans-serif; font-size: 31px; font-weight: 900; line-height: 1.12; }
 .report-pdf__subtitle { max-width: 620px; margin: 10px 0 0; overflow-wrap: anywhere; color: #526681; font-size: 13px; line-height: 1.48; }

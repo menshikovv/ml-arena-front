@@ -29,6 +29,36 @@ function shortDate(value) {
   return parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleDateString("ru-RU") : "—";
 }
 
+function avatarFallback(name) {
+  const initials = (name || "?").split(/\s|_/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+  const colors = ["#7C3AED", "#06B6D4", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6"];
+  const index = (name || "").split("").reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length;
+  const fallback = node("span", "report-pdf__avatar-fallback", initials);
+  fallback.style.background = `linear-gradient(135deg, ${colors[index]}, ${colors[index]}99)`;
+  return fallback;
+}
+
+async function printableAvatar(url) {
+  if (!url) return null;
+  try {
+    const source = new Image();
+    source.crossOrigin = "anonymous";
+    source.src = new URL(url, window.location.href).href;
+    await source.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const context = canvas.getContext("2d");
+    const scale = Math.max(canvas.width / source.naturalWidth, canvas.height / source.naturalHeight);
+    const width = source.naturalWidth * scale;
+    const height = source.naturalHeight * scale;
+    context.drawImage(source, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 function sectionChunks(section) {
   const size = section.kind === "directions" ? 8 : section.kind === "facts" ? 8 : 7;
   if (!section.items?.length) return [];
@@ -67,13 +97,32 @@ function createPage(report, pageNumber, includeSummary) {
   const page = node("article", "report-pdf__page");
   const top = node("div", "report-pdf__top");
   const brand = node("div", "report-pdf__brand");
-  append(brand, node("span", "report-pdf__brand-mark", "ML"), node("strong", "report-pdf__brand-name", "ML-Арена"));
+  const logo = node("img", "report-pdf__brand-logo");
+  logo.src = "/logo.svg";
+  logo.alt = "";
+  const brandCopy = node("div", "report-pdf__brand-copy");
+  append(brandCopy, node("strong", "report-pdf__brand-name", "ML-Арена"), node("span", "report-pdf__brand-season", "Founder Season"));
+  append(brand, logo, brandCopy);
   append(top, brand, node("span", "report-pdf__type", report.type));
   page.appendChild(top);
 
-  const hero = node("header", "report-pdf__hero");
-  append(hero, node("p", "report-pdf__eyebrow", report.eyebrow), node("h1", "report-pdf__title", includeSummary ? report.title : `${report.title} · продолжение`));
-  if (includeSummary && report.subtitle) hero.appendChild(node("p", "report-pdf__subtitle", report.subtitle));
+  const hero = node("header", `report-pdf__hero${includeSummary && report.avatarName ? " report-pdf__hero--passport" : ""}`);
+  const heroCopy = node("div", "report-pdf__hero-copy");
+  append(heroCopy, node("p", "report-pdf__eyebrow", report.eyebrow), node("h1", "report-pdf__title", includeSummary ? report.title : `${report.title} · продолжение`));
+  if (includeSummary && report.subtitle) heroCopy.appendChild(node("p", "report-pdf__subtitle", report.subtitle));
+  if (includeSummary && report.avatarName) {
+    const avatar = node("div", "report-pdf__avatar");
+    if (report.avatarImage) {
+      const image = node("img", "report-pdf__avatar-image");
+      image.src = report.avatarImage;
+      image.alt = "";
+      avatar.appendChild(image);
+    } else {
+      avatar.appendChild(avatarFallback(report.avatarName));
+    }
+    hero.appendChild(avatar);
+  }
+  hero.appendChild(heroCopy);
   page.appendChild(hero);
 
   const body = node("div", "report-pdf__body");
@@ -108,6 +157,7 @@ async function download(report, filename) {
       document.fonts.load('700 18px "Science Gothic"', "Sample 123"),
     ]);
     await document.fonts.ready;
+    report.avatarImage = await printableAvatar(report.avatarUrl);
     const sections = report.sections.flatMap(sectionChunks);
     const pages = [];
     const first = createPage(report, 1, true);
@@ -128,10 +178,11 @@ async function download(report, filename) {
     });
 
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
+    await Promise.all([...mount.querySelectorAll("img")].map((image) => image.decode()));
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
     pdf.setProperties({ title: report.title, subject: report.type, creator: "ML-Арена" });
     for (const [index, { page }] of pages.entries()) {
-      const canvas = await html2canvas(page, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: false });
+      const canvas = await html2canvas(page, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true });
       if (index) pdf.addPage();
       pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, A4_WIDTH, A4_HEIGHT);
       if (report.url) pdf.link(14, 279, 182, 11, { url: report.url });
@@ -163,6 +214,8 @@ export function downloadPassportPdf({ profile, name, rating, rank, directions, b
   ];
   return download({
     type: "ML-паспорт / резюме",
+    avatarName: name,
+    avatarUrl: profile.avatar_url,
     eyebrow: profile.user_name ? `@${profile.user_name}` : "Профиль участника",
     title: name,
     subtitle: profile.bio || "Практические результаты и направления машинного обучения.",
