@@ -48,6 +48,7 @@
 .companies-comparison { padding-top: 37px; }
 .companies-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 19px; }
 .companies-panel, .companies-benefit-card, .companies-pilot-card, .companies-evidence-card, .companies-format-card, .companies-responsibility-card, .companies-passport-demo { border: 1px solid hsl(var(--border)); border-radius: 7px; background: var(--companies-surface); box-shadow: 0 7px 24px hsl(var(--primary) / .035); }
+.companies-benefit-card, .companies-pilot-card, .companies-format-card { transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease; }
 .companies-panel { min-height: 210px; padding: 18px 20px; }
 .companies-practice { background: linear-gradient(120deg, hsl(var(--card)), hsl(var(--primary) / .06)); }
 .companies-card-heading { display: flex; align-items: center; gap: 11px; font-size: 17px; font-weight: 800; }
@@ -136,6 +137,15 @@
 .dark .companies-hero-art img { filter: brightness(.68) saturate(1.5) hue-rotate(8deg) drop-shadow(0 20px 28px hsl(var(--primary) / .15)); }
 .dark .companies-practice { background: linear-gradient(120deg, hsl(var(--card)), hsl(var(--primary) / .08)); }
 .dark .companies-verified { color: hsl(158 70% 65%); }
+
+@media (hover: hover) and (pointer: fine) {
+  .companies-benefit-card:hover, .companies-pilot-card:hover, .companies-format-card:hover { transform: translateY(-2px); border-color: hsl(var(--primary) / .28); box-shadow: 0 12px 27px hsl(var(--primary) / .09); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .companies-benefit-card, .companies-pilot-card, .companies-format-card { transition: none; }
+  .companies-benefit-card:hover, .companies-pilot-card:hover, .companies-format-card:hover { transform: none; }
+}
 
 @media (max-width: 1100px) {
   .companies-hero-copy h1 { font-size: clamp(29px, 3vw, 35px); }

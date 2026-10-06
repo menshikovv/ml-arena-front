@@ -185,18 +185,18 @@ export default function Cooperation({ embedded = false }) {
               <p>ML-паспорт показывает практические результаты, задачи и исследовательские способности. Вы видите не только опыт из резюме, но и то, как кандидат работает с реальными результатами.</p>
               <Button type="button" onClick={scrollToForm} className="group companies-primary-button">Обсудить сотрудничество <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" /></Button>
             </Reveal>
-            <div className="companies-hero-art" aria-hidden="true"><img src="/companies-hero.png" alt="" /></div>
+            <Reveal viewportReveal delay={0.08} y={8} className="companies-hero-art" aria-hidden="true"><img src="/companies-hero.png" alt="" /></Reveal>
           </div>
         </section>
 
         <section className="companies-section companies-container companies-comparison">
           <Reveal viewportReveal><h2 className="companies-heading font-heading">Резюме показывает опыт.<br />Практическая задача показывает,<br className="companies-desktop-break" /> как человек работает с ML.</h2></Reveal>
           <div className="companies-comparison-grid">
-            <Reveal className="companies-panel companies-resume">
+            <Reveal viewportReveal className="companies-panel companies-resume">
               <h3 className="companies-card-heading font-heading"><span className="companies-icon"><Users size={20} /></span>Что включено в резюме</h3>
               <div className="companies-resume-table">{[["Опыт работы", "Python, PyTorch, NLP..."], ["Роль в команде", "ML Engineer / Data Scientist"], ["Опыт и навыки", "3–6 лет"], ["Описание проектов", "Краткие описания, ссылки"]].map(([label, value]) => <div className="companies-resume-row" key={label}><span>{label}</span><span>{value}</span></div>)}</div>
             </Reveal>
-            <Reveal className="companies-panel companies-practice">
+            <Reveal viewportReveal delay={0.06} className="companies-panel companies-practice">
               <h3 className="companies-card-heading font-heading"><span className="companies-icon companies-icon-filled"><Gauge size={20} /></span>Что подтверждено на практике</h3>
               <ul>{["Решение технических задач с реальными данными", "Качество кода и анализа", "Способность предлагать и запускать решения", "Самостоятельное мышление и суждение"].map((item) => <li key={item}><Check size={15} /><span>{item}</span></li>)}</ul>
             </Reveal>
