@@ -1467,7 +1467,7 @@ function DatasetFilesDialog({ datasetId, permissions, onClose, onSaved }) {
     setError("");
     try {
       await api.admin.downloadDatasetFile(entry.id);
-      toast({ title: "Файл скачан" });
+      toast({ title: "Скачивание началось" });
     } catch (downloadError) {
       const message = downloadError.message || "Не удалось скачать файл";
       setError(message);

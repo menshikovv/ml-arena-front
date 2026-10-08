@@ -220,7 +220,15 @@ export const api = {
     deleteDataset: (id) => apiData(`/api/v1/admin/datasets/${id}`, { method: "DELETE" }),
     validateDatasetVersion: (id) => apiData(`/api/v1/admin/dataset-versions/${id}/validate`, { method: "POST" }),
     datasetValidation: (id) => apiData(`/api/v1/admin/dataset-versions/${id}/validation`),
-    downloadDatasetFile: (id) => downloadFromApi(`/api/v1/admin/dataset-files/${id}/download`),
+    downloadDatasetFile: async (id) => {
+      const result = await apiData(`/api/v1/admin/dataset-files/${id}/download-url`, { method: "POST" });
+      if (!result?.url) throw new ApiError(0, { message: "Сервер не вернул ссылку для скачивания" });
+      const url = new URL(result.url);
+      if (!["http:", "https:"].includes(url.protocol)) {
+        throw new ApiError(0, { message: "Сервер вернул некорректную ссылку для скачивания" });
+      }
+      window.location.assign(url.href);
+    },
     tasks: (params) => apiRequest(`/api/v1/admin/tasks${queryString(params)}`),
     task: (id) => apiData(`/api/v1/admin/tasks/${id}`),
     createTask: (body) => apiData("/api/v1/admin/tasks", { method: "POST", body: json(body) }),
