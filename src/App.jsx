@@ -22,7 +22,7 @@ const DuelLobby = lazy(() => import("@/pages/DuelLobby"));
 const Duels = lazy(() => import("@/pages/Duels"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const Help = lazy(() => import("@/pages/Help"));
-const Landing = lazy(() => import("@/pages/Landing"));
+const Landing = lazy(() => import("@/pages/LandingNext"));
 const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 const RatingMethodology = lazy(() => import("@/pages/Leaderboard").then((module) => ({ default: module.RatingMethodology })));
 const LegalNotice = lazy(() => import("@/pages/LegalNotice"));
