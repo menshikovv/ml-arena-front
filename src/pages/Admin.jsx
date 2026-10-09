@@ -306,7 +306,7 @@ function nullable(value) {
   return value === "" ? null : value;
 }
 
-function competitionPayload(form, creating, selectedTask, selectedMetric) {
+function competitionPayload(form, creating) {
   const common = {
     task_version_id: form.task_version_id,
     title: form.title.trim(),
@@ -335,8 +335,6 @@ function competitionPayload(form, creating, selectedTask, selectedMetric) {
     organization_id: nullable(form.organization_id),
     access: form.access,
     slug: nullable(form.slug.trim()),
-    task_type: selectedTask.current_version.task_type,
-    metric_code: selectedMetric.code,
   };
 }
 
@@ -365,7 +363,7 @@ function CompetitionEditorDialog({ competitionId, creating, onClose, onSaved }) 
   const metrics = listRows(metricsQuery.data);
   const selectedMetric = metrics.find((item) => item.current_version?.id === selectedTask?.current_version?.metric_version_id);
   const seasons = Array.isArray(seasonsQuery.data) ? seasonsQuery.data : seasonsQuery.data?.items || [];
-  const requiredReady = form.title.trim().length >= 3 && form.description.trim() && form.task_version_id && form.submission_deadline && (!creating || selectedMetric);
+  const requiredReady = form.title.trim().length >= 3 && form.description.trim() && form.task_version_id && form.submission_deadline && (!creating || selectedTask);
   const submit = () => {
     setError("");
     const startsAt = form.starts_at ? new Date(form.starts_at).getTime() : null;
@@ -378,8 +376,8 @@ function CompetitionEditorDialog({ competitionId, creating, onClose, onSaved }) 
     if (form.rated && !form.season_id) return setError("Для рейтингового соревнования выберите сезон.");
     if (form.prize_type === "cash" && Number(form.cash_prize_amount_rub) < 1) return setError("Укажите денежный приз в рублях.");
     if (form.prize_type === "non_cash" && !form.prize_description.trim()) return setError("Опишите неденежные призы.");
-    if (creating && !selectedMetric) return setError("У выбранной задачи не найдена активная версия метрики. Обновите метрику или создайте новую версию задачи.");
-    mutation.mutate(competitionPayload(form, creating, selectedTask, selectedMetric));
+    if (creating && !selectedTask) return setError("Выберите доступную private-версию задачи.");
+    mutation.mutate(competitionPayload(form, creating));
   };
   return <Dialog.Root open onOpenChange={(open) => !open && !mutation.isPending && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] flex max-h-[94vh] w-[calc(100%-2rem)] max-w-5xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-border bg-card shadow-2xl focus:outline-none"><div className="flex items-start justify-between border-b border-border p-5 md:px-7"><div><Dialog.Title className="font-heading text-2xl font-extrabold">{creating ? "Новое соревнование" : "Редактирование соревнования"}</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">Содержимое, ресурсы, сроки и правила события.</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div><div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-7">{detail.isLoading && !creating ? <LoadingRows /> : detail.error ? <ErrorState error={detail.error} /> : <div className="space-y-8">
     <section className="grid gap-6 border-b border-border pb-8 lg:grid-cols-[minmax(0,1fr)_300px]"><div><h3 className="font-heading text-lg font-bold">Карточка соревнования</h3><div className="mt-4 grid gap-4 md:grid-cols-2"><AdminField label="Название" wide><Input maxLength={200} value={form.title} onChange={(event) => update("title", event.target.value)} className="rounded-none" /></AdminField><AdminField label="Краткое описание" wide><Textarea maxLength={500} value={form.short_description} onChange={(event) => update("short_description", event.target.value)} placeholder="Коротко: задача, аудитория и результат" className="min-h-20 rounded-none" /></AdminField><AdminField label="Полное описание" wide><Textarea maxLength={30000} value={form.description} onChange={(event) => update("description", event.target.value)} className="min-h-36 rounded-none" /></AdminField><AdminField label="Тематическое направление"><Input maxLength={100} value={form.domain} onChange={(event) => update("domain", event.target.value)} placeholder="Например, рекомендательные системы" className="rounded-none" /></AdminField><AdminField label="Адрес страницы"><Input maxLength={200} value={form.slug} onChange={(event) => update("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} placeholder="Будет создан из названия" className="rounded-none font-mono text-xs" /></AdminField></div></div><div className="self-start border border-border bg-secondary/25 p-5" style={{ borderTopColor: form.banner_color, borderTopWidth: 4 }}><div className="flex items-start justify-between gap-3"><h4 className="break-words font-heading text-xl font-extrabold leading-tight">{form.title.trim() || "Название соревнования"}</h4><span className="h-4 w-4 shrink-0 border border-border" style={{ backgroundColor: form.banner_color }} /></div><div className="mt-3 flex items-center gap-2 text-xs font-semibold text-primary"><Trophy size={15} /> {form.rated ? "Рейтинговое" : "Соревнование"}</div><p className="mt-3 break-words text-xs leading-5 text-muted-foreground">{form.short_description.trim() || "Короткое описание появится в каталоге и в шапке страницы."}</p><div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 text-xs"><div><span className="text-muted-foreground">Призы</span><p className="mt-1 line-clamp-2 font-bold">{form.prize_type === "cash" ? `${Number(form.cash_prize_amount_rub || 0).toLocaleString("ru-RU")} ₽` : form.prize_type === "non_cash" ? form.prize_description || "Не указаны" : "Без призов"}</p></div><div><span className="text-muted-foreground">Лимит</span><p className="mt-1 font-bold">{form.max_participants || "Без лимита"}</p></div></div></div></section>

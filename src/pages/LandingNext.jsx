@@ -125,7 +125,15 @@ function RatingPreview({ entries, loading, error }) {
 }
 
 function PassportPreview() {
-  return <div className="landing2-passport landing2-card"><div className="landing2-passport-top"><TileIcon icon={Brain} /><div><strong>ML-паспорт <span className="landing2-tag">ПРИМЕР</span></strong><small>Подтверждённый профиль ML-инженера</small></div><div className="landing2-passport-score"><strong>1684</strong><small>сезонный рейтинг</small></div><span className="landing2-league">Top-10<br />в общей таблице</span></div><div className="landing2-passport-stats"><div><strong>7</strong><small>соревнований</small></div><div><strong>18</strong><small>дуэлей</small></div><div><strong>24</strong><small>валидных решений</small></div></div><div className="landing2-passport-detail"><div><h3>Подтверждённые навыки</h3>{SKILLS.map(([name, value, tone]) => <div className="landing2-skill" key={name}><span>{name}</span><div><i className={`landing2-skill--${tone}`} style={{ width: `${value}%` }} /></div><b>{value}%</b></div>)}</div><aside><h3>Достижения</h3><p><Trophy size={16} /> Финалист сезона</p><p><Swords size={16} /> Серия побед</p><p><Sparkles size={16} /> Первый топ-10</p></aside></div><div className="landing2-passport-proof"><CheckCircle2 size={17} /> Результаты проверены ML-Ареной</div></div>;
+  return <div className="landing2-passport landing2-card">
+    <div className="landing2-passport-top">
+      <div className="landing2-passport-identity"><TileIcon icon={Brain} /><div><strong>ML-паспорт <span className="landing2-tag">ПРИМЕР</span></strong><small>Подтверждённый профиль ML-инженера</small></div></div>
+      <div className="landing2-passport-rating"><div className="landing2-passport-score"><strong>1684</strong><small>сезонный рейтинг</small></div><span className="landing2-league">Top-10<br />в общей таблице</span></div>
+    </div>
+    <div className="landing2-passport-stats"><div><strong>7</strong><small>соревнований</small></div><div><strong>18</strong><small>дуэлей</small></div><div><strong>24</strong><small>валидных решений</small></div></div>
+    <div className="landing2-passport-detail"><div><h3>Подтверждённые навыки</h3>{SKILLS.map(([name, value, tone]) => <div className="landing2-skill" key={name}><span>{name}</span><div><i className={`landing2-skill--${tone}`} style={{ width: `${value}%` }} /></div><b>{value}%</b></div>)}</div><aside><h3>Достижения</h3><p><Trophy size={16} /> Финалист сезона</p><p><Swords size={16} /> Серия побед</p><p><Sparkles size={16} /> Первый топ-10</p></aside></div>
+    <div className="landing2-passport-proof"><CheckCircle2 size={17} /> Результаты проверены ML-Ареной</div>
+  </div>;
 }
 
 function Footer({ featureEnabled }) {

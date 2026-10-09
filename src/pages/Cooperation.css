@@ -157,12 +157,28 @@
 @media (max-width: 760px) {
   .companies-section { padding-block: 30px; }
   .companies-hero, .companies-hero-inner { min-height: 0; }
-  .companies-hero-inner { display: flex; flex-direction: column; align-items: stretch; }
-  .companies-hero-copy { padding-block: 39px 5px; }
-  .companies-hero-copy h1 { font-size: clamp(29px, 7vw, 40px); }
-  .companies-hero-copy p { font-size: 14px; }
-  .companies-hero-art { align-self: center; width: min(100%, 510px); height: 270px; margin-top: -5px; }
-  .companies-hero-art img { width: 100%; }
+  .companies-hero-inner { display: block; isolation: isolate; }
+  .companies-hero-copy { position: relative; padding-block: 39px 42px; }
+  .companies-hero-copy h1 { max-width: 610px; font-size: 32px; line-height: 1.12; overflow-wrap: break-word; }
+  .companies-hero-copy p { display: none; }
+  .companies-hero-art {
+    position: absolute;
+    inset: 12px -48px 0 auto;
+    width: min(92%, 510px);
+    height: calc(100% - 12px);
+    align-self: stretch;
+    margin: 0;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 14%, black 76%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 14%, black 76%, transparent);
+  }
+  .companies-hero-art img {
+    width: 100%;
+    opacity: .28;
+    object-position: right center;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 45%, black 84%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 45%, black 84%, transparent);
+  }
   .companies-comparison-grid, .companies-passport-layout, .companies-form-layout { grid-template-columns: 1fr; }
   .companies-benefit-grid, .companies-formats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .companies-passport-layout { gap: 20px; }
@@ -175,7 +191,6 @@
   .companies-heading { font-size: 24px; }
   .companies-desktop-break { display: none; }
   .companies-hero-copy h1 { font-size: 29px; }
-  .companies-hero-art { height: 225px; }
   .companies-benefit-grid, .companies-formats-grid, .companies-responsibility-grid { grid-template-columns: 1fr; }
   .companies-benefit-card, .companies-format-card { min-height: 0; }
   .companies-pilot-grid, .companies-evidence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
