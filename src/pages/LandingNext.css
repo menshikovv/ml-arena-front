@@ -48,6 +48,7 @@
 .landing2-secondary { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 7px 16px 7px 7px; border: 1px solid var(--l2-line); border-radius: 7px; color: var(--l2-blue); background: var(--l2-card); font-size: 14px; font-weight: 800; transition: border-color .2s, transform .2s; }
 .landing2-secondary:hover { border-color: var(--l2-blue); transform: translateY(-2px); }
 .landing2-secondary span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; color: var(--l2-blue); background: #e8f0ff; }
+.dark .landing2-secondary span { color: #82abff; background: #203454; }
 .landing2-hero { position: relative; isolation: isolate; overflow: hidden; padding-top: 112px; background: radial-gradient(ellipse at 72% 35%, rgba(175, 211, 255, .45), transparent 44%), linear-gradient(180deg, #f8fbff 4%, #eaf3fe 100%); }
 .dark .landing2-hero { background: radial-gradient(ellipse at 70% 35%, rgba(34, 91, 183, .22), transparent 45%), linear-gradient(180deg, #090e19, #111c2e); }
 .landing2-grid { position: absolute; inset: 0; z-index: -1; opacity: .62; background-image: linear-gradient(rgba(81, 146, 228, .11) 1px, transparent 1px), linear-gradient(90deg, rgba(81, 146, 228, .11) 1px, transparent 1px); background-size: 84px 84px; mask-image: linear-gradient(to bottom, transparent 4%, black 28%, transparent 98%); }
