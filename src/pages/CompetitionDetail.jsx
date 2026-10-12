@@ -32,6 +32,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
+import { CompetitionContent, CompetitionSummary } from "@/components/ml/CompetitionContent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthContext";
@@ -123,12 +124,7 @@ function OverviewTab({ competition }) {
   const prize = formatPrize(competition);
   return (
     <div>
-      <section className="border-b border-border pb-7">
-        <h2 className="font-heading text-2xl font-bold">Что нужно сделать</h2>
-        <p className="mt-4 max-w-4xl whitespace-pre-line text-[15px] leading-7 text-muted-foreground">{competition.description}</p>
-      </section>
-
-      <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 border-b border-border xl:grid-cols-4">
         {[
           ["Отправок в день", competition.daily_submission_limit ?? "—", Upload],
           ["Начало", competition.starts_at ? new Date(competition.starts_at).toLocaleDateString("ru-RU") : "После публикации", CalendarClock],
@@ -137,7 +133,7 @@ function OverviewTab({ competition }) {
         ].map(([label, value, Icon], index) => <div key={label} className={cn("border-t border-border p-5 xl:border-t-0", index % 2 === 1 && "sm:border-l", index < 2 && "sm:border-t-0", index > 0 && "xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
       </section>
 
-      <section className="grid border-b border-border sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 border-b border-border xl:grid-cols-4">
         {[
           ["Тип задачи", TASK_TYPE_LABELS[competition.task_type] || competition.task_type, Target],
           ["Метрика", METRIC_LABELS[competition.metric] || competition.metric, Gauge],
@@ -150,6 +146,11 @@ function OverviewTab({ competition }) {
             <p className="mt-1 text-sm font-semibold">{value}</p>
           </div>
         ))}
+      </section>
+
+      <section className="border-b border-border py-7">
+        <h2 className="font-heading text-2xl font-bold">Что нужно сделать</h2>
+        <CompetitionContent className="mt-5">{competition.description}</CompetitionContent>
       </section>
 
       <section className="border-b border-border py-7">
@@ -598,7 +599,7 @@ function RulesTab({ competition }) {
     <div>
       <h2 className="font-heading text-2xl font-bold">Правила соревнования</h2>
       {competition.rules
-        ? <p className="mt-5 max-w-4xl whitespace-pre-wrap border-y border-border py-6 text-sm leading-7 text-muted-foreground">{competition.rules}</p>
+        ? <CompetitionContent className="mt-5 border-t border-border pt-6">{competition.rules}</CompetitionContent>
         : <p className="mt-5 border-y border-dashed border-border py-10 text-center text-sm text-muted-foreground">Правила ещё не опубликованы.</p>}
     </div>
   );
@@ -638,7 +639,7 @@ function ParticipationPanel({ competition, participation, status, joined, onJoin
   const joinLabel = access === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться";
 
   return (
-    <aside className="border-y border-border bg-card p-5 lg:sticky lg:top-5">
+    <aside className="self-start border-y border-border bg-card p-5 lg:sticky lg:top-5">
       <h2 className="font-heading text-lg font-bold">Моё участие</h2>
       <div className="mt-4 flex items-center gap-3">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-md", joined ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground")}>
@@ -858,7 +859,7 @@ export default function CompetitionDetail() {
                 <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{competition.difficulty || "Не указана"}</span>
                 {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {access === "application" ? "По заявке" : "По приглашению"}</span>}
               </div>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">{competition.short_description || competition.description}</p>
+              <CompetitionSummary competition={competition} className="mt-4 line-clamp-3 max-w-3xl text-sm leading-6 text-muted-foreground" />
             </div>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><Users size={14} /> {competition.participants_count} участников</span>
@@ -868,14 +869,14 @@ export default function CompetitionDetail() {
           </div>
           <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
             {[
-              [Target, "Метрика", METRIC_LABELS[competition.metric]],
+              [Target, "Метрика", METRIC_LABELS[competition.metric] || competition.metric || "Не указана"],
               [Trophy, isCommunity || competition.rated ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : competition.rated ? "Учитывается" : prize || "Без приза"],
               [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
               [ShieldCheck, "Итоговый результат", "После финальной проверки"],
             ].map(([Icon, label, value], index) => (
               <div key={label} className={cn("flex min-h-32 flex-col justify-between p-5", index % 2 === 1 && "border-l border-border", index > 1 && "border-t border-border")}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={15} className="text-primary" /> {label}</div>
-                <p className="font-heading text-lg font-bold leading-tight">{value}</p>
+                <p className="break-words font-heading text-lg font-bold leading-tight">{value}</p>
               </div>
             ))}
           </div>

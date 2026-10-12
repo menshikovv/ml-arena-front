@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { METRIC_LABELS, TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
+import { CompetitionSummary } from "@/components/ml/CompetitionContent";
 
 const STATUS_META = {
   active: { label: "Активно", className: "competition-event__status--active" },
@@ -91,7 +92,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
             <span>{meta.difficulty}</span>
             <span>{isRestricted && <Lock size={11} />}{meta.access}</span>
           </div>
-          <p className="competition-event__description">{competition.description}</p>
+          <CompetitionSummary competition={competition} className="competition-event__description" />
           <div className="competition-event__facts">
             <span><Target size={14} />{METRIC_LABELS[competition.metric] || competition.metric || "Метрика уточняется"}</span>
             <span><Users size={14} />{competition.participants_count ?? "—"} участников</span>

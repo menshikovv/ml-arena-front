@@ -368,7 +368,13 @@
 }
 
 .competition-event__description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   margin-top: 9px;
+  margin-bottom: 14px;
   color: hsl(var(--muted-foreground));
   font-size: 13px;
   line-height: 1.45;
@@ -450,7 +456,7 @@
 }
 
 .competition-event--featured .competition-event__prize strong {
-  font-size: 26px;
+  font-size: 22px;
 }
 
 .competition-event__prize p {
