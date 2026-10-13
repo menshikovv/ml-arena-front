@@ -110,7 +110,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
           {userState?.rank ? (
             <div className="competition-event__result">
               <span>Ваш результат <strong>#{userState.rank}</strong></span>
-              <span>Балл <strong>{userState.score ?? "—"}</strong></span>
+              <span>Оценка <strong>{userState.score ?? "—"}</strong></span>
             </div>
           ) : userState?.joined ? (
             <span className="competition-event__joined"><CheckCircle2 size={13} />Вы участвуете</span>

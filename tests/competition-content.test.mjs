@@ -4,6 +4,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
+import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore } from "../src/lib/ml-arena.js";
 
 let server;
 let CompetitionContent;
@@ -55,4 +56,55 @@ test("untrusted competition content cannot render raw scripts or unsafe links", 
     "<script>alert(1)</script>\n\n[Ссылка](javascript:alert%281%29)",
   ));
   assert.doesNotMatch(html, /<script|href="javascript:/);
+});
+
+test("markdown tables render accessible headers, cell formatting and column alignment", () => {
+  const html = renderToStaticMarkup(React.createElement(CompetitionContent, null,
+    "| Поле | Тип CSV | Пропуски train | Значение |\n| :--- | :---: | ---: | --- |\n| `id` | string | 0 | **Ключ строки** |\n| `vibration_delta_7d` | number | 4099 | Изменение вибрации |",
+  ));
+  assert.match(html, /role="region" aria-label="Таблица соревнования" tabindex="0"/);
+  assert.match(html, /overflow-x-auto/);
+  assert.match(html, /<table[^>]*>/);
+  assert.match(html, /<thead[^>]*>/);
+  assert.equal((html.match(/scope="col"/g) || []).length, 4);
+  assert.equal((html.match(/<td\b/g) || []).length, 8);
+  assert.match(html, /text-align:center/);
+  assert.match(html, /text-align:right/);
+  assert.match(html, /<code[^>]*>vibration_delta_7d<\/code>/);
+  assert.match(html, /<strong[^>]*>Ключ строки<\/strong>/);
+});
+
+test("preview skips markdown tables instead of displaying pipe-delimited text", () => {
+  const html = renderToStaticMarkup(React.createElement(CompetitionSummary, { competition: {
+    description: "| Поле | Тип |\n| --- | --- |\n| id | string |\n\nОписание задачи.",
+  } }));
+  assert.match(html, /Описание задачи\./);
+  assert.doesNotMatch(html, /\||<table/);
+});
+
+test("missing or failed submission scores never become a fabricated zero", () => {
+  for (const value of [null, undefined, "", " ", "NaN", false]) {
+    assert.equal(getSubmissionScore({ status: "scored", public_score: value }), null);
+  }
+  for (const status of ["failed", "invalid", "error", "rejected", "cancelled"]) {
+    assert.equal(getSubmissionScore({ status, public_score: 0, private_score: 0 }), null);
+    assert.equal(getSubmissionScore({ status, private_score: 0 }, "private"), null);
+    assert.ok(SUBMISSION_STATUS_LABELS[status]);
+  }
+});
+
+test("valid submission scores preserve zero, decimal strings and private results", () => {
+  assert.equal(getSubmissionScore({ status: "scored", public_score: 0 }), 0);
+  assert.equal(getSubmissionScore({ status: "evaluated", public_score: "0.55" }), 0.55);
+  assert.equal(getSubmissionScore({ status: "scored", public_score: null, score: 0.55 }), 0.55);
+  assert.equal(getSubmissionScore({ status: "scored", private_score: "0.63" }, "private"), 0.63);
+});
+
+test("private assessment remains hidden until the competition has finished", () => {
+  for (const status of ["draft", "scheduled", "active", "paused", "finalizing"]) {
+    assert.equal(canShowPrivateScore({ status, final_results_at: "2020-01-01" }, { private_score: 0.55, private_score_revealed: true }), false);
+  }
+  assert.equal(canShowPrivateScore({ status: "finished" }, { private_score: 0.55 }), true);
+  assert.equal(canShowPrivateScore({ status: "completed" }, { private_score: 0.55, private_score_revealed: true }), true);
+  assert.equal(canShowPrivateScore({ status: "finished" }, { private_score: 0.55, private_score_revealed: false }), false);
 });

@@ -1,5 +1,6 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 
 function nodeText(node) {
@@ -57,13 +58,18 @@ const markdownComponents = {
   a: ({ children, href }) => <a href={href} className="text-primary underline decoration-primary/35 underline-offset-4 hover:decoration-primary">{children}</a>,
   hr: () => <hr className="my-8 border-border" />,
   img: ({ src, alt }) => <img src={src} alt={alt || ""} loading="lazy" className="my-6 max-w-full rounded-md" />,
+  table: ({ children }) => <div role="region" aria-label="Таблица соревнования" tabIndex={0} className="my-6 max-w-full overflow-x-auto rounded-md border border-border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"><table className="w-full min-w-[720px] border-collapse text-sm leading-6">{children}</table></div>,
+  thead: ({ children }) => <thead className="bg-primary/10 text-foreground">{children}</thead>,
+  tbody: ({ children }) => <tbody className="[&>tr:nth-child(even)]:bg-secondary/35 [&>tr:last-child>td]:border-b-0">{children}</tbody>,
+  th: ({ children, style }) => <th scope="col" style={style} className="whitespace-nowrap border-b border-r border-border px-4 py-3 text-left font-semibold last:border-r-0">{children}</th>,
+  td: ({ children, style }) => <td style={style} className="border-b border-r border-border px-4 py-3 align-top first:whitespace-nowrap last:min-w-[260px] last:border-r-0">{children}</td>,
   nav: ({ children }) => <nav aria-label="Содержание раздела" className="mb-8 border-y border-border bg-secondary/25 px-4 py-3 text-sm [&>p]:my-1 [&>p]:font-semibold [&>p]:text-foreground [&>ol]:my-3 [&>ol]:grid [&>ol]:gap-x-6 [&>ol]:gap-y-2 sm:[&>ol]:grid-cols-2 [&>ol>li]:!m-0 [&_li]:leading-6">{children}</nav>,
 };
 
 export function CompetitionContent({ children, className }) {
-  return <div className={cn("min-w-0 max-w-4xl break-words text-[15px] text-muted-foreground", className)}><ReactMarkdown components={markdownComponents} rehypePlugins={[outlinePlugin]}>{children || ""}</ReactMarkdown></div>;
+  return <div className={cn("min-w-0 max-w-4xl break-words text-[15px] text-muted-foreground", className)}><ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[outlinePlugin]}>{children || ""}</ReactMarkdown></div>;
 }
 
 export function CompetitionSummary({ competition, className }) {
-  return <div className={className}><ReactMarkdown remarkPlugins={[summaryPlugin]}>{competition.short_description?.trim() || competition.description || ""}</ReactMarkdown></div>;
+  return <div className={className}><ReactMarkdown remarkPlugins={[remarkGfm, summaryPlugin]}>{competition.short_description?.trim() || competition.description || ""}</ReactMarkdown></div>;
 }

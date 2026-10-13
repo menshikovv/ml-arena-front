@@ -41,6 +41,9 @@ import {
   TASK_TYPE_LABELS,
   formatScore,
   isHigherBetter,
+  SUBMISSION_STATUS_LABELS,
+  getSubmissionScore,
+  canShowPrivateScore,
 } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 import { downloadCompetitionPdf } from "@/lib/reportPdf";
@@ -78,7 +81,7 @@ function getDeadlineLabel(competition) {
 }
 
 function safeScore(score, metric) {
-  return typeof score === "number" ? formatScore(score, metric) : "—";
+  return typeof score === "number" && Number.isFinite(score) ? formatScore(score, metric) : "—";
 }
 
 function formatPrize(competition) {
@@ -222,7 +225,7 @@ function OverviewTab({ competition }) {
         >
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent-foreground transition-transform duration-200 group-hover:-translate-y-0.5"><ShieldCheck size={21} /></span>
           <h3 className="mt-5 font-heading text-lg font-bold">Одинаковые правила для всех</h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Premium не меняет лимит submit-ов, score, положение в leaderboard или доступ к public данным.</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Premium не меняет лимит отправок, оценку, место в рейтинге или доступ к открытым данным.</p>
         </motion.article>
       </section>
 
@@ -329,6 +332,7 @@ function DataTab({ competition, locked }) {
 }
 
 function SubmitTab({ competition, participation, submissions, onSubmitted, locked, joined, onJoin }) {
+  const queryClient = useQueryClient();
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -369,14 +373,18 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
       setStatus("scoring");
       const created = await api.competitions.submit(competition.id, upload.id, competition.current_dataset_version_id);
       const submission = created.id ? await waitForSubmission(created.id) : created;
-      const score = Number(submission.public_score ?? submission.score);
-      if (!Number.isFinite(score)) throw new Error("Проверка завершилась без результата");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["submissions", competition.id] }),
+        queryClient.invalidateQueries({ queryKey: ["competition-participation", competition.id] }),
+      ]);
+      const score = getSubmissionScore(submission);
+      if (score == null) throw new Error(submission.error_message || submission.failure_reason || "Решение не получило оценку. Проверьте статус и причину ошибки в истории решений.");
       setStatus("scored");
       setFile(null);
       await onSubmitted(score);
     } catch (submitError) {
       setStatus("failed");
-      setError(submitError.message || "Не удалось проверить решение. Попытка не списана.");
+      setError(submitError.message || "Не удалось проверить решение. Подробности доступны в истории решений.");
     }
   };
 
@@ -394,9 +402,9 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
     return (
       <div className="border-y border-border py-14 text-center">
         <Lock className="mx-auto text-primary" size={28} />
-        <h2 className="mt-4 font-heading text-2xl font-bold">{locked ? "Submit пока недоступен" : "Сначала присоединитесь к соревнованию"}</h2>
+        <h2 className="mt-4 font-heading text-2xl font-bold">{locked ? "Отправка пока недоступна" : "Сначала присоединитесь к соревнованию"}</h2>
         <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-          {locked ? "Соревнование ещё не началось, завершено или доступно только по приглашению." : "После вступления откроются данные, submit и история ваших попыток."}
+          {locked ? "Соревнование ещё не началось, завершено или доступно только по приглашению." : "После вступления откроются данные, отправка решений и история ваших попыток."}
         </p>
         <Button className="mt-5" onClick={onJoin} disabled={locked}><Trophy size={16} /> {locked ? "Доступ закрыт" : "Присоединиться"}</Button>
       </div>
@@ -421,7 +429,7 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
         <div className="mt-6 flex min-h-40 items-center justify-center border border-dashed border-border text-center">
           <div>
             <Lock className="mx-auto text-muted-foreground" size={22} />
-            <p className="mt-3 text-sm font-semibold">{locked ? "Submit закрыт" : "Лимит на сегодня исчерпан"}</p>
+            <p className="mt-3 text-sm font-semibold">{locked ? "Приём решений закрыт" : "Лимит на сегодня исчерпан"}</p>
             <p className="mt-1 text-xs text-muted-foreground">{locked ? "Соревнование не принимает новые решения." : "Новые попытки появятся завтра."}</p>
           </div>
         </div>
@@ -472,29 +480,37 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
 
       <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h3 className="font-heading text-lg font-bold">Мои submit-ы</h3>
+          <h3 className="font-heading text-lg font-bold">Мои решения</h3>
           <span className="text-xs text-muted-foreground">{mySubmissions.length} {pluralize(mySubmissions.length, "попытка", "попытки", "попыток")}</span>
         </div>
         {mySubmissions.length ? (
           <div className="mt-3 overflow-x-auto border-y border-border">
             <div className="min-w-[620px]">
               <div className="grid grid-cols-[52px_120px_100px_110px_1fr_90px] border-b border-border py-3 text-xs text-muted-foreground">
-                <span>#</span><span>Время</span><span>Статус</span><span>Public score</span><span>Private score</span><span>Лучший</span>
+                <span>#</span><span>Время</span><span>Статус</span><span>Открытая оценка</span><span>Итоговая оценка</span><span>Лучшее</span>
               </div>
-              {mySubmissions.map((submission, index) => (
-                <div key={submission.id} className="grid min-h-14 grid-cols-[52px_120px_100px_110px_1fr_90px] items-center border-b border-border text-xs">
+              {mySubmissions.map((submission, index) => {
+                const score = getSubmissionScore(submission);
+                const privateScoreVisible = canShowPrivateScore(competition, submission);
+                const privateScore = privateScoreVisible ? getSubmissionScore(submission, "private") : null;
+                const failed = ["failed", "error", "invalid", "rejected"].includes(submission.status);
+                const reason = submission.error_message || submission.failure_reason || submission.error?.message || submission.error_code;
+                return <div key={submission.id} className="border-b border-border">
+                <div className="grid min-h-14 grid-cols-[52px_120px_100px_110px_1fr_90px] items-center gap-x-2 py-3 text-xs">
                   <span className="font-mono">{submission.attempt_number || mySubmissions.length - index}</span>
                   <span className="text-muted-foreground">{submission.created_at ? new Date(submission.created_at).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
-                  <span className="font-semibold text-accent">{submission.status}</span>
-                  <span className="font-semibold">{safeScore(Number(submission.public_score ?? submission.score), competition.metric)}</span>
-                  <span className="text-muted-foreground">{submission.private_score == null ? "После финала" : safeScore(Number(submission.private_score), competition.metric)}</span>
-                  <span>{participation?.best_public_score != null && Number(submission.public_score ?? submission.score) === Number(participation.best_public_score) ? "Лучший" : "—"}</span>
+                  <span className={cn("font-semibold", failed ? "text-destructive" : ["scored", "evaluated", "completed"].includes(submission.status) ? "text-accent" : "text-muted-foreground")}>{SUBMISSION_STATUS_LABELS[submission.status] || "Статус уточняется"}</span>
+                  <span className="font-semibold">{safeScore(score, competition.metric)}</span>
+                  <span className="text-muted-foreground">{failed ? "—" : !["completed", "finished", "archived"].includes(competition.status) ? "После финала" : !privateScoreVisible ? "Не опубликована" : safeScore(privateScore, competition.metric)}</span>
+                  <span>{score != null && participation?.best_public_score != null && score === Number(participation.best_public_score) ? "Лучшее" : "—"}</span>
                 </div>
-              ))}
+                {failed && <p className="break-words pb-3 text-xs leading-5 text-destructive">{typeof reason === "string" ? reason : "Решение не засчитано. Сервер не передал подробности ошибки проверки."}</p>}
+                </div>;
+              })}
             </div>
           </div>
         ) : (
-          <div className="mt-3 border-y border-dashed border-border py-8 text-center text-sm text-muted-foreground">Валидных submit-ов пока нет.</div>
+          <div className="mt-3 border-y border-dashed border-border py-8 text-center text-sm text-muted-foreground">Отправленных решений пока нет.</div>
         )}
       </section>
     </div>
@@ -520,10 +536,10 @@ function LeaderboardTab({ competition }) {
     <div>
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 md:flex-row md:items-end">
         <div>
-          <h2 className="font-heading text-2xl font-bold">Leaderboard</h2>
+          <h2 className="font-heading text-2xl font-bold">Рейтинг участников</h2>
         </div>
         <div className="flex border border-border p-1">
-          <button type="button" onClick={() => setMode("public")} className={cn("h-8 px-4 text-xs font-semibold", mode === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Public</button>
+          <button type="button" onClick={() => setMode("public")} className={cn("h-8 px-4 text-xs font-semibold", mode === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Промежуточный</button>
           <button
             type="button"
             disabled={lockedPrivate}
@@ -531,7 +547,7 @@ function LeaderboardTab({ competition }) {
             className={cn("flex h-8 items-center gap-1.5 px-4 text-xs font-semibold", mode === "private" ? "bg-primary text-primary-foreground" : "text-muted-foreground", lockedPrivate && "opacity-50")}
           >
             {lockedPrivate && <Lock size={12} />}
-            Private
+            Итоговый
           </button>
         </div>
       </div>
@@ -539,7 +555,7 @@ function LeaderboardTab({ competition }) {
       {lockedPrivate && (
         <div className="mt-5 flex gap-3 border border-primary/20 bg-primary/5 p-4">
           <Lock className="mt-0.5 shrink-0 text-primary" size={17} />
-          <p className="text-xs leading-5 text-muted-foreground">Private score скрыт до завершения. Итоговые места определяются после private-пересчёта.</p>
+          <p className="text-xs leading-5 text-muted-foreground">Итоговая оценка скрыта до завершения. Места определяются после пересчёта на закрытой выборке.</p>
         </div>
       )}
 
@@ -562,7 +578,7 @@ function LeaderboardTab({ competition }) {
       <div className="mt-4 overflow-x-auto border-y border-border">
         <div className="min-w-[700px]">
           <div className="grid grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] border-b border-border py-3 text-xs text-muted-foreground">
-            <span>Rank</span><span>Участник</span><span>Score</span><span>Submits</span><span>Лучший submit</span>
+            <span>Место</span><span>Участник</span><span>Оценка</span><span>Решения</span><span>Лучшее решение</span>
           </div>
           {normalized.map((submission) => {
             return (
@@ -646,13 +662,13 @@ function ParticipationPanel({ competition, participation, status, joined, onJoin
           {joined ? <Check size={19} /> : <Trophy size={19} />}
         </div>
         <div>
-          <p className="text-sm font-semibold">{status === "finished" ? "Соревнование завершено" : joined ? (bestScore != null ? "Есть валидный submit" : "Вы участвуете") : "Вы ещё не участвуете"}</p>
+          <p className="text-sm font-semibold">{status === "finished" ? "Соревнование завершено" : joined ? (bestScore != null ? "Есть проверенное решение" : "Вы участвуете") : "Вы ещё не участвуете"}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{status === "active" ? getDeadlineLabel(competition) : "Статус результатов доступен"}</p>
         </div>
       </div>
 
       <div className="mt-5 divide-y divide-border border-y border-border">
-        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Лучший public score</span><span className="font-semibold">{safeScore(bestScore == null ? null : Number(bestScore), competition.metric)}</span></div>
+        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Лучшая открытая оценка</span><span className="font-semibold">{safeScore(bestScore == null ? null : Number(bestScore), competition.metric)}</span></div>
         <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Место</span><span className="font-semibold">{rank ? `#${rank}` : "—"}</span></div>
         <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Попыток осталось</span><span className="font-semibold">{status === "active" ? (attemptsLeft ?? "—") : "Закрыто"}</span></div>
       </div>
@@ -821,7 +837,7 @@ export default function CompetitionDetail() {
       {status === "finalizing" && (
         <div className="mt-5 flex gap-3 border border-primary/25 bg-primary/5 p-4">
           <Loader2 className="mt-0.5 shrink-0 animate-spin text-primary" size={17} />
-          <div><p className="text-sm font-semibold">Идёт private-пересчёт</p><p className="mt-1 text-xs text-muted-foreground">Места могут измениться до публикации итоговых результатов.</p></div>
+          <div><p className="text-sm font-semibold">Идёт итоговый пересчёт</p><p className="mt-1 text-xs text-muted-foreground">Места могут измениться до публикации итоговых результатов.</p></div>
         </div>
       )}
 

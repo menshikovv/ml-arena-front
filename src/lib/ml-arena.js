@@ -43,3 +43,25 @@ export function formatScore(score, metric) {
   }
   return score.toFixed(4);
 }
+
+export const SUBMISSION_STATUS_LABELS = {
+  pending: "Ожидает проверки", received: "Получено", uploaded: "Загружено",
+  queued: "В очереди", validating: "Проверка файла", running: "Проверяется",
+  processing: "Обрабатывается", scoring: "Расчёт оценки", evaluating: "Расчёт оценки",
+  scored: "Проверено", evaluated: "Проверено", completed: "Проверено",
+  failed: "Ошибка проверки", error: "Ошибка проверки", invalid: "Неверный формат",
+  rejected: "Отклонено", cancelled: "Отменено", canceled: "Отменено",
+};
+
+export function getSubmissionScore(submission, kind = "public") {
+  if (["failed", "error", "invalid", "rejected", "cancelled", "canceled"].includes(submission.status)) return null;
+  const value = kind === "private" ? submission.private_score : submission.public_score ?? submission.score;
+  if (value == null || (typeof value !== "number" && typeof value !== "string") || String(value).trim() === "") return null;
+  const score = Number(value);
+  return Number.isFinite(score) ? score : null;
+}
+
+export function canShowPrivateScore(competition, submission) {
+  return ["completed", "finished", "archived"].includes(competition.status)
+    && submission.private_score_revealed !== false;
+}
