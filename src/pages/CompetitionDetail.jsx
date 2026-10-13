@@ -133,7 +133,7 @@ function OverviewTab({ competition }) {
           ["Начало", competition.starts_at ? new Date(competition.starts_at).toLocaleDateString("ru-RU") : "После публикации", CalendarClock],
           ["Финальные итоги", competition.final_results_at ? new Date(competition.final_results_at).toLocaleDateString("ru-RU") : "После проверки", CheckCircle2],
           ["Участники", competition.max_participants ? `${competition.participants_count || 0} из ${competition.max_participants}` : `${competition.participants_count || 0} · без лимита`, Users],
-        ].map(([label, value, Icon], index) => <div key={label} className={cn("border-t border-border p-5 xl:border-t-0", index % 2 === 1 && "sm:border-l", index < 2 && "sm:border-t-0", index > 0 && "xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold">{value}</p></div>)}
+        ].map(([label, value, Icon], index) => <div key={label} className={cn("min-w-0 border-t border-border p-5 xl:border-t-0", index % 2 === 1 && "sm:border-l", index < 2 && "sm:border-t-0", index > 0 && "xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold [overflow-wrap:anywhere]">{value}</p></div>)}
       </section>
 
       <section className="grid grid-cols-2 border-b border-border xl:grid-cols-4">
@@ -143,10 +143,10 @@ function OverviewTab({ competition }) {
           ["Формат", competition.prediction_column ? `CSV · ${competition.prediction_column}` : "CSV по шаблону", FileText],
           ["Сложность", competition.difficulty || "Не указана", BarChart3],
         ].map(([label, value, Icon], index) => (
-          <div key={label} className={cn("p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}>
+          <div key={label} className={cn("min-w-0 p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}>
             <Icon className="text-primary" size={19} />
             <p className="mt-4 text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 text-sm font-semibold">{value}</p>
+            <p className="mt-1 text-sm font-semibold [overflow-wrap:anywhere]">{value}</p>
           </div>
         ))}
       </section>
