@@ -1,4 +1,5 @@
 import { API_URL, ApiError, apiData, apiRequest, clearAccessToken, getAccessToken, queryString, restoreSession, setAccessToken } from "@/api/client";
+import { validateSourceCodeFile } from "@/lib/submissionSourceCode";
 
 const json = (body) => JSON.stringify(body);
 
@@ -76,6 +77,8 @@ export const api = {
   submissions: {
     get: (id) => apiData(`/api/v1/submissions/${id}`),
     cancel: (id) => apiData(`/api/v1/submissions/${id}/cancel`, { method: "POST" }),
+    sourceCode: (id) => apiData(`/api/v1/submissions/${id}/source-code`),
+    attachSourceCode: (id, uploadId) => apiData(`/api/v1/submissions/${id}/source-code`, { method: "PUT", body: json({ upload_id: uploadId }) }),
   },
   leaderboard: {
     global: (params) => apiData(`/api/v1/leaderboard${queryString(params)}`, {}, { auth: false }),
@@ -438,6 +441,7 @@ export async function sha256Hex(file) {
 }
 
 export async function uploadFile(file, purpose, context = {}, options = {}) {
+  options.onStage?.("hashing");
   const checksum = await sha256Hex(file);
   const extension = file.name.split(".").pop()?.toLowerCase();
   const contentType = options.contentType || (extension === "zip" ? "application/zip" : file.type || {
@@ -452,6 +456,7 @@ export async function uploadFile(file, purpose, context = {}, options = {}) {
     pdf: "application/pdf",
     zip: "application/zip",
   }[extension] || "application/octet-stream");
+  options.onStage?.("creating_intent");
   const intent = await apiData("/api/v1/files/upload-intents", {
     method: "POST",
     body: json({
@@ -466,9 +471,23 @@ export async function uploadFile(file, purpose, context = {}, options = {}) {
   if (Number.isFinite(intent.max_size_bytes) && file.size > intent.max_size_bytes) {
     throw new ApiError(413, { code: "FILE_TOO_LARGE", message: `Файл ${file.name} превышает лимит сервера (${intent.max_size_bytes} байт)` });
   }
+  if (purpose === "submission_source_code" && intent.expires_at && Date.parse(intent.expires_at) <= Date.now()) {
+    throw new ApiError(410, { code: "UPLOAD_INTENT_EXPIRED", message: "Ссылка загрузки истекла. Попробуйте снова." });
+  }
+  options.onStage?.("uploading");
   const put = await fetch(intent.upload_url, { method: intent.method || "PUT", headers: intent.required_headers || {}, body: file });
   if (!put.ok) throw new ApiError(put.status, { code: "UPLOAD_FAILED", message: "Не удалось загрузить файл в хранилище" });
+  options.onStage?.("completing");
   return apiData(`/api/v1/files/uploads/${intent.id}/complete`, { method: "POST", body: json({ checksum_sha256: checksum }) });
+}
+
+export async function uploadSubmissionSourceCode(submissionId, file, options = {}) {
+  if (!submissionId) throw new Error("Выберите оценённое решение.");
+  const contentType = validateSourceCodeFile(file);
+  const upload = await uploadFile(file, "submission_source_code", { submission_id: submissionId }, { ...options, contentType });
+  if (upload?.status !== "ready" || !upload.id) throw new ApiError(409, { code: "UPLOAD_NOT_READY", message: "Хранилище ещё не подтвердило готовность файла. Попробуйте снова." });
+  options.onStage?.("attaching");
+  return api.submissions.attachSourceCode(submissionId, upload.id);
 }
 
 export async function waitForSubmission(id, options = {}) {

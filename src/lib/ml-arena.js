@@ -65,3 +65,11 @@ export function canShowPrivateScore(competition, submission) {
   return ["completed", "finished", "archived"].includes(competition.status)
     && submission.private_score_revealed !== false;
 }
+
+export function getCompetitionMetricDirection(competition) {
+  if (["maximize", "minimize"].includes(competition.metric_direction)) return competition.metric_direction;
+  const metric = String(competition.metric || "").toLowerCase();
+  if (/(^|[_\s-])(ndcg|accuracy|roc_auc|f1|silhouette)([_\s@-]|$)/.test(metric)) return "maximize";
+  if (/(^|[_\s-])(mse|rmse|mae)([_\s@-]|$)/.test(metric)) return "minimize";
+  return null;
+}

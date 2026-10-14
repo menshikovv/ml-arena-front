@@ -6,7 +6,6 @@ import {
   ArrowUpDown,
   Building2,
   CalendarClock,
-  CheckCircle2,
   ChevronDown,
   CircleUserRound,
   Filter,
@@ -38,9 +37,9 @@ import { cn } from "@/lib/utils";
 import "./Competitions.css";
 
 const FAIRNESS = [
-  { icon: ShieldCheck, title: "Равные лимиты", text: "В рейтинговых соревнованиях число попыток одинаково для всех. Premium не даёт преимущества." },
-  { icon: Trophy, title: "Итог определяет Private оценка", text: "Во время события виден Public результат, а места фиксируются после финального пересчёта." },
-  { icon: CheckCircle2, title: "CSV и воспроизводимость", text: "Участники отправляют CSV. Код лучших официальных решений может проверяться после финала." },
+  { icon: BarChart3, title: "Равные лимиты", text: "Одинаковые условия для всех участников." },
+  { icon: Trophy, title: "Закрытая оценка определяет итог", text: "Во время события видны открытые оценки. Итоговый рейтинг — по закрытой оценке." },
+  { icon: FileText, title: "CSV по шаблону", text: "Отправляйте решения в CSV. Код лучших решений может быть проверен после финала." },
 ];
 
 function pluralize(value, one, few, many) {
@@ -284,17 +283,11 @@ export default function Competitions() {
       </section>
 
       <Reveal className="competitions-fairness" delay={0.08}>
-        <section>
-          <div className="competitions-fairness__head">
-            <h2>Результат определяет решение</h2>
-            <p>Единые правила сохраняют ценность каждого места и каждого результата.</p>
-          </div>
-          <div className="competitions-fairness__grid">
+        <section aria-label="Условия участия" className="competitions-fairness__grid">
             {FAIRNESS.map((item, index) => {
-              const Icon = index === 0 ? BarChart3 : index === 2 ? FileText : item.icon;
+              const Icon = item.icon;
               return <article key={item.title} className="competitions-fairness__item"><span className={`competitions-fairness__icon competitions-fairness__icon--${index}`}><Icon size={20} /></span><div><h3>{item.title}</h3><p>{item.text}</p></div></article>;
             })}
-          </div>
         </section>
       </Reveal>
 

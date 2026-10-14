@@ -1,28 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   Award,
   BarChart3,
   CalendarClock,
   Check,
   CheckCircle2,
   CircleUserRound,
+  Code2,
   Clock3,
   Database,
   Download,
   FileCheck2,
   FileCode2,
   FileText,
+  Flag,
   Gauge,
   Info,
   Loader2,
+  Layers,
   Lock,
   MessageSquare,
   Send,
+  Settings2,
   ShieldCheck,
   Target,
   Trophy,
@@ -32,7 +37,8 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
-import { CompetitionContent, CompetitionSummary } from "@/components/ml/CompetitionContent";
+import SubmissionSourceCode from "@/components/ml/SubmissionSourceCode";
+import { CompetitionContent, CompetitionSummary, CompetitionCodeSample } from "@/components/ml/CompetitionContent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthContext";
@@ -40,13 +46,14 @@ import {
   METRIC_LABELS,
   TASK_TYPE_LABELS,
   formatScore,
-  isHigherBetter,
+  getCompetitionMetricDirection,
   SUBMISSION_STATUS_LABELS,
   getSubmissionScore,
   canShowPrivateScore,
 } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 import { downloadCompetitionPdf } from "@/lib/reportPdf";
+import "./CompetitionDetail.css";
 
 const TABS = [
   { id: "overview", label: "Обзор", icon: FileText },
@@ -121,115 +128,92 @@ function CompetitionTabs({ competitionId, activeTab }) {
   );
 }
 
-function OverviewTab({ competition }) {
-  const higher = isHigherBetter(competition.metric);
+function OverviewTab({ competition, participationPanel }) {
   const isCommunity = competition.origin === "community";
+  const rated = !isCommunity && competition.rated !== false;
   const prize = formatPrize(competition);
+  const metric = competition.metric_name || METRIC_LABELS[competition.metric] || competition.metric || "Не указана";
+  const preference = getCompetitionMetricDirection(competition);
+  const reduced = useReducedMotion();
+  const facts = [
+    ["Отправок в день", competition.daily_submission_limit ?? "—", Upload],
+    ["Начало", competition.starts_at ? new Date(competition.starts_at).toLocaleDateString("ru-RU") : "После публикации", CalendarClock],
+    ["Финальные итоги", competition.final_results_at ? new Date(competition.final_results_at).toLocaleDateString("ru-RU") : "После проверки", CheckCircle2],
+    ["Участники", competition.max_participants ? `${competition.participants_count || 0} из ${competition.max_participants}` : `${competition.participants_count || 0} · без лимита`, Users],
+    ["Тип задачи", TASK_TYPE_LABELS[competition.task_type] || competition.task_type || "Не указан", Target],
+    ["Метрика", metric, Gauge],
+    ["Формат", competition.prediction_column ? `CSV · ${competition.prediction_column}` : "CSV по шаблону", FileText],
+    ["Сложность", competition.difficulty || "Не указана", BarChart3],
+  ];
   return (
-    <div>
-      <section className="grid grid-cols-2 border-b border-border xl:grid-cols-4">
-        {[
-          ["Отправок в день", competition.daily_submission_limit ?? "—", Upload],
-          ["Начало", competition.starts_at ? new Date(competition.starts_at).toLocaleDateString("ru-RU") : "После публикации", CalendarClock],
-          ["Финальные итоги", competition.final_results_at ? new Date(competition.final_results_at).toLocaleDateString("ru-RU") : "После проверки", CheckCircle2],
-          ["Участники", competition.max_participants ? `${competition.participants_count || 0} из ${competition.max_participants}` : `${competition.participants_count || 0} · без лимита`, Users],
-        ].map(([label, value, Icon], index) => <div key={label} className={cn("min-w-0 border-t border-border p-5 xl:border-t-0", index % 2 === 1 && "sm:border-l", index < 2 && "sm:border-t-0", index > 0 && "xl:border-l")}><Icon className="text-primary" size={18} /><p className="mt-4 text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold [overflow-wrap:anywhere]">{value}</p></div>)}
-      </section>
-
-      <section className="grid grid-cols-2 border-b border-border xl:grid-cols-4">
-        {[
-          ["Тип задачи", TASK_TYPE_LABELS[competition.task_type] || competition.task_type, Target],
-          ["Метрика", METRIC_LABELS[competition.metric] || competition.metric, Gauge],
-          ["Формат", competition.prediction_column ? `CSV · ${competition.prediction_column}` : "CSV по шаблону", FileText],
-          ["Сложность", competition.difficulty || "Не указана", BarChart3],
-        ].map(([label, value, Icon], index) => (
-          <div key={label} className={cn("min-w-0 p-5", index > 0 && "border-t border-border sm:border-l sm:border-t-0", index === 2 && "sm:border-l-0 xl:border-l")}>
-            <Icon className="text-primary" size={19} />
-            <p className="mt-4 text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 text-sm font-semibold [overflow-wrap:anywhere]">{value}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="border-b border-border py-7">
-        <h2 className="font-heading text-2xl font-bold">Что нужно сделать</h2>
-        <CompetitionContent className="mt-5">{competition.description}</CompetitionContent>
-      </section>
-
-      <section className="border-b border-border py-7">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="font-heading text-xl font-bold">{METRIC_LABELS[competition.metric]}</h2>
-          </div>
-          <span className="text-sm font-semibold text-accent">{higher ? "Чем выше, тем лучше" : "Чем ниже, тем лучше"}</span>
+    <div className="competition-overview">
+      <div className="competition-overview-top">
+        <div className="competition-overview-primary">
+          <section className="competition-detail-panel competition-key-info">
+            <h2>Ключевая информация</h2>
+            <dl className="competition-key-grid">
+              {facts.map(([label, value, Icon]) => <div key={label} className="competition-key-item">
+                <span className="competition-detail-icon"><Icon size={21} /></span>
+                <div><dt>{label}</dt><dd>{value}</dd></div>
+              </div>)}
+            </dl>
+          </section>
+          <section className="competition-detail-panel competition-statement">
+            <h2>Что нужно сделать</h2>
+            <CompetitionContent brief>{competition.description}</CompetitionContent>
+          </section>
         </div>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Скрытая часть тестовой выборки используется только для итоговой оценки. Используй локальную валидацию, чтобы не подстраиваться под текущий рейтинг.
-        </p>
-      </section>
+        {participationPanel}
+      </div>
 
-      <section className="border-b border-border py-7">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="font-heading text-xl font-bold">
-              {isCommunity ? "Практика и история активности" : prize ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-              {isCommunity
-                ? "Результат сохраняется в отдельной истории сообщества. Он не меняет сезонный рейтинг, лигу и подтверждённую часть ML-паспорта."
-                : prize
-                ? "Лучшие участники получают денежные призы, а сильные решения могут стать поводом для знакомства с компаниями-партнёрами."
-                : "Результат влияет на рейтинг, лигу и видимость ML-паспорта для компаний-партнёров."}
-            </p>
-          </div>
-          <Trophy className="hidden text-primary sm:block" size={24} />
+      <section className="competition-detail-panel competition-metric-panel">
+        <div className="competition-metric-main">
+          <h2>Метрика и оценка решения</h2>
+          <p>Оценка рассчитывается по метрике <strong>{metric}</strong>. Для первого запуска используйте данные участника и опубликованное стартовое решение.</p>
+          <CompetitionCodeSample>{competition.description}</CompetitionCodeSample>
         </div>
-        {prize && (
-          <p className="mt-5 font-heading text-3xl font-bold text-primary">{prize}</p>
-        )}
+        <aside className="competition-metric-note">
+          <span className="competition-detail-icon"><BarChart3 size={22} /></span>
+          <div><h3>{preference === "maximize" ? "Чем выше, тем лучше" : preference === "minimize" ? "Чем ниже, тем лучше" : "Оценка по метрике"}</h3>
+          <p>Скрытая часть тестовой выборки используется только для итоговой оценки. Используйте локальную валидацию, чтобы не подстраиваться под текущий рейтинг.</p></div>
+        </aside>
       </section>
 
-      <section className="py-7">
-        <h2 className="font-heading text-xl font-bold">Этапы соревнования</h2>
-        <div className="mt-5 grid gap-3 sm:grid-cols-4">
+      <section className="competition-detail-panel competition-opportunities">
+        <div><h2>{isCommunity ? "Практика и история активности" : prize ? "Призовой фонд и возможности" : "Рейтинг и карьерные возможности"}</h2>
+          <p>{isCommunity ? "Результат сохранится в истории сообщества без сезонных очков." : rated ? "Результат влияет на рейтинг, лигу и подтверждённую часть ML-паспорта." : "Результат сохранится в истории соревнований. Практика не влияет на сезонный рейтинг."}{prize && <> Призовой фонд: <strong>{prize}</strong>.</>}</p>
+        </div>
+        <div className="competition-opportunities-art" aria-hidden="true"><span /><span /><span /><Trophy size={34} /></div>
+      </section>
+
+      <section className="competition-detail-panel competition-stages">
+        <h2>Этапы соревнования</h2>
+        <div className="competition-stages-grid">
           {[
-            ["01", "Старт", "Данные открыты"],
-            ["02", "Отправка решения", getDeadlineLabel(competition)],
-            ["03", "Финальная проверка", "После дедлайна"],
-            ["04", "Проверка лидеров", "Итоговый результат"],
-          ].map(([number, title, text], index) => (
-            <motion.div
-              key={number}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.45 }}
-              transition={{ duration: 0.28, delay: index * 0.07, ease: "easeOut" }}
-              className="group relative min-h-36 overflow-hidden rounded-lg border border-border bg-card p-4 transition-shadow duration-200 hover:shadow-md"
-            >
-              <span className="absolute inset-x-0 top-0 h-0.5 bg-primary/70" />
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono text-[10px] font-medium text-primary transition-transform duration-200 group-hover:-translate-y-0.5">{number}</span>
-              <p className="mt-5 text-sm font-semibold">{title}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p>
-            </motion.div>
-          ))}
+            ["01", "Старт", "Данные открыты", Send],
+            ["02", "Отправка решения", getDeadlineLabel(competition), Database],
+            ["03", "Финальная проверка", "После дедлайна", Settings2],
+            ["04", "Проверка лидеров", "Итоговый результат", Trophy],
+          ].map(([number, title, text, Icon], index) => <motion.div key={number}
+            initial={reduced ? false : { opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.35, delay: index * 0.06 }}
+            className="competition-stage">
+            <span className="competition-stage-number">{number}</span><Icon size={22} />
+            <div><h3>{title}</h3><p>{text}</p></div>
+            {index < 3 && <ArrowRight className="competition-stage-arrow" size={16} aria-hidden="true" />}
+          </motion.div>)}
+        </div>
+        <div className="competition-fairness-note"><span className="competition-detail-icon"><ShieldCheck size={23} /></span>
+          <div><h3>Одинаковые правила для всех</h3><p>Premium не меняет лимит отправок, оценку, место в рейтинге или доступ к открытым данным.</p></div>
         </div>
       </section>
 
-      <section className="border-t border-border py-7">
-        <motion.article
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="group rounded-lg border border-border bg-card p-5 md:p-6"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent-foreground transition-transform duration-200 group-hover:-translate-y-0.5"><ShieldCheck size={21} /></span>
-          <h3 className="mt-5 font-heading text-lg font-bold">Одинаковые правила для всех</h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Premium не меняет лимит отправок, оценку, место в рейтинге или доступ к открытым данным.</p>
-        </motion.article>
-      </section>
-
-      {(competition.external_data_policy || competition.ai_tools_policy || competition.pretrained_models_policy) && <section className="border-t border-border py-7"><h2 className="font-heading text-xl font-bold">Дополнительные условия</h2><div className="mt-5 divide-y divide-border border-y border-border">{[["Внешние данные", competition.external_data_policy], ["AI-инструменты", competition.ai_tools_policy], ["Предобученные модели", competition.pretrained_models_policy]].filter(([, value]) => value).map(([label, value]) => <div key={label} className="grid gap-2 py-4 sm:grid-cols-[190px_1fr]"><p className="text-sm font-semibold">{label}</p><p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{value}</p></div>)}</div></section>}
+      {(competition.external_data_policy || competition.ai_tools_policy || competition.pretrained_models_policy) && <section className="competition-detail-panel competition-conditions">
+        <h2>Дополнительные условия</h2>
+        <dl>{[["Внешние данные", competition.external_data_policy, Database], ["AI-инструменты", competition.ai_tools_policy, Code2], ["Предобученные модели", competition.pretrained_models_policy, Layers]].filter(([, value]) => value).map(([label, value, Icon]) =>
+          <div key={label}><dt><Icon size={16} />{label}</dt><dd><CompetitionContent className="competition-policy-content">{value}</CompetitionContent></dd></div>
+        )}</dl>
+      </section>}
     </div>
   );
 }
@@ -397,17 +381,18 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
     invalid: ["Файл не принят", error],
     failed: ["Ошибка проверки", error],
   };
+  const sourceCodePanel = <SubmissionSourceCode competition={competition} participation={participation} submissions={mySubmissions} />;
 
   if (!joined) {
     return (
-      <div className="border-y border-border py-14 text-center">
+      <><div className="border-y border-border py-14 text-center">
         <Lock className="mx-auto text-primary" size={28} />
         <h2 className="mt-4 font-heading text-2xl font-bold">{locked ? "Отправка пока недоступна" : "Сначала присоединитесь к соревнованию"}</h2>
         <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
           {locked ? "Соревнование ещё не началось, завершено или доступно только по приглашению." : "После вступления откроются данные, отправка решений и история ваших попыток."}
         </p>
         <Button className="mt-5" onClick={onJoin} disabled={locked}><Trophy size={16} /> {locked ? "Доступ закрыт" : "Присоединиться"}</Button>
-      </div>
+      </div>{sourceCodePanel}</>
     );
   }
 
@@ -478,6 +463,7 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
         </motion.div>
       )}
 
+      {sourceCodePanel}
       <section className="mt-8">
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-lg font-bold">Мои решения</h3>
@@ -655,9 +641,9 @@ function ParticipationPanel({ competition, participation, status, joined, onJoin
   const joinLabel = access === "application" ? "Подать заявку" : restricted ? "Доступ по приглашению" : "Присоединиться";
 
   return (
-    <aside className="self-start border-y border-border bg-card p-5 lg:sticky lg:top-5">
+    <aside className="competition-participation">
       <h2 className="font-heading text-lg font-bold">Моё участие</h2>
-      <div className="mt-4 flex items-center gap-3">
+      <div className={cn("competition-participation-state", joined && "competition-participation-state--joined")}>
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-md", joined ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground")}>
           {joined ? <Check size={19} /> : <Trophy size={19} />}
         </div>
@@ -668,9 +654,9 @@ function ParticipationPanel({ competition, participation, status, joined, onJoin
       </div>
 
       <div className="mt-5 divide-y divide-border border-y border-border">
-        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Лучшая открытая оценка</span><span className="font-semibold">{safeScore(bestScore == null ? null : Number(bestScore), competition.metric)}</span></div>
-        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Место</span><span className="font-semibold">{rank ? `#${rank}` : "—"}</span></div>
-        <div className="flex items-center justify-between py-3 text-sm"><span className="text-muted-foreground">Попыток осталось</span><span className="font-semibold">{status === "active" ? (attemptsLeft ?? "—") : "Закрыто"}</span></div>
+        <div className="competition-participation-stat"><span>Лучшая открытая оценка</span><span>{safeScore(bestScore == null ? null : Number(bestScore), competition.metric)}</span></div>
+        <div className="competition-participation-stat"><span>Место</span><span>{rank ? `#${rank}` : "—"}</span></div>
+        <div className="competition-participation-stat"><span>Попыток осталось</span><span>{status === "active" ? (attemptsLeft ?? "—") : "Закрыто"}</span></div>
       </div>
 
       {!joined && status === "active" ? (
@@ -679,13 +665,13 @@ function ParticipationPanel({ competition, participation, status, joined, onJoin
           {joinLabel}
         </Button>
       ) : status === "active" ? (
-        <div className="mt-5 space-y-2"><Button className="w-full" onClick={onSubmit}><Upload size={15} /> Загрузить CSV</Button><Button className="w-full" variant="ghost" onClick={onLeave} disabled={leaving}>{leaving ? <Loader2 size={15} className="animate-spin" /> : null}Выйти из соревнования</Button></div>
+        <div className="mt-5 space-y-2"><Button className="w-full" onClick={onSubmit}><Upload size={15} /> Загрузить CSV</Button><Button className="competition-leave-button w-full" variant="ghost" onClick={onLeave} disabled={leaving}>{leaving ? <Loader2 size={15} className="animate-spin" /> : null}Выйти из соревнования</Button></div>
       ) : status === "upcoming" ? (
         <Button className="mt-5 w-full" disabled><Clock3 size={15} /> Ещё не началось</Button>
       ) : (
         <Button asChild className="mt-5 w-full"><Link to={`/competitions/${competition.id}/leaderboard`}><Trophy size={15} /> Смотреть результаты</Link></Button>
       )}
-      <p className="mt-3 text-center text-[11px] leading-4 text-muted-foreground">{isCommunity ? "Результат сохранится как активность сообщества и не повлияет на сезонный рейтинг." : "Лимиты рейтингового соревнования одинаковы для всех."}</p>
+      {isCommunity && <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">Результат сохранится в истории сообщества без сезонных очков.</p>}
     </aside>
   );
 }
@@ -725,7 +711,8 @@ export default function CompetitionDetail() {
     queryFn: () => api.competitions.submissions(id, { limit: 100, offset: 0 }),
     enabled: Boolean(id && isAuthenticated),
   });
-  const submissions = submissionsQuery.data?.data || submissionsQuery.data?.items || [];
+  const submissionsPayload = submissionsQuery.data?.data ?? submissionsQuery.data;
+  const submissions = Array.isArray(submissionsPayload) ? submissionsPayload : submissionsPayload?.items || [];
   const resultCardQuery = useQuery({
     queryKey: ["competition-result-card", id],
     queryFn: () => api.competitions.resultCard(id),
@@ -826,9 +813,10 @@ export default function CompetitionDetail() {
   const restricted = competition.is_private || access === "invite_only" || access === "application";
   const locked = ["upcoming", "finished", "finalizing"].includes(status) || (restricted && !joined);
   const statusLabel = { active: "Активно", upcoming: "Скоро", finalizing: "Финализация", finished: "Завершено" }[status];
+  const participationPanel = <ParticipationPanel competition={competition} participation={participation} status={status} joined={joined} onJoin={join} onLeave={leave} leaving={leaving} onSubmit={() => navigate(`/competitions/${id}/submit`)} />;
 
   return (
-    <div className="mx-auto w-full max-w-[1380px] px-4 pb-24 pt-6 md:px-6 lg:px-8 lg:py-10">
+    <div className="competition-detail-page">
       <Link to="/competitions" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary">
         <ArrowLeft size={16} />
         Все соревнования
@@ -857,53 +845,42 @@ export default function CompetitionDetail() {
         </div>
       )}
 
-      <header className="relative mt-5 overflow-hidden border-y border-border bg-card" style={{ borderTopColor: competition.banner_color || undefined, borderTopWidth: competition.banner_color ? 4 : undefined }}>
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="flex min-h-[260px] flex-col justify-between p-6 md:p-8">
-            <div>
-              <h1 className="max-w-4xl font-heading text-3xl font-bold leading-tight md:text-4xl">{competition.title}</h1>
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <span className={cn("inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] font-semibold", isCommunity ? "border-violet-500/25 bg-violet-500/5 text-violet-600 dark:text-violet-400" : "border-primary/20 bg-primary/5 text-primary")}>
-                  {isCommunity ? <CircleUserRound size={10} /> : <ShieldCheck size={10} />}
-                  {isCommunity ? "Сообщество" : competition.origin === "official_partner" ? "Партнёрское" : "Официальное"}
-                </span>
-                <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold", status === "active" ? "text-accent" : "text-primary")}>
-                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                  {statusLabel}
-                </span>
-                <span className="border border-border px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{TASK_TYPE_LABELS[competition.task_type]}</span>
-                <span className="border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{competition.difficulty || "Не указана"}</span>
-                {restricted && <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground"><Lock size={10} /> {access === "application" ? "По заявке" : "По приглашению"}</span>}
-              </div>
-              <CompetitionSummary competition={competition} className="mt-4 line-clamp-3 max-w-3xl text-sm leading-6 text-muted-foreground" />
+      <header className="competition-detail-header">
+        <div className="competition-detail-header-main">
+          <div className="competition-detail-cover" aria-hidden="true"><img src="/competition-cubes.png" alt="" /></div>
+          <div className="competition-detail-title">
+            <h1>{competition.title}</h1>
+            <div className="competition-detail-badges">
+              <span className="competition-origin">{isCommunity ? <CircleUserRound size={13} /> : <ShieldCheck size={13} />}{isCommunity ? "Сообщество" : competition.origin === "official_partner" ? "Партнёрское" : "Официальное"}</span>
+              <span className={cn("competition-status", status === "active" && "competition-status--active")}><i aria-hidden="true" />{statusLabel}</span>
+              <span>{TASK_TYPE_LABELS[competition.task_type] || competition.task_type}</span>
+              <span>{competition.difficulty || "Не указана"}</span>
+              {restricted && <span><Lock size={12} />{access === "application" ? "По заявке" : "По приглашению"}</span>}
             </div>
-            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><Users size={14} /> {competition.participants_count} участников</span>
-              <span className="inline-flex items-center gap-1.5"><CalendarClock size={14} /> {status === "active" ? getDeadlineLabel(competition) : statusLabel}</span>
-              <span className="inline-flex items-center gap-1.5"><Award size={14} /> {prize || (competition.rated ? "Очки сезонного рейтинга" : "Без денежного фонда")}</span>
+            <CompetitionSummary competition={competition} className="competition-detail-description" />
+            <div className="competition-detail-meta">
+              <span><Users size={15} />{competition.participants_count ?? 0} {pluralize(competition.participants_count ?? 0, "участник", "участника", "участников")}</span>
+              <span><CalendarClock size={15} />{status === "active" ? getDeadlineLabel(competition) : statusLabel}</span>
+              <span><Award size={15} />{prize || (competition.rated ? "Очки сезонного рейтинга" : "Без денежного фонда")}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 border-t border-border lg:border-l lg:border-t-0">
-            {[
-              [Target, "Метрика", METRIC_LABELS[competition.metric] || competition.metric || "Не указана"],
-              [Trophy, isCommunity || competition.rated ? "Сезонный рейтинг" : "Призовой фонд", isCommunity ? "Не влияет" : competition.rated ? "Учитывается" : prize || "Без приза"],
-              [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
-              [ShieldCheck, "Итоговый результат", "После финальной проверки"],
-            ].map(([Icon, label, value], index) => (
-              <div key={label} className={cn("flex min-h-32 flex-col justify-between p-5", index % 2 === 1 && "border-l border-border", index > 1 && "border-t border-border")}>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon size={15} className="text-primary" /> {label}</div>
-                <p className="break-words font-heading text-lg font-bold leading-tight">{value}</p>
-              </div>
-            ))}
-          </div>
+        </div>
+        <div className="competition-header-facts">
+          {[
+            [Target, "Метрика", competition.metric_name || METRIC_LABELS[competition.metric] || competition.metric || "Не указана"],
+            [Trophy, "Призовой фонд", prize || "Без приза"],
+            [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
+            [Flag, "Итоговый результат", status === "finished" ? "Результаты опубликованы" : "После финальной проверки"],
+          ].map(([Icon, label, value], index) => <div key={label} className={cn("competition-header-fact", index === 2 && "competition-header-fact--deadline")}>
+            <Icon size={22} /><div><span>{label}</span><strong>{value}</strong>{index === 2 && status === "active" && <small>{getDeadlineLabel(competition).split(" · ")[1]}</small>}</div>
+          </div>)}
         </div>
       </header>
 
-      <div className="mt-5"><CompetitionTabs competitionId={id} activeTab={activeTab} /></div>
+      <div className="competition-detail-tabs"><CompetitionTabs competitionId={id} activeTab={activeTab} /></div>
 
-      <div className="mt-6 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_310px]">
+      {activeTab === "overview" ? <OverviewTab competition={competition} participationPanel={participationPanel} /> : <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <main className="min-w-0">
-          {activeTab === "overview" && <OverviewTab competition={competition} />}
           {activeTab === "data" && <DataTab competition={competition} locked={status === "upcoming"} />}
           {activeTab === "submit" && (
             <SubmitTab
@@ -923,17 +900,8 @@ export default function CompetitionDetail() {
           )}
         </main>
 
-        <ParticipationPanel
-          competition={competition}
-          participation={participation}
-          status={status}
-          joined={joined}
-          onJoin={join}
-          onLeave={leave}
-          leaving={leaving}
-          onSubmit={() => navigate(`/competitions/${id}/submit`)}
-        />
-      </div>
+        {participationPanel}
+      </div>}
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 p-3 backdrop-blur lg:hidden">
         {!joined && status === "active" ? (

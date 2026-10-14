@@ -2,10 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
+  BarChart3,
   Building2,
   CalendarClock,
   CheckCircle2,
   CircleUserRound,
+  Clock3,
   Lock,
   ShieldCheck,
   Target,
@@ -34,9 +36,10 @@ function pluralize(value, one, few, many) {
 function getTimeLabel(competition, status) {
   if (status === "finished") return "Результаты опубликованы";
   if (status === "finalizing") return "Идёт финальный пересчёт";
-  if (!competition.deadline) return "Дата уточняется";
-  if (status === "upcoming") return `Старт до ${new Date(competition.deadline).toLocaleDateString("ru-RU")}`;
-  const diff = new Date(competition.deadline).getTime() - Date.now();
+  const deadline = competition.submission_deadline || competition.deadline;
+  if (!deadline) return "Дата уточняется";
+  if (status === "upcoming") return `Старт до ${new Date(deadline).toLocaleDateString("ru-RU")}`;
+  const diff = new Date(deadline).getTime() - Date.now();
   const days = Math.max(0, Math.ceil(diff / 86400000));
   return days > 0 ? `Осталось ${days} ${pluralize(days, "день", "дня", "дней")}` : "Последний день";
 }
@@ -45,6 +48,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
   const statusMeta = STATUS_META[status] || STATUS_META.active;
   const isRestricted = competition.is_private || ["application", "invite_only", "partner", "premium"].includes(competition.access_type || competition.access);
   const isCommunity = competition.origin === "community";
+  const showcase = status === "active" && !isCommunity;
   const isRated = !isCommunity && competition.rated !== false;
   const cashPrize = Number(competition.cash_prize_amount_rub ?? competition.prize_fund ?? 0);
   const prizeLabel = competition.prize_type === "non_cash" && competition.prize_description
@@ -57,7 +61,14 @@ export default function CompetitionCard({ competition, status, meta, userState, 
       ? "Награды получают участники, занявшие лучшие места по итогам соревнования."
       : isRated
         ? "Результат влияет на рейтинг и подтверждённую часть ML-паспорта."
-        : "Практика не влияет на сезонный рейтинг.";
+        : "Практика без влияния на сезонный рейтинг.";
+  const participants = competition.participants_count;
+  const facts = [
+    { icon: Target, label: "Метрика", value: METRIC_LABELS[competition.metric] || competition.metric || "Метрика уточняется" },
+    { icon: Users, label: "Участники", value: participants == null ? "—" : `${participants} ${pluralize(participants, "участник", "участника", "участников")}` },
+    { icon: Clock3, label: "До окончания", value: getTimeLabel(competition, status) },
+    { icon: Building2, label: "Площадка", value: competition.company_name || "ML-Арена" },
+  ];
   const cta = status === "finished"
     ? "Смотреть результаты"
     : status === "finalizing"
@@ -74,11 +85,12 @@ export default function CompetitionCard({ competition, status, meta, userState, 
 
   return (
     <Link to={`/competitions/${competition.id}`} className="competition-event-link">
-      <article className={cn("competition-event", featured && "competition-event--featured")}>
+      <article className={cn("competition-event", (featured || showcase) && "competition-event--featured", showcase && "competition-event--showcase")}>
         <div className="competition-event__main">
+          {showcase && <img className="competition-event__art" src="/competition-factory-v2.png" alt="" aria-hidden="true" loading="lazy" />}
           <div className="competition-event__top">
-            <h3>{competition.title}</h3>
             <span className="competition-event__sequence">Событие {String(sequence).padStart(2, "0")}</span>
+            <h3>{competition.title}</h3>
           </div>
           <div className="competition-event__badges">
             <span className="competition-event__origin">
@@ -88,23 +100,27 @@ export default function CompetitionCard({ competition, status, meta, userState, 
             <span className={cn("competition-event__status", statusMeta.className)}>
               <span aria-hidden="true" />{statusMeta.label}
             </span>
-            <span>{TASK_TYPE_LABELS[competition.task_type] || competition.task_type}</span>
-            <span>{meta.difficulty}</span>
-            <span>{isRestricted && <Lock size={11} />}{meta.access}</span>
+            <span>{showcase && <BarChart3 size={17} />}{TASK_TYPE_LABELS[competition.task_type] || competition.task_type}</span>
+            <span className="competition-event__difficulty">{showcase && <BarChart3 size={17} />}{meta.difficulty}</span>
+            {(!showcase || isRestricted) && <span>{isRestricted && <Lock size={11} />}{meta.access}</span>}
           </div>
           <CompetitionSummary competition={competition} className="competition-event__description" />
           <div className="competition-event__facts">
-            <span><Target size={14} />{METRIC_LABELS[competition.metric] || competition.metric || "Метрика уточняется"}</span>
-            <span><Users size={14} />{competition.participants_count ?? "—"} участников</span>
-            <span><CalendarClock size={14} />{getTimeLabel(competition, status)}</span>
-            <span><Building2 size={14} />{competition.company_name || "ML-Арена"}</span>
+            {showcase ? facts.map(({ icon: Icon, label, value }) => (
+              <span key={label}><Icon size={25} /><span className="competition-event__fact-copy"><span>{label}</span><strong>{value}</strong></span></span>
+            )) : <>
+              <span><Target size={14} />{facts[0].value}</span>
+              <span><Users size={14} />{facts[1].value}</span>
+              <span><CalendarClock size={14} />{facts[2].value}</span>
+              <span><Building2 size={14} />{facts[3].value}</span>
+            </>}
           </div>
         </div>
         <div className="competition-event__aside">
           <Trophy className="competition-event__prize-icon" size={21} aria-hidden="true" />
           <div className="competition-event__prize">
             <span>{isCommunity ? "Статус результата" : prizeLabel ? "Призы" : "Формат"}</span>
-            <strong>{prizeTitle}</strong>
+            <strong>{showcase && !prizeLabel ? `${prizeTitle} соревнование` : prizeTitle}</strong>
             <p>{prizeDescription}</p>
           </div>
           {userState?.rank ? (

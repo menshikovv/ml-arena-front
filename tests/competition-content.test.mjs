@@ -2,21 +2,58 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { StaticRouter } from "react-router-dom/server.js";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
-import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore } from "../src/lib/ml-arena.js";
+import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore, getCompetitionMetricDirection } from "../src/lib/ml-arena.js";
 
 let server;
 let CompetitionContent;
 let CompetitionSummary;
+let CompetitionCodeSample;
+let CompetitionCard;
 
 before(async () => {
   globalThis.window = { self: null, top: null };
-  server = await createServer({ configFile: false, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: "custom" });
-  ({ CompetitionContent, CompetitionSummary } = await server.ssrLoadModule("/src/components/ml/CompetitionContent.jsx"));
+  server = await createServer({ configFile: false, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
+  ({ CompetitionContent, CompetitionSummary, CompetitionCodeSample } = await server.ssrLoadModule("/src/components/ml/CompetitionContent.jsx"));
+  ({ default: CompetitionCard } = await server.ssrLoadModule("/src/components/ml/CompetitionCard.jsx"));
 });
 
 after(async () => { await server?.close(); delete globalThis.window; });
+
+function renderEvent(overrides = {}, status = "active") {
+  return renderToStaticMarkup(React.createElement(StaticRouter, { location: "/competitions" }, React.createElement(CompetitionCard, {
+    competition: { id: "event", title: "Техносмена", origin: "official", task_type: "ranking", metric: "custom_ndcg_v1", rated: false, participants_count: 3, submission_deadline: new Date(Date.now() + 3 * 86400000).toISOString(), short_description: "Краткое условие.", description: "Полное условие. ".repeat(500), ...overrides },
+    status, meta: { difficulty: "medium", access: "Открыто" },
+  })));
+}
+
+test("active official event uses the showcase with real facts and a bounded summary", () => {
+  const html = renderEvent();
+  assert.match(html, /competition-event--showcase/);
+  assert.match(html, /src="\/competition-factory-v2.png"/);
+  assert.match(html, /Тренировочное соревнование/);
+  assert.match(html, /3 участника/);
+  assert.match(html, /Осталось 3 дня/);
+  assert.match(html, /custom_ndcg_v1/);
+  assert.match(html, /href="\/competitions\/event"/);
+  assert.doesNotMatch(html, /Полное условие|Дата уточняется/);
+});
+
+test("showcase preserves rating, prizes, access and organizer semantics", () => {
+  assert.match(renderEvent({ rated: true }), /Рейтинговое соревнование/);
+  const html = renderEvent({ prize_type: "non_cash", prize_description: "Стажировка", access: "invite_only", company_name: "Партнёр", participants_count: 1 });
+  assert.match(html, /Стажировка/);
+  assert.match(html, /Партнёр/);
+  assert.match(html, /1 участник</);
+  assert.match(html, /Подробнее/);
+});
+
+test("community and non-active events do not gain the active showcase", () => {
+  assert.doesNotMatch(renderEvent({ origin: "community" }), /competition-event--showcase|competition-factory/);
+  assert.doesNotMatch(renderEvent({}, "finished"), /competition-event--showcase|competition-factory/);
+});
 
 test("competition preview prefers the short description and removes markdown", () => {
   const html = renderToStaticMarkup(React.createElement(CompetitionSummary, { competition: {
@@ -107,4 +144,33 @@ test("private assessment remains hidden until the competition has finished", () 
   assert.equal(canShowPrivateScore({ status: "finished" }, { private_score: 0.55 }), true);
   assert.equal(canShowPrivateScore({ status: "completed" }, { private_score: 0.55, private_score_revealed: true }), true);
   assert.equal(canShowPrivateScore({ status: "finished" }, { private_score: 0.55, private_score_revealed: false }), false);
+});
+
+test("compact overview keeps its introduction and preserves every linked full section", () => {
+  const html = renderToStaticMarkup(React.createElement(CompetitionContent, { brief: true },
+    "# Техносмена\n\nВступление без сокращений.\n\n## Формат ответа\n\nПолные инструкции.\n\n```csv\nid,priority_score\n1,0.55\n```\n\n## Поля\n\n| Поле | Тип |\n| --- | --- |\n| id | string |",
+  ));
+  assert.match(html, /competition-brief-intro/);
+  assert.match(html, /Вступление без сокращений/);
+  assert.match(html, /<details id="competition-section-2"/);
+  assert.match(html, /<summary>Формат ответа<\/summary>/);
+  assert.match(html, /href="#competition-section-3"/);
+  assert.match(html, /<table/);
+  assert.match(html, /1,0.55/);
+});
+
+test("startup block uses the actual command from the condition, not a hardcoded recipe", () => {
+  const html = renderToStaticMarkup(React.createElement(CompetitionCodeSample, null,
+    "Описание\n\n```csv\nid,priority_score\n```\n\n```bash\npython custom_start.py --seed 42\n```",
+  ));
+  assert.match(html, /python custom_start.py --seed 42/);
+  assert.match(html, /aria-label="Скопировать код"/);
+  assert.doesNotMatch(html, /id,priority_score|baseline.py/);
+});
+
+test("metric preference respects API direction and does not invent a direction for unknown metrics", () => {
+  assert.equal(getCompetitionMetricDirection({ metric: "ml_arena_tech_smena_ndcg_5_v1" }), "maximize");
+  assert.equal(getCompetitionMetricDirection({ metric: "mae" }), "minimize");
+  assert.equal(getCompetitionMetricDirection({ metric: "unknown", metric_direction: "maximize" }), "maximize");
+  assert.equal(getCompetitionMetricDirection({ metric: "unknown" }), null);
 });
