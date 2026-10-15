@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -38,6 +39,7 @@ export default function ProfileEdit() {
   const { user, updateProfile, updateAvatar, deleteAvatar } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
+  const cancelTriggerRef = useRef(null);
   const initial = useMemo(() => ({
     nickname: user?.nickname || "",
     first_name: user?.first_name || "",
@@ -63,6 +65,7 @@ export default function ProfileEdit() {
   const [draggingAvatar, setDraggingAvatar] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [discardOpen, setDiscardOpen] = useState(false);
   const dirty = JSON.stringify(form) !== JSON.stringify(initial) || Boolean(avatarFile) || removeAvatar;
   const displayName = [form.first_name, form.last_name].filter(Boolean).join(" ") || form.nickname || "Новый участник";
   const registeredAt = user?.registered_at ? new Date(user.registered_at) : null;
@@ -90,8 +93,13 @@ export default function ProfileEdit() {
       ? current.interests.filter((item) => item !== interest)
       : [...current.interests, interest].slice(0, 8),
   }));
-  const goBack = () => {
-    if (!dirty || window.confirm("Уйти без сохранения изменений?")) navigate("/profile");
+  const goBack = (event) => {
+    if (!dirty) {
+      navigate("/profile");
+      return;
+    }
+    cancelTriggerRef.current = event.currentTarget;
+    setDiscardOpen(true);
   };
   const selectAvatar = (file) => {
     if (!file) return;
@@ -229,6 +237,23 @@ export default function ProfileEdit() {
       {error && <div className="profile-edit-error" role="alert"><CircleAlert size={18} aria-hidden="true" /><span>{error}</span></div>}
       <div className="profile-edit-mobile-actions"><Button type="button" variant="outline" onClick={goBack}>Отмена</Button><Button type="submit" disabled={loading || !dirty} className="profile-edit-save">{loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Сохранить</Button></div>
     </form>
+    <AlertDialog.Root open={discardOpen} onOpenChange={setDiscardOpen}>
+      <AlertDialog.Portal>
+        <AlertDialog.Overlay className="profile-discard-overlay" />
+        <AlertDialog.Content className="profile-discard-dialog" onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (cancelTriggerRef.current?.isConnected) cancelTriggerRef.current.focus();
+        }}>
+          <span className="profile-discard-icon"><CircleAlert size={24} aria-hidden="true" /></span>
+          <AlertDialog.Title className="profile-discard-title">Уйти без сохранения?</AlertDialog.Title>
+          <AlertDialog.Description className="profile-discard-description">Изменения профиля ещё не сохранены. Если уйти сейчас, они будут потеряны.</AlertDialog.Description>
+          <div className="profile-discard-actions">
+            <AlertDialog.Cancel asChild><Button type="button">Продолжить редактирование</Button></AlertDialog.Cancel>
+            <AlertDialog.Action asChild><Button type="button" variant="ghost" className="profile-discard-leave" onClick={() => navigate("/profile")}>Уйти без сохранения</Button></AlertDialog.Action>
+          </div>
+        </AlertDialog.Content>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   </div></div>;
 }
 

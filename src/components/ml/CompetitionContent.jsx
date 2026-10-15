@@ -53,9 +53,7 @@ function outlinePlugin(options = {}) {
         continue;
       }
       if (isHeading) {
-        section = { type: "element", tagName: "details", properties: { id: node.properties.id }, children: [
-          { type: "element", tagName: "summary", properties: {}, children: [{ type: "text", value: nodeText(node) }] },
-        ] };
+        section = { type: "element", tagName: "section", properties: {}, children: [node] };
         sections.push(section);
       } else if (section) section.children.push(node);
       else introduction.push(node);
@@ -99,7 +97,7 @@ const markdownComponents = {
   blockquote: ({ children }) => <blockquote className="my-6 border-l-2 border-primary bg-primary/5 px-5 py-1 text-foreground">{children}</blockquote>,
   code: ({ children, className }) => <code className={cn("rounded bg-secondary px-1.5 py-0.5 font-mono text-[13px] text-foreground", className)}>{children}</code>,
   pre: CodeBlock,
-  a: ({ children, href }) => <a href={href} onClick={() => { if (href?.startsWith("#competition-section-")) { const target = document.getElementById(href.slice(1)); if (target?.tagName === "DETAILS") target.open = true; } }} className="text-primary underline decoration-primary/35 underline-offset-4 hover:decoration-primary">{children}</a>,
+  a: ({ children, href }) => <a href={href} className="text-primary underline decoration-primary/35 underline-offset-4 hover:decoration-primary">{children}</a>,
   hr: () => <hr className="my-8 border-border" />,
   img: ({ src, alt }) => <img src={src} alt={alt || ""} loading="lazy" className="my-6 max-w-full rounded-md" />,
   table: ({ children }) => <div role="region" aria-label="Таблица соревнования" tabIndex={0} className="my-6 max-w-full overflow-x-auto rounded-md border border-border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"><table className="w-full min-w-[720px] border-collapse text-sm leading-6">{children}</table></div>,
@@ -114,18 +112,17 @@ export function CompetitionContent({ children, className, brief = false }) {
   const root = useRef(null);
   useEffect(() => {
     if (!brief) return;
-    const revealSection = () => {
+    const scrollToSection = () => {
       const id = window.location.hash.slice(1);
       if (!id.startsWith("competition-section-")) return;
       const target = document.getElementById(id);
-      if (target?.tagName === "DETAILS" && root.current?.contains(target)) {
-        target.open = true;
+      if (target && root.current?.contains(target)) {
         target.scrollIntoView({ block: "start" });
       }
     };
-    revealSection();
-    window.addEventListener("hashchange", revealSection);
-    return () => window.removeEventListener("hashchange", revealSection);
+    scrollToSection();
+    window.addEventListener("hashchange", scrollToSection);
+    return () => window.removeEventListener("hashchange", scrollToSection);
   }, [brief, children]);
   return <div ref={root} className={cn("competition-document min-w-0 max-w-4xl break-words text-[15px] text-muted-foreground", brief && "competition-document--brief", className)}><ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[[outlinePlugin, { brief }]]}>{children || ""}</ReactMarkdown></div>;
 }

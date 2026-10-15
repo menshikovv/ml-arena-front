@@ -63,10 +63,6 @@ function ArticleCard({ post }) {
 function BlogLoading() {
   return (
     <div role="status" aria-live="polite" aria-label="Загружаем статьи">
-      <div className="blog-results__heading blog-results__heading--loading border-b border-border pb-6">
-        <div className="h-8 w-56 rounded-sm bg-secondary" />
-        <div className="mt-3 h-4 w-20 rounded-sm bg-secondary/80" />
-      </div>
       <div className="blog-card-grid">
         {[0, 1, 2].map((item) => <div key={item} className="blog-card blog-card--loading"><div className="blog-card__cover bg-secondary/55" /><div className="space-y-4 p-5"><div className="h-6 w-4/5 rounded-sm bg-secondary" /><div className="h-4 w-24 rounded-sm bg-secondary/80" /><div className="h-4 w-full rounded-sm bg-secondary/80" /></div></div>)}
       </div>
@@ -194,18 +190,11 @@ export default function Blog() {
       </section>
 
       <main className="blog-main">
-        {postsQuery.isPending ? <BlogLoading /> : postsQuery.isError ? (
-          <div className="border border-destructive/25 bg-destructive/5 px-5 py-14 text-center">
-            <h2 className="font-heading text-2xl font-extrabold">Не удалось загрузить статьи</h2>
-            <p className="mt-3 text-sm text-muted-foreground">{postsQuery.error?.message || "Повторите попытку немного позже."}</p>
-            <Button type="button" variant="outline" className="mt-6" onClick={() => postsQuery.refetch()}><RotateCcw size={15} /> Повторить</Button>
-          </div>
-        ) : <>
         <section id="blog-results" className="blog-results scroll-mt-24">
           <Reveal className="blog-results__heading">
             <div>
               <h2>{normalizedQuery ? "Результаты поиска" : activeCategory === "all" ? "Последние материалы" : categories.find((item) => item.slug === activeCategory)?.name || "Материалы"}</h2>
-              <p>{filteredPosts.length} {materialWord(filteredPosts.length)}</p>
+              <p role="status" aria-live="polite">{postsQuery.isPending ? "Загружаем материалы…" : postsQuery.isError ? "Материалы недоступны" : `${filteredPosts.length} ${materialWord(filteredPosts.length)}`}</p>
             </div>
             <div className="blog-categories scrollbar-thin" role="group" aria-label="Категории материалов">
               {categories.map((category) => (
@@ -214,7 +203,14 @@ export default function Blog() {
             </div>
           </Reveal>
 
-          {visiblePosts.length ? (
+          <div role="region" aria-label="Список материалов" aria-busy={postsQuery.isFetching}>
+          {postsQuery.isPending ? <BlogLoading /> : postsQuery.isError ? (
+            <div className="mt-5 border border-destructive/25 bg-destructive/5 px-5 py-14 text-center">
+              <h3 className="font-heading text-2xl font-extrabold">Не удалось загрузить статьи</h3>
+              <p className="mt-3 text-sm text-muted-foreground">{postsQuery.error?.message || "Повторите попытку немного позже."}</p>
+              <Button type="button" variant="outline" className="mt-6" onClick={() => postsQuery.refetch()}><RotateCcw size={15} /> Повторить</Button>
+            </div>
+          ) : visiblePosts.length ? (
             <>
               <Stagger key={`${activeCategory}-${queryParam}`} className="blog-card-grid" viewportReveal>
                 {visiblePosts.map((post) => <StaggerItem key={post.slug} className="blog-card-grid__item"><ArticleCard post={post} /></StaggerItem>)}
@@ -229,8 +225,8 @@ export default function Blog() {
               <Button type="button" variant="outline" className="mt-6" onClick={resetFilters}><RotateCcw size={15} /> Сбросить фильтры</Button>
             </Reveal>
           )}
+          </div>
         </section>
-        </>}
       </main>
 
       <section className="blog-telegram">

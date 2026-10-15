@@ -128,6 +128,23 @@
 .profile-edit-error svg { flex: none; }
 .profile-edit-mobile-actions { display: none; }
 
+.profile-discard-overlay { position: fixed; inset: 0; z-index: 80; background: hsl(var(--foreground) / .35); backdrop-filter: blur(3px); }
+.profile-discard-dialog { position: fixed; top: 50%; left: 50%; z-index: 81; width: calc(100% - 32px); max-width: 460px; max-height: calc(100dvh - 32px); overflow-y: auto; transform: translate(-50%, -50%); border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 26px; background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: 0 24px 70px hsl(var(--foreground) / .18); }
+.profile-discard-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 8px; background: hsl(var(--primary) / .09); color: hsl(var(--primary)); }
+.profile-discard-title { margin-top: 18px; font-family: var(--font-heading); font-size: 22px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+.profile-discard-description { margin-top: 12px; color: hsl(var(--muted-foreground)); font-size: 14px; line-height: 1.65; }
+.profile-discard-actions { display: grid; gap: 9px; margin-top: 24px; }
+.profile-discard-actions > button { width: 100%; height: auto; min-height: 44px; padding: 11px 14px; white-space: normal; font-size: 13px; font-weight: 700; line-height: 1.4; }
+.profile-discard-actions .profile-discard-leave { --profile-discard-color: 0 72% 42%; color: hsl(var(--profile-discard-color)); background: hsl(var(--profile-discard-color) / .06); }
+.profile-discard-actions .profile-discard-leave:hover, .profile-discard-actions .profile-discard-leave:focus-visible { color: hsl(var(--profile-discard-color)); background: hsl(var(--profile-discard-color) / .12); --tw-ring-color: hsl(var(--profile-discard-color)); }
+.dark .profile-discard-overlay { background: rgb(0 0 0 / .6); }
+.dark .profile-discard-leave { --profile-discard-color: 0 85% 74%; }
+
+@media (max-width: 450px) {
+  .profile-discard-dialog { padding: 22px; }
+  .profile-discard-title { font-size: 20px; }
+}
+
 .dark .profile-edit-page { background: transparent; color: #eef3ff; }
 .dark .profile-edit-top h1, .dark .profile-edit-hero__identity h2, .dark .profile-edit-card__heading h2, .dark .profile-edit-toggle__copy strong { color: #f2f5ff; }
 .dark .profile-edit-top__copy p, .dark .profile-edit-card__heading p, .dark .profile-edit-toggle__copy small, .dark .profile-edit-hero__handle, .dark .profile-edit-hero__bio { color: #a7b6d0; }

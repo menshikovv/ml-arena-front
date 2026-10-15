@@ -146,17 +146,34 @@ test("private assessment remains hidden until the competition has finished", () 
   assert.equal(canShowPrivateScore({ status: "finished" }, { private_score: 0.55, private_score_revealed: false }), false);
 });
 
-test("compact overview keeps its introduction and preserves every linked full section", () => {
+test("overview displays every section immediately with heading anchors and no collapsed content", () => {
   const html = renderToStaticMarkup(React.createElement(CompetitionContent, { brief: true },
     "# Техносмена\n\nВступление без сокращений.\n\n## Формат ответа\n\nПолные инструкции.\n\n```csv\nid,priority_score\n1,0.55\n```\n\n## Поля\n\n| Поле | Тип |\n| --- | --- |\n| id | string |",
   ));
   assert.match(html, /competition-brief-intro/);
   assert.match(html, /Вступление без сокращений/);
-  assert.match(html, /<details id="competition-section-2"/);
-  assert.match(html, /<summary>Формат ответа<\/summary>/);
+  assert.doesNotMatch(html, /<details|<summary|hidden=/);
+  assert.match(html, /<h3 id="competition-section-2"[^>]*>Формат ответа<\/h3>/);
+  assert.match(html, /Полные инструкции/);
   assert.match(html, /href="#competition-section-3"/);
+  assert.equal((html.match(/id="competition-section-3"/g) || []).length, 1);
   assert.match(html, /<table/);
   assert.match(html, /1,0.55/);
+});
+
+test("overview keeps nested heading levels, inline formatting and all section content visible", () => {
+  const html = renderToStaticMarkup(React.createElement(CompetitionContent, { brief: true },
+    "# Задача\n\nВступление.\n\n## Данные\n\n**Описание данных**.\n\n### Проверка\n\n- Сохраните все ID\n- Не меняйте порядок\n\n## Итог\n\nПоследний раздел виден сразу.",
+  ));
+  assert.doesNotMatch(html, /<details|<summary/);
+  assert.match(html, /<h4 id="competition-section-3"/);
+  assert.match(html, /<strong[^>]*>Описание данных<\/strong>/);
+  assert.match(html, /<ul/);
+  assert.match(html, /Последний раздел виден сразу/);
+  for (let index = 1; index <= 4; index++) {
+    assert.match(html, new RegExp(`href="#competition-section-${index}"`));
+    assert.equal((html.match(new RegExp(`id="competition-section-${index}"`, "g")) || []).length, 1);
+  }
 });
 
 test("startup block uses the actual command from the condition, not a hardcoded recipe", () => {

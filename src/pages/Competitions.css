@@ -792,6 +792,94 @@
   .competition-event--showcase .competition-event__action { min-height: 54px; padding: 10px 17px; font-size: 16px; }
 }
 
+:root:not(.dark) .competition-event--showcase {
+  border-color: #c8d9f1;
+  background: #f7faff;
+  background-image: linear-gradient(110deg, #fff 25%, #edf5ff);
+  color: #122440;
+  box-shadow: 0 10px 28px #285cad0d;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__sequence {
+  background: #e2ecff;
+  color: #285fd3;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__art {
+  opacity: .6;
+  mask-image: linear-gradient(90deg, transparent 15%, #000 75%);
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__badges > span {
+  border-color: #d5e0f0;
+  background: #eaf0fa;
+  color: #385273;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__badges .competition-event__origin {
+  border-color: #cbdcff;
+  background: #e7efff;
+  color: #285fd3;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__badges .competition-event__status--active {
+  border-color: #87d9bb;
+  background: #e2f8ef;
+  color: #007852;
+  box-shadow: none;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__badges .competition-event__difficulty {
+  border-color: #eddaa8;
+  background: #fff4d8;
+  color: #865900;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__description,
+:root:not(.dark) .competition-event--showcase .competition-event__prize p {
+  color: #526784;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__facts,
+:root:not(.dark) .competition-event--showcase .competition-event__facts > span,
+:root:not(.dark) .competition-event--showcase .competition-event__result {
+  border-color: #cddbee;
+  color: #56749b;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__fact-copy > span,
+:root:not(.dark) .competition-event--showcase .competition-event__result span {
+  color: #5e718c;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__fact-copy strong,
+:root:not(.dark) .competition-event--showcase .competition-event__result strong {
+  color: #172d4d;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__aside {
+  border-color: #c8d9f1;
+  background: linear-gradient(140deg, #edf4ff, #e0ecff);
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__prize-icon {
+  background: #d9e7ff;
+  color: #245ee7;
+  box-shadow: inset 0 0 0 1px #bed3fb;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__action {
+  box-shadow: inset 0 1px 0 #ffffff40, 0 7px 16px #2563eb24;
+}
+
+:root:not(.dark) .competition-event--showcase .competition-event__joined {
+  color: #007852;
+}
+
+@media (max-width: 800px) {
+  :root:not(.dark) .competition-event--showcase .competition-event__art { opacity: .24; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .competition-event { transition: none; }
   .competition-event:hover { transform: none; }
