@@ -28,15 +28,14 @@
 .competition-detail-meta > span { display: flex; align-items: center; gap: 7px; }
 .competition-detail-meta svg { flex: none; }
 .competition-header-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-left: 1px solid hsl(var(--border)); }
-.competition-header-fact { display: grid; grid-template-columns: 25px minmax(0, 1fr); align-content: start; gap: 9px; padding: 18px 16px; }
+.competition-header-fact { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-width: 0; min-height: 132px; padding: 18px 16px; }
 .competition-header-fact:nth-child(even) { border-left: 1px solid hsl(var(--border)); }
 .competition-header-fact:nth-child(n+3) { border-top: 1px solid hsl(var(--border)); }
-.competition-header-fact > svg { color: hsl(var(--primary)); }
-.competition-header-fact div { min-width: 0; }
-.competition-header-fact span { display: block; font-size: 12px; line-height: 1.5; color: hsl(var(--muted-foreground)); overflow-wrap: anywhere; }
-.competition-header-fact strong { display: block; margin-top: 9px; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
-.competition-header-fact small { display: block; margin-top: 3px; font-size: 12px; color: hsl(var(--muted-foreground)); }
-.competition-header-fact--deadline strong { font-family: var(--font-heading); font-size: 22px; line-height: 1.1; }
+.competition-header-fact__label { display: flex; min-width: 0; min-height: 34px; align-items: flex-start; gap: 8px; }
+.competition-header-fact__label > svg { flex: none; color: hsl(var(--primary)); }
+.competition-header-fact__label > span { min-width: 0; color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.competition-header-fact strong { display: block; min-width: 0; color: hsl(var(--foreground)); font-size: 14px; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
+.competition-header-fact small { display: block; font-size: 12px; line-height: 1.4; color: hsl(var(--muted-foreground)); }
 .competition-detail-tabs { margin-top: 16px; }
 .competition-detail-tabs nav { gap: 6px; }
 .competition-overview { display: grid; gap: 16px; margin-top: 18px; }
@@ -173,9 +172,7 @@
   .competition-detail-badges > span { padding: 4px 7px; font-size: 11px; }
   .competition-detail-description { margin-top: 12px; font-size: 13px; }
   .competition-detail-meta { gap: 9px 14px; margin-top: 16px; font-size: 11px; }
-  .competition-header-fact { padding: 15px 12px; gap: 6px; grid-template-columns: 22px minmax(0, 1fr); }
-  .competition-header-fact strong { font-size: 13px; }
-  .competition-header-fact--deadline strong { font-size: 21px; }
+  .competition-header-fact { padding: 15px 12px; }
   .competition-detail-panel { padding: 16px; }
   .competition-detail-panel > h2, .competition-metric-main > h2, .competition-opportunities h2 { font-size: 20px; }
   .competition-key-grid { gap: 8px; }

@@ -14,7 +14,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { METRIC_LABELS, TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { getCompetitionMetricName, TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 import { CompetitionSummary } from "@/components/ml/CompetitionContent";
 
@@ -64,7 +64,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
         : "Практика без влияния на сезонный рейтинг.";
   const participants = competition.participants_count;
   const facts = [
-    { icon: Target, label: "Метрика", value: METRIC_LABELS[competition.metric] || competition.metric || "Метрика уточняется" },
+    { icon: Target, label: "Метрика", value: getCompetitionMetricName(competition) },
     { icon: Users, label: "Участники", value: participants == null ? "—" : `${participants} ${pluralize(participants, "участник", "участника", "участников")}` },
     { icon: Clock3, label: "До окончания", value: getTimeLabel(competition, status) },
     { icon: Building2, label: "Площадка", value: competition.company_name || "ML-Арена" },

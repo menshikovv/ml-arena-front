@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { StaticRouter } from "react-router-dom/server.js";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
-import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore, getCompetitionMetricDirection } from "../src/lib/ml-arena.js";
+import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore, getCompetitionMetricDirection, getCompetitionMetricName } from "../src/lib/ml-arena.js";
 
 let server;
 let CompetitionContent;
@@ -48,6 +48,25 @@ test("showcase preserves rating, prizes, access and organizer semantics", () => 
   assert.match(html, /Партнёр/);
   assert.match(html, /1 участник</);
   assert.match(html, /Подробнее/);
+});
+
+test("competition cards show the metric name instead of its technical code", () => {
+  const html = renderEvent({ metric: "ml_arena_tech_smena_ndcg_5_v1", metric_name: "Техносмена — NDCG@5" });
+  assert.match(html, /Техносмена — NDCG@5/);
+  assert.doesNotMatch(html, /ml_arena_tech_smena_ndcg_5_v1/);
+});
+
+test("metric names resolve from the competition or the catalog without changing the code", () => {
+  const metric = { code: "ml_arena_tech_smena_ndcg_5_v1", name: "Техносмена — NDCG@5" };
+  const competition = { metric: metric.code };
+  assert.equal(getCompetitionMetricName(competition, [metric]), metric.name);
+  assert.equal(getCompetitionMetricName(competition, { items: [metric] }), metric.name);
+  assert.equal(getCompetitionMetricName({ ...competition, metric_name: "Название версии" }, [metric]), "Название версии");
+  assert.equal(getCompetitionMetricName({ ...competition, metric_name: metric.code }, [metric]), metric.name);
+  assert.equal(getCompetitionMetricName({ metric: "mae" }), "MAE (↓ лучше)");
+  assert.equal(getCompetitionMetricName(competition, [{ code: "other", name: "Другая" }]), metric.code);
+  assert.equal(getCompetitionMetricName({}, []), "Не указана");
+  assert.deepEqual(competition, { metric: metric.code });
 });
 
 test("community and non-active events do not gain the active showcase", () => {

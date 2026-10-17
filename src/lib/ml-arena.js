@@ -9,6 +9,15 @@ export const METRIC_LABELS = {
   silhouette: "Коэффициент силуэта (↑ лучше)",
 };
 
+export function getCompetitionMetricName(competition, catalog = []) {
+  const code = competition.metric;
+  const name = typeof competition.metric_name === "string" ? competition.metric_name.trim() : "";
+  if (name && name !== code) return name;
+  const entries = Array.isArray(catalog) ? catalog : catalog?.items;
+  const metric = Array.isArray(entries) ? entries.find((item) => code && item.code === code) : null;
+  return metric?.name?.trim() || METRIC_LABELS[code] || name || code || "Не указана";
+}
+
 export const TASK_TYPE_LABELS = {
   classification: "Классификация",
   regression: "Регрессия",

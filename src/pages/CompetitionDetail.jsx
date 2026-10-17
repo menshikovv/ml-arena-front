@@ -43,7 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthContext";
 import {
-  METRIC_LABELS,
+  getCompetitionMetricName,
   TASK_TYPE_LABELS,
   formatScore,
   getCompetitionMetricDirection,
@@ -132,7 +132,7 @@ function OverviewTab({ competition, participationPanel }) {
   const isCommunity = competition.origin === "community";
   const rated = !isCommunity && competition.rated !== false;
   const prize = formatPrize(competition);
-  const metric = competition.metric_name || METRIC_LABELS[competition.metric] || competition.metric || "Не указана";
+  const metric = getCompetitionMetricName(competition);
   const preference = getCompetitionMetricDirection(competition);
   const reduced = useReducedMotion();
   const facts = [
@@ -563,7 +563,7 @@ function LeaderboardTab({ competition }) {
 
       <div className="mt-4 overflow-x-auto border-y border-border">
         <div className="min-w-[700px]">
-          <div className="grid grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] border-b border-border py-3 text-xs text-muted-foreground">
+          <div className="grid grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] border-b border-border px-3 py-3 text-xs text-muted-foreground">
             <span>Место</span><span>Участник</span><span>Оценка</span><span>Решения</span><span>Лучшее решение</span>
           </div>
           {normalized.map((submission) => {
@@ -572,7 +572,7 @@ function LeaderboardTab({ competition }) {
                 key={submission.id}
                 to={submission.is_current_user ? "/profile" : `/profile/${submission.user_id}`}
                 className={cn(
-                  "grid min-h-16 grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] items-center border-b border-border text-sm transition-colors hover:bg-secondary/40",
+                  "grid min-h-16 grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] items-center border-b border-border px-3 text-sm transition-colors hover:bg-secondary/40",
                   submission.is_current_user && "bg-primary/5",
                 )}
               >
@@ -687,12 +687,19 @@ export default function CompetitionDetail() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const activeTab = TABS.some((tab) => tab.id === section) ? section : "overview";
 
-  const { data: competition, isLoading, isError } = useQuery({
+  const { data: competitionData, isLoading, isError } = useQuery({
     queryKey: ["competition", id],
     queryFn: () => api.competitions.get(id),
     enabled: Boolean(id && isAuthenticated),
     retry: false,
   });
+  const metricsQuery = useQuery({
+    queryKey: ["catalog-metrics"], queryFn: api.catalogs.metrics, staleTime: 60000,
+    enabled: Boolean(competitionData && (!competitionData.metric_name || competitionData.metric_name === competitionData.metric)),
+  });
+  const competition = competitionData ? {
+    ...competitionData, metric_name: getCompetitionMetricName(competitionData, metricsQuery.data),
+  } : null;
   const { data: participation } = useQuery({
     queryKey: ["competition-participation", id],
     queryFn: async () => {
@@ -784,7 +791,7 @@ export default function CompetitionDetail() {
     try {
       const result = resultCardQuery.data;
       const numericScore = Number(result.score ?? result.final_score);
-      await downloadCompetitionPdf({ competition, result, score: Number.isFinite(numericScore) ? safeScore(numericScore, competition.metric) : "—", metric: METRIC_LABELS[competition.metric] || competition.metric || "—", url: `${window.location.origin}/competitions/${competition.id}` });
+      await downloadCompetitionPdf({ competition, result, score: Number.isFinite(numericScore) ? safeScore(numericScore, competition.metric) : "—", metric: getCompetitionMetricName(competition), url: `${window.location.origin}/competitions/${competition.id}` });
     } catch {
       toast.error("Не удалось скачать PDF-карточку результата");
     } finally {
@@ -867,12 +874,14 @@ export default function CompetitionDetail() {
         </div>
         <div className="competition-header-facts">
           {[
-            [Target, "Метрика", competition.metric_name || METRIC_LABELS[competition.metric] || competition.metric || "Не указана"],
+            [Target, "Метрика", getCompetitionMetricName(competition)],
             [Trophy, "Призовой фонд", prize || "Без приза"],
             [Clock3, "Дедлайн", status === "active" ? getDeadlineLabel(competition).split(" · ")[0] : statusLabel],
             [Flag, "Итоговый результат", status === "finished" ? "Результаты опубликованы" : "После финальной проверки"],
           ].map(([Icon, label, value], index) => <div key={label} className={cn("competition-header-fact", index === 2 && "competition-header-fact--deadline")}>
-            <Icon size={22} /><div><span>{label}</span><strong>{value}</strong>{index === 2 && status === "active" && <small>{getDeadlineLabel(competition).split(" · ")[1]}</small>}</div>
+            <div className="competition-header-fact__label"><Icon size={20} aria-hidden="true" /><span>{label}</span></div>
+            <strong title={value}>{index === 0 && typeof value === "string" ? value.split(/(?<=[_-])/).map((part, partIndex) => <span key={partIndex}>{part}<wbr /></span>) : value}</strong>
+            {index === 2 && status === "active" && <small>{getDeadlineLabel(competition).split(" · ")[1]}</small>}
           </div>)}
         </div>
       </header>

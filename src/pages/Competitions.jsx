@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { getCompetitionMetricName, TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 import "./Competitions.css";
 
@@ -98,7 +98,13 @@ export default function Competitions() {
   });
   const serverCompetitions = Array.isArray(competitionsResponse) ? competitionsResponse : competitionsResponse?.data || competitionsResponse?.items || [];
 
-  const competitions = serverCompetitions;
+  const metricsQuery = useQuery({
+    queryKey: ["catalog-metrics"], queryFn: api.catalogs.metrics, staleTime: 60000,
+    enabled: serverCompetitions.some((competition) => !competition.metric_name || competition.metric_name === competition.metric),
+  });
+  const competitions = useMemo(() => serverCompetitions.map((competition) => ({
+    ...competition, metric_name: getCompetitionMetricName(competition, metricsQuery.data),
+  })), [serverCompetitions, metricsQuery.data]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
