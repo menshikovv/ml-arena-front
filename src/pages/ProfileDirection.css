@@ -108,6 +108,10 @@
 .passport-submission > summary small { display: block; margin-top: 5px; color: hsl(var(--muted-foreground)); font-size: 12px; }
 .passport-submission__body { padding-bottom: 18px; }
 .passport-submission__body .passport-evidence-link { margin-top: 18px; }
+.passport-submission__files { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 20px; border-top: 1px solid hsl(var(--border)); padding-top: 20px; }
+.passport-submission__files > section { min-width: 0; }
+.passport-submission__files h5 { font-size: 14px; font-weight: 700; }
+.passport-submission__files .passport-evidence-link { max-width: 100%; overflow-wrap: anywhere; }
 .passport-evidence-notice { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; padding: 14px; border-left: 3px solid hsl(var(--primary)); background: hsl(var(--primary) / 6%); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .passport-evidence-muted { display: flex; align-items: start; gap: 8px; margin-top: 18px; color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 1.6; }
 .passport-evidence-muted svg { flex: none; margin-top: 2px; }
@@ -125,6 +129,7 @@
   .passport-result > summary > svg { grid-column: 4; grid-row: 1; }
 }
 @container (max-width: 600px) {
+  .passport-submission__files { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .passport-direction-detail__heading { flex-direction: column; }
   .passport-direction-detail__heading h2 { font-size: 25px; }
   .passport-evidence-section h3 { font-size: 18px; }

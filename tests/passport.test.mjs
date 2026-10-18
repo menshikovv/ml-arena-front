@@ -58,6 +58,47 @@ test("submission statistics handle minimizing metrics, zeros and unknown directi
   assert.equal(zero.improvementPercent, null);
 });
 
+test("best public result does not depend on a baseline or a loaded metric catalog", () => {
+  const submissions = [0.55118, 0.87594].map((public_score, index) => ({ id: String(index), status: "scored", public_score, created_at: `2026-10-${13 + index}` }));
+  for (const competition of [{ metric_direction: "maximize" }, { metric: "ml_arena_tech_smena_ndcg_5_v1" }]) {
+    const data = submissionStatistics(submissions, competition, undefined);
+    assert.equal(data.best.public_score, 0.87594);
+    assert.equal(data.baselineKnown, false);
+    assert.equal(data.improvement, null);
+  }
+  assert.equal(submissionStatistics(submissions, { metric: "unknown", metric_direction: "minimize" }, "maximize").best.public_score, 0.55118);
+  assert.equal(submissionStatistics(submissions, { metric: "mae" }, "maximize").best.public_score, 0.87594);
+});
+
+test("unknown metrics may use only the authoritative public score without guessing baseline comparison", () => {
+  const submissions = [{ id: "one", status: "evaluated", public_score: 0.3 }, { id: "two", status: "completed", public_score: "0.8" }];
+  const data = submissionStatistics(submissions, { baseline_score: 0.4 }, undefined, "0.8");
+  assert.equal(data.best.id, "two");
+  assert.equal(data.best.public_score, 0.8);
+  assert.equal(data.baselineKnown, false);
+  assert.equal(data.improvement, null);
+  assert.equal(data.beaten, null);
+  assert.equal(submissionStatistics(submissions, {}, undefined, 0.9).best, null);
+  assert.equal(submissionStatistics(submissions, {}, undefined).best, null);
+});
+
+test("public statistics keep zero and legacy scores, ignore invalid values, and never use private scores", () => {
+  const submissions = [
+    { id: "zero", status: "completed", public_score: "0", private_score: 100 },
+    { id: "legacy", status: "evaluated", score: 0.5, private_score: 200 },
+    { id: "bad", status: "failed", public_score: 1000 },
+    { id: "empty", status: "scored", public_score: " " },
+    { id: "boolean", status: "scored", public_score: false },
+    { id: "private-only", status: "scored", private_score: 999 },
+  ];
+  const data = submissionStatistics(submissions, { metric_direction: "maximize" });
+  assert.equal(data.valid.length, 2);
+  assert.equal(data.best.id, "legacy");
+  assert.equal(submissionStatistics([submissions[0]], {}).best.public_score, 0);
+  assert.equal(submissionStatistics([], {}).best, null);
+  assert.equal(submissions[1].public_score, undefined);
+});
+
 test("pagination reads arrays and nested envelopes without dropping the second page", async () => {
   const items = Array.from({ length: 135 }, (_, id) => ({ id }));
   const pages = [];

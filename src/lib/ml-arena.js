@@ -42,6 +42,10 @@ export function getCompetitionStatus(competition, now = Date.now()) {
   return competition.status;
 }
 
+export function getAdminCompetitionStatus(competition, now = Date.now()) {
+  return getCompetitionStatus(competition, now) === "closed" ? "closed" : competition.status;
+}
+
 export function canChangeCompetitionTask(competition) {
   return !competition || ["draft", "moderation"].includes(competition.status);
 }
@@ -96,6 +100,17 @@ export function getSubmissionScore(submission, kind = "public") {
 export function canShowPrivateScore(competition, submission) {
   return ["completed", "finished", "archived"].includes(competition.status)
     && submission.private_score_revealed !== false;
+}
+
+export function shouldCheckPrivateLeaderboard(competition, now = Date.now()) {
+  if (["completed", "finished", "archived", "finalizing"].includes(competition.status)) return true;
+  const deadline = getCompetitionDeadlineTime(competition);
+  return ["active", "paused"].includes(competition.status) && deadline !== null && deadline <= now;
+}
+
+export function isPrivateLeaderboardPublished(competition, response, now = Date.now()) {
+  return shouldCheckPrivateLeaderboard(competition, now)
+    && response?.kind === "private" && response.private_locked === false;
 }
 
 export function getCompetitionMetricDirection(competition) {

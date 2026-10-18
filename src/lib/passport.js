@@ -1,3 +1,5 @@
+import { getCompetitionMetricDirection, getSubmissionScore } from "./ml-arena.js";
+
 export const directionKey = (value) => value === "computer_vision" ? "cv" : value;
 export const numberOrNull = (value) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
 export const median = (values) => {
@@ -92,17 +94,23 @@ export function directionEvidence(evidence, code, ownerId, now = Date.now()) {
   };
 }
 
-export function submissionStatistics(submissions, competition, metricDirection) {
+export function submissionStatistics(submissions, competition, metricDirection, publicBestScore = null) {
   const ordered = [...submissions].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
-  const valid = ordered.filter((item) => ["scored", "evaluated"].includes(item.status) && numberOrNull(item.public_score) != null);
+  const valid = ordered.filter((item) => ["scored", "evaluated", "completed"].includes(item.status) && getSubmissionScore(item) != null)
+    .map((item) => ({ ...item, public_score: getSubmissionScore(item) }));
   const baseline = numberOrNull(competition.baseline_score);
-  const higher = metricDirection === "maximize";
-  const knownDirection = ["maximize", "minimize"].includes(metricDirection);
+  const direction = ["maximize", "minimize"].includes(competition.metric_direction) ? competition.metric_direction
+    : ["maximize", "minimize"].includes(metricDirection) ? metricDirection : getCompetitionMetricDirection(competition);
+  const higher = direction === "maximize";
+  const knownDirection = ["maximize", "minimize"].includes(direction);
   const better = (a, b) => higher ? a > b : a < b;
-  const best = knownDirection ? valid.reduce((current, item) => !current || better(Number(item.public_score), Number(current.public_score)) ? item : current, null) : null;
+  const authoritative = getSubmissionScore({ public_score: publicBestScore });
+  const sameScores = valid.length > 0 && valid.every((item) => item.public_score === valid[0].public_score);
+  const best = knownDirection ? valid.reduce((current, item) => !current || better(item.public_score, current.public_score) ? item : current, null)
+    : valid.find((item) => item.public_score === authoritative) || (sameScores ? valid[0] : null);
   const beaten = baseline != null && knownDirection ? valid.find((item) => better(Number(item.public_score), baseline)) : null;
   const start = Date.parse(competition.starts_at);
   const minutes = beaten && Number.isFinite(start) && Date.parse(beaten.created_at) >= start ? Math.round((Date.parse(beaten.created_at) - start) / 60000) : null;
-  const improvement = best && baseline != null ? (higher ? Number(best.public_score) - baseline : baseline - Number(best.public_score)) : null;
+  const improvement = best && baseline != null && knownDirection ? (higher ? Number(best.public_score) - baseline : baseline - Number(best.public_score)) : null;
   return { ordered, valid, best, baseline, beaten, minutes, baselineKnown: baseline != null && knownDirection, improvement, improvementPercent: improvement != null && baseline !== 0 ? improvement / Math.abs(baseline) * 100 : null, attemptsToBaseline: beaten ? ordered.findIndex((item) => item.id === beaten.id) + 1 : null };
 }

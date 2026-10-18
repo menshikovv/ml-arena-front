@@ -3,9 +3,10 @@ import { after, before, test } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StaticRouter } from "react-router-dom/server.js";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
-import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore, getCompetitionMetricDirection, getCompetitionMetricName, getCompetitionDeadlineTime, getCompetitionStatus, canChangeCompetitionTask, getCompetitionTaskPayload } from "../src/lib/ml-arena.js";
+import { getSubmissionScore, SUBMISSION_STATUS_LABELS, canShowPrivateScore, getCompetitionMetricDirection, getCompetitionMetricName, getCompetitionDeadlineTime, getCompetitionStatus, getAdminCompetitionStatus, canChangeCompetitionTask, getCompetitionTaskPayload, shouldCheckPrivateLeaderboard, isPrivateLeaderboardPublished } from "../src/lib/ml-arena.js";
 import { composeCompetitionDescription, getCompetitionMetricDescription, splitCompetitionDescription } from "../src/lib/competitionMetricContent.js";
 
 let server;
@@ -14,20 +15,75 @@ let CompetitionSummary;
 let CompetitionCodeSample;
 let CompetitionCard;
 let CompetitionMetricExplanation;
+let CompetitionsSection;
+let CompetitionFinalResults;
+let SubmissionRow;
+let CompetitionEvidence;
+let SourceCodeAttachment;
+let SubmissionSourceCode;
 
 before(async () => {
   globalThis.window = { self: null, top: null };
-  server = await createServer({ configFile: false, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
+  server = await createServer({ configFile: false, cacheDir: fileURLToPath(new URL("../node_modules/.vite-tests/competition-content", import.meta.url)), esbuild: { jsx: "automatic" }, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
   ({ CompetitionContent, CompetitionSummary, CompetitionCodeSample, CompetitionMetricExplanation } = await server.ssrLoadModule("/src/components/ml/CompetitionContent.jsx"));
   ({ default: CompetitionCard } = await server.ssrLoadModule("/src/components/ml/CompetitionCard.jsx"));
+  ({ CompetitionsSection, CompetitionFinalResults } = await server.ssrLoadModule("/src/pages/Admin.jsx"));
+  ({ SubmissionRow, CompetitionEvidence } = await server.ssrLoadModule("/src/pages/ProfileDirection.jsx"));
+  ({ SourceCodeAttachment, default: SubmissionSourceCode } = await server.ssrLoadModule("/src/components/ml/SubmissionSourceCode.jsx"));
 });
 
 after(async () => { await server?.close(); delete globalThis.window; });
 
-function renderEvent(overrides = {}, status = "active") {
+test("passport distinguishes prediction CSV from participant source code", () => {
+  const html = renderToStaticMarkup(React.createElement(StaticRouter, null, React.createElement(SubmissionRow, { competitionId: "event-1", submission: { id: "submission-1", status: "scored", original_filename: "answers.csv", file_url: "https://storage.example/answers.csv", public_score: 0.5 } })));
+  assert.match(html, /Файл ответов \(CSV\)/);
+  assert.match(html, /Скачать ответы \(CSV\)/);
+  assert.match(html, /Код решения/);
+  assert.match(html, /href="\/competitions\/event-1\/submit\?submission_id=submission-1"/);
+  assert.doesNotMatch(html, /Открыть файл решения/);
+  const invalid = renderToStaticMarkup(React.createElement(StaticRouter, null, React.createElement(SubmissionRow, { submission: { id: "failed", status: "failed", file_url: "javascript:alert(1)" } })));
+  assert.match(invalid, /только к оценённой отправке/);
+  assert.doesNotMatch(invalid, /javascript:/);
+});
+
+test("passport displays best public result without baseline or metric catalog data", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const submissions = [0.55118, 0.87594].map((public_score, index) => ({ id: String(index), public_score, status: "scored", created_at: `2026-10-${13 + index}` }));
+  client.setQueryData(["passport-submissions", "event", "me"], submissions);
+  const item = { competition: { id: "event", metric: "ml_arena_tech_smena_ndcg_5_v1", title: "Техносмена", status: "active" }, result: { user_id: "me", leaderboard_kind: "public", score: 0.87594 } };
+  const html = renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(StaticRouter, null, React.createElement(CompetitionEvidence, { item, metrics: [] }))));
+  assert.match(html, /Лучший публичный результат<\/span><strong[^>]*>0,87594/);
+  assert.match(html, /Базовая оценка не задана/);
+  client.clear();
+});
+
+test("passport source attachment is download-only and does not mistake CSV for code", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  client.setQueryData(["submission-source-code", "submission-1"], { submission_id: "submission-1", version: 2, replacement_allowed: true, file: { original_filename: "solution.ipynb", size_bytes: 1024 }, download_url: "https://storage.example/stale-signed-url" });
+  const html = renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(SourceCodeAttachment, { submissionId: "submission-1", readOnly: true })));
+  assert.match(html, /solution.ipynb/);
+  assert.match(html, /Скачать код/);
+  assert.doesNotMatch(html, /type="file"|Заменить файл|Выбрать файл|stale-signed-url|Замена файла закрыта/);
+  client.setQueryData(["submission-source-code", "submission-1"], null);
+  const missing = renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(SourceCodeAttachment, { submissionId: "submission-1", readOnly: true })));
+  assert.match(missing, /Итоговый код ещё не прикреплён/);
+  assert.doesNotMatch(missing, /Скачать код/);
+  client.clear();
+});
+
+test("upload link selects only the requested submission that belongs to the eligible list", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const submissions = [{ id: "best", status: "scored", public_score: 0.9 }, { id: "requested", status: "scored", public_score: 0.5 }];
+  const render = (id) => renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(StaticRouter, { location: `/competitions/event/submit?submission_id=${id}` }, React.createElement(SubmissionSourceCode, { competition: { metric: "ndcg", status: "active" }, submissions }))));
+  assert.match(render("requested"), /<option value="requested" selected=""/);
+  assert.match(render("foreign-submission"), /<option value="best" selected=""/);
+  client.clear();
+});
+
+function renderEvent(overrides = {}, status = "active", featured = false) {
   return renderToStaticMarkup(React.createElement(StaticRouter, { location: "/competitions" }, React.createElement(CompetitionCard, {
     competition: { id: "event", title: "Техносмена", origin: "official", task_type: "ranking", metric: "custom_ndcg_v1", rated: false, participants_count: 3, submission_deadline: new Date(Date.now() + 3 * 86400000).toISOString(), short_description: "Краткое условие.", description: "Полное условие. ".repeat(500), ...overrides },
-    status, meta: { difficulty: "medium", access: "Открыто" },
+    status, featured, meta: { difficulty: "medium", access: "Открыто" },
   })));
 }
 
@@ -76,6 +132,39 @@ test("community and non-active events do not gain the active showcase", () => {
   assert.doesNotMatch(renderEvent({}, "finished"), /competition-event--showcase|competition-factory/);
 });
 
+test("featured archive cards retain status semantics without the active artwork", () => {
+  for (const [status, message] of [["closed", "Ожидаются итоги"], ["finalizing", "Идёт финальный пересчёт"], ["finished", "Результаты опубликованы"]]) {
+    const html = renderEvent({}, status, true);
+    assert.match(html, /competition-event--featured/);
+    assert.doesNotMatch(html, /competition-event--showcase|competition-factory/);
+    assert.ok(html.includes(message));
+  }
+});
+
+test("admin finalization explains blocked lifecycle and permits only server-supported publication", () => {
+  const render = (status, overrides = {}) => renderToStaticMarkup(React.createElement(CompetitionFinalResults, {
+    competition: { status, submission_deadline: "2000-01-01" }, permissions: new Set(["leaderboards.reveal"]), reason: "Проверка завершена", onReasonChange: () => {}, onPublish: () => {}, ...overrides,
+  }));
+  const closed = render("active");
+  assert.match(closed, /сервер ещё не перевёл соревнование в финализацию/);
+  assert.match(closed, /<button[^>]*disabled=""/);
+  assert.doesNotMatch(closed, /<input/);
+  const finalizing = render("finalizing");
+  assert.match(finalizing, /Основание публикации итогов/);
+  assert.match(finalizing, /Опубликовать итоги/);
+  assert.doesNotMatch(finalizing, /disabled=""/);
+  for (const overrides of [{ reason: "  " }, { reason: "a".repeat(1001) }, { pending: true }]) {
+    assert.match(render("finalizing", overrides), /<button[^>]*disabled=""/);
+  }
+  const restricted = render("finalizing", { permissions: new Set() });
+  assert.match(restricted, /нужно право leaderboards.reveal/);
+  assert.doesNotMatch(restricted, /<button|<input/);
+  assert.match(render("completed"), /Итоги опубликованы/);
+  assert.match(render("completed"), /Обновить итоговый рейтинг/);
+  assert.equal(render("draft"), "");
+  assert.equal(render("archived"), "");
+});
+
 test("active competitions close at the exact submission deadline without mutating server status", () => {
   const competition = { status: "active", submission_deadline: "2026-10-16T18:00:00+03:00" };
   const deadline = Date.parse("2026-10-16T15:00:00Z");
@@ -84,6 +173,42 @@ test("active competitions close at the exact submission deadline without mutatin
   assert.equal(getCompetitionStatus(competition, deadline), "closed");
   assert.equal(getCompetitionStatus(competition, deadline + 1), "closed");
   assert.equal(competition.status, "active");
+});
+
+test("admin marks an expired active competition as closed without changing lifecycle states", () => {
+  const now = Date.parse("2026-10-18T12:00:00Z");
+  const competition = { status: "active", submission_deadline: "2026-10-18T12:00:00Z" };
+  assert.equal(getAdminCompetitionStatus(competition, now - 1), "active");
+  assert.equal(getAdminCompetitionStatus(competition, now), "closed");
+  assert.equal(getAdminCompetitionStatus({ status: "active", deadline: "2026-10-16" }, now), "closed");
+  assert.equal(competition.status, "active");
+  for (const status of ["draft", "moderation", "scheduled", "paused", "finalizing", "completed", "finished", "archived"]) {
+    assert.equal(getAdminCompetitionStatus({ ...competition, status }, now), status);
+  }
+  assert.equal(getAdminCompetitionStatus({ status: "active", deadline: "invalid" }, now), "active");
+});
+
+test("admin table renders closed deadlines and hides pause while preserving completed and archived statuses", () => {
+  function renderAdmin(competition) {
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false, gcTime: Infinity } } });
+    client.setQueryData(["admin", "competitions", "all"], { data: { items: [{ id: "admin-event", title: "Test event", ...competition }] }, meta: { total: 1 } });
+    const html = renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(CompetitionsSection, { permissions: new Set(["competitions.read", "competitions.pause", "leaderboards.reveal"]), requestAction: () => {} })));
+    client.clear();
+    return html;
+  }
+  const closed = renderAdmin({ status: "active", submission_deadline: "2000-01-01" });
+  assert.match(closed, /Приём завершён/);
+  assert.match(closed, /Ожидаются итоги/);
+  assert.match(closed, /Подвести итоги/);
+  assert.doesNotMatch(closed, /Активен<\/span>|Пауза<\/button>/);
+  const active = renderAdmin({ status: "active", submission_deadline: "2099-01-01" });
+  assert.match(active, /Активен<\/span>/);
+  assert.match(active, /Пауза<\/button>/);
+  assert.doesNotMatch(active, /Ожидаются итоги/);
+  assert.doesNotMatch(active, /Подвести итоги/);
+  assert.match(renderAdmin({ status: "completed", deadline: "2000-01-01" }), /Завершено<\/span>/);
+  assert.match(renderAdmin({ status: "finished", deadline: "2000-01-01" }), /Завершено<\/span>/);
+  assert.match(renderAdmin({ status: "archived", deadline: "2000-01-01" }), /В архиве<\/span>/);
 });
 
 test("deadline resolution prefers the canonical field and supports legacy deadlines", () => {
@@ -131,6 +256,27 @@ test("passing deadline or planned results date never publishes private assessmen
   assert.equal(getCompetitionStatus(competition), "closed");
   assert.equal(canShowPrivateScore(competition, { status: "scored", private_score: 0.55, private_score_revealed: true }), false);
   assert.equal(getCompetitionStatus({ status: "active", final_results_at: "2020-01-02" }), "active");
+});
+
+test("private leaderboard is checked after the exact deadline or during finalization", () => {
+  const deadline = Date.parse("2026-10-18T12:00:00Z");
+  const competition = { status: "active", submission_deadline: new Date(deadline).toISOString() };
+  assert.equal(shouldCheckPrivateLeaderboard(competition, deadline - 1), false);
+  assert.equal(shouldCheckPrivateLeaderboard(competition, deadline), true);
+  for (const status of ["finalizing", "completed", "finished", "archived"]) assert.equal(shouldCheckPrivateLeaderboard({ status }, deadline), true);
+  for (const status of ["draft", "moderation", "scheduled"]) assert.equal(shouldCheckPrivateLeaderboard({ ...competition, status }, deadline), false);
+  assert.equal(shouldCheckPrivateLeaderboard({ status: "active", final_results_at: "2020-01-01" }, deadline), false);
+});
+
+test("only an explicitly unlocked private response publishes final scores", () => {
+  const competition = { status: "active", deadline: "2020-01-01" };
+  const ready = { kind: "private", private_locked: false, items: [] };
+  assert.equal(isPrivateLeaderboardPublished(competition, ready), true);
+  assert.equal(isPrivateLeaderboardPublished(competition, { ...ready, private_locked: true }), false);
+  assert.equal(isPrivateLeaderboardPublished(competition, { kind: "private" }), false);
+  assert.equal(isPrivateLeaderboardPublished(competition, { ...ready, kind: "public" }), false);
+  assert.equal(isPrivateLeaderboardPublished({ status: "completed" }, undefined), false);
+  assert.equal(isPrivateLeaderboardPublished({ status: "active", deadline: "2099-01-01" }, ready), false);
 });
 
 test("closed competition cards distinguish awaiting results from completed events", () => {

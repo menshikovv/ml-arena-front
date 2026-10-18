@@ -9,7 +9,7 @@ let server;
 let api;
 let uploadSubmissionSourceCode;
 before(async () => {
-  server = await createServer({ configFile: false, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
+  server = await createServer({ configFile: false, cacheDir: fileURLToPath(new URL("../node_modules/.vite-tests/submission-source-code", import.meta.url)), resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
   ({ api, uploadSubmissionSourceCode } = await server.ssrLoadModule("/src/api/mlArenaApi.js"));
   const { setAccessToken } = await server.ssrLoadModule("/src/api/client.js");
   setAccessToken("test-source-token");

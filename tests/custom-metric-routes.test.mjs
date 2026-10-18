@@ -6,8 +6,23 @@ let server;
 let api;
 
 before(async () => {
-  server = await createServer({ configLoader: "runner", mode: "test", server: { middlewareMode: true }, appType: "custom" });
+  server = await createServer({ configLoader: "runner", mode: "test", cacheDir: "node_modules/.vite-tests/custom-metric-routes", optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
   ({ api } = await server.ssrLoadModule("/src/api/mlArenaApi.js"));
+});
+
+test("publishing private results sends the required audit reason", async () => {
+  const originalFetch = globalThis.fetch;
+  let request;
+  globalThis.fetch = async (url, init) => {
+    request = { url, ...init };
+    return new Response(JSON.stringify({ data: { id: "snapshot-id", kind: "private" } }), { status: 200 });
+  };
+  try {
+    await api.admin.revealPrivateLeaderboard("competition-id", "Проверка решений завершена");
+    assert.equal(new URL(request.url, "http://localhost").pathname, "/api/v1/admin/competitions/competition-id/leaderboard/reveal-private");
+    assert.equal(request.method, "POST");
+    assert.deepEqual(JSON.parse(request.body), { reason: "Проверка решений завершена" });
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 after(async () => {

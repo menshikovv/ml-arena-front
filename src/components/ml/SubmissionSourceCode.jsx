@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Download, FileCode2, Loader2, Lock, RefreshCw, Upload } from "lucide-react";
 import { api, uploadSubmissionSourceCode } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ function sizeLabel(bytes) {
   return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} МиБ` : `${Math.ceil(bytes / 1024)} КиБ`;
 }
 
-function SourceCodeAttachment({ submissionId, onBusyChange }) {
+export function SourceCodeAttachment({ submissionId, onBusyChange = () => {}, readOnly = false }) {
   const queryClient = useQueryClient();
   const input = useRef(null);
   const inFlight = useRef(false);
@@ -47,7 +48,7 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
   const source = sourceQuery.data;
   const pending = Boolean(stage);
   const rejectedAsClosed = windowClosed || isSourceCodeWindowClosedError(sourceQuery.error);
-  const canUpload = !rejectedAsClosed && sourceQuery.isSuccess && (!source || canReplaceSourceCode(source, now));
+  const canUpload = !readOnly && !rejectedAsClosed && sourceQuery.isSuccess && (!source || canReplaceSourceCode(source, now));
 
   useEffect(() => {
     setNow(Date.now());
@@ -115,37 +116,42 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
 
   return <div className="mt-4 space-y-4">
     {sourceQuery.isPending && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={16} className="animate-spin" />Загружаем данные файла</p>}
-    {sourceQuery.isError && !rejectedAsClosed && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-destructive"><p>{getSourceCodeErrorMessage(sourceQuery.error, "Не удалось получить итоговый код.")}</p><Button variant="outline" size="sm" onClick={() => sourceQuery.refetch()}><RefreshCw size={14} /> Повторить</Button></div>}
+    {sourceQuery.isError && !rejectedAsClosed && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-destructive dark:text-red-400"><p>{getSourceCodeErrorMessage(sourceQuery.error, "Не удалось получить итоговый код.")}</p><Button variant="outline" size="sm" className="text-foreground hover:bg-secondary hover:text-foreground" onClick={() => sourceQuery.refetch()}><RefreshCw size={14} /> Повторить</Button></div>}
     {source?.file && <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-4">
       <div className="flex min-w-0 flex-1 items-start gap-3"><FileCode2 size={22} className="mt-1 shrink-0 text-primary" /><div className="min-w-0">
         <p className="break-all text-sm font-semibold">{source.file.original_filename}</p>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">{sizeLabel(source.file.size_bytes)} · Версия {source.version}{source.uploaded_at ? ` · ${dateLabel(source.uploaded_at)}` : ""}</p>
       </div></div>
-      <Button type="button" variant="outline" size="sm" onClick={download} disabled={pending || downloading}>{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Скачать</Button>
+      <Button type="button" variant="outline" size="sm" className="text-foreground hover:bg-secondary hover:text-foreground" onClick={download} disabled={pending || downloading}>{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Скачать код</Button>
     </div>}
     {sourceQuery.isSuccess && !source?.file && <p className="text-sm text-muted-foreground">Итоговый код ещё не прикреплён.</p>}
-    {(source || rejectedAsClosed) && <p role="status" className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">{canUpload ? <RefreshCw size={14} className="mt-0.5 shrink-0" /> : <Lock size={14} className="mt-0.5 shrink-0" />}<span>{rejectedAsClosed ? "Срок загрузки и замены итогового кода истёк. Прикрепить файл больше нельзя." : canUpload ? source.replace_until ? `Замена доступна до ${dateLabel(source.replace_until)}` : "Замена файла разрешена" : source.file ? "Замена файла закрыта" : "Прикрепление кода закрыто"}</span></p>}
+    {!readOnly && (source || rejectedAsClosed) && <p role="status" className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">{canUpload ? <RefreshCw size={14} className="mt-0.5 shrink-0" /> : <Lock size={14} className="mt-0.5 shrink-0" />}<span>{rejectedAsClosed ? "Срок загрузки и замены итогового кода истёк. Прикрепить файл больше нельзя." : canUpload ? source.replace_until ? `Замена доступна до ${dateLabel(source.replace_until)}` : "Замена файла разрешена" : source.file ? "Замена файла закрыта" : "Прикрепление кода закрыто"}</span></p>}
+    {readOnly && rejectedAsClosed && !source?.file && <p className="text-sm text-muted-foreground">Итоговый код недоступен. Срок прикрепления файла истёк.</p>}
     {canUpload && <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <input ref={input} id={`source-code-file-${submissionId}`} type="file" accept=".py,.ipynb,.zip" disabled={pending || downloading} className="sr-only" onChange={(event) => chooseFile(event.target.files?.[0])} />
-      <Button type="button" variant="outline" className="min-h-11 min-w-0 flex-1 justify-start text-left" onClick={() => input.current?.click()} disabled={pending || downloading}><FileCode2 size={17} className="shrink-0" /><span className="truncate">{file ? file.name : source ? "Выбрать новый файл" : "Выбрать файл кода"}</span></Button>
+      <Button type="button" variant="outline" className="min-h-11 min-w-0 flex-1 justify-start text-left text-foreground hover:bg-secondary hover:text-foreground" onClick={() => input.current?.click()} disabled={pending || downloading}><FileCode2 size={17} className="shrink-0" /><span className="truncate">{file ? file.name : source ? "Выбрать новый файл" : "Выбрать файл кода"}</span></Button>
       <Button type="button" className="min-h-11 shrink-0" onClick={attach} disabled={!file || pending || downloading}>{pending ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}{pending ? "Загрузка…" : source ? "Заменить файл" : "Прикрепить код"}</Button>
     </div>}
     {pending && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{STAGES[stage]}</p>}
     {saved && <p role="status" className="flex items-center gap-2 text-sm text-accent"><CheckCircle2 size={17} />Итоговый код прикреплён к решению.</p>}
-    {error && <p role="alert" className="flex items-start gap-2 border border-destructive/20 bg-destructive/5 p-3 text-sm leading-6 text-destructive"><AlertCircle size={17} className="mt-1 shrink-0" /><span className="min-w-0 break-words">{error}</span></p>}
+    {error && <p role="alert" className="flex items-start gap-2 border border-destructive/20 bg-destructive/5 p-3 text-sm leading-6 text-destructive dark:text-red-400"><AlertCircle size={17} className="mt-1 shrink-0" /><span className="min-w-0 break-words">{error}</span></p>}
   </div>;
 }
 
 export default function SubmissionSourceCode({ competition, participation, submissions }) {
+  const [searchParams] = useSearchParams();
+  const requestedId = searchParams.get("submission_id") || "";
   const eligible = submissions.filter(isEvaluatedSubmission);
   const best = findBestSourceSubmission(eligible, competition, participation);
   const [chosenId, setChosenId] = useState("");
   const [busy, setBusy] = useState(false);
-  const selectedId = eligible.some((item) => item.id === chosenId) ? chosenId : best?.id || eligible[0]?.id || "";
+  const selectedId = eligible.some((item) => item.id === chosenId) ? chosenId : eligible.some((item) => item.id === requestedId) ? requestedId : best?.id || eligible[0]?.id || "";
+  useEffect(() => { setChosenId(requestedId); }, [requestedId]);
   const selected = eligible.find((item) => item.id === selectedId);
   const privateVisible = selected && canShowPrivateScore(competition, selected) && getSubmissionScore(selected, "private") != null;
   return <section className="mt-8 min-w-0 rounded-lg border border-border bg-card p-4 sm:p-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-heading text-lg font-bold">Итоговый код решения</h3><span className="text-xs text-muted-foreground">.py · .ipynb · .zip · до 100 МиБ</span></div>
+    <p className="mt-3 text-sm leading-6 text-muted-foreground">Итоговый код обязателен для финального рейтинга. CSV с ответами не заменяет код решения.</p>
     {!eligible.length ? <p className="mt-4 text-sm text-muted-foreground">Пока нет оценённых решений для прикрепления кода.</p> : <>
       <label htmlFor="source-code-submission" className="mt-4 block text-xs font-semibold text-muted-foreground">Оценённое решение</label>
       <select id="source-code-submission" value={selectedId} disabled={busy} onChange={(event) => setChosenId(event.target.value)} className="mt-2 h-11 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground">

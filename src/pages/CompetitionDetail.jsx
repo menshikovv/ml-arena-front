@@ -51,6 +51,8 @@ import {
   SUBMISSION_STATUS_LABELS,
   getSubmissionScore,
   canShowPrivateScore,
+  shouldCheckPrivateLeaderboard,
+  isPrivateLeaderboardPublished,
 } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
 import { useCompetitionClock } from "@/hooks/use-competition-clock";
@@ -504,19 +506,35 @@ function SubmitTab({ competition, participation, submissions, onSubmitted, locke
   );
 }
 
-function LeaderboardTab({ competition }) {
-  const [mode, setMode] = useState("public");
+export function LeaderboardTab({ competition }) {
+  const [selectedMode, setMode] = useState(null);
   const [search, setSearch] = useState("");
+  const now = useCompetitionClock([competition]);
+  const checkPrivate = shouldCheckPrivateLeaderboard(competition, now);
+  const params = { ...(search.trim() ? { q: search.trim() } : {}), limit: 100, offset: 0 };
+  const privateQuery = useQuery({
+    queryKey: ["competition-private-availability", competition.id],
+    queryFn: () => api.competitions.leaderboard(competition.id, { kind: "private", limit: 1, offset: 0 }),
+    enabled: checkPrivate,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: "always",
+    retry: false,
+  });
+  const lockedPrivate = !isPrivateLeaderboardPublished(competition, privateQuery.data, now);
+  const mode = selectedMode === "public" || lockedPrivate ? "public" : "private";
   const leaderboardQuery = useQuery({
     queryKey: ["competition-leaderboard", competition.id, mode, search.trim()],
-    queryFn: () => api.competitions.leaderboard(competition.id, { kind: mode, ...(search.trim() ? { q: search.trim() } : {}), limit: 100, offset: 0 }),
+    queryFn: () => api.competitions.leaderboard(competition.id, { ...params, kind: mode }),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: "always",
   });
-  const response = leaderboardQuery.data || {};
+  const validResponse = mode !== "private" || isPrivateLeaderboardPublished(competition, leaderboardQuery.data, now);
+  const invalidResponse = leaderboardQuery.isSuccess && !validResponse;
+  const response = validResponse ? leaderboardQuery.data || {} : {};
   const current = response.current_user;
   const rows = response.items || [];
   const leaderboard = current && !rows.some((row) => row.user_id === current.user_id) ? [...rows, current] : rows;
-  const normalized = leaderboard.map((row) => ({ ...row, id: row.user_id, score: Number(row.best_score), is_current_user: current?.user_id === row.user_id }));
-  const lockedPrivate = Boolean(response.private_locked) || getCompetitionStatus(competition) !== "finished";
+  const normalized = leaderboard.map((row) => ({ ...row, id: row.user_id, score: getSubmissionScore({ score: row.best_score }), is_current_user: current?.user_id === row.user_id }));
   const currentUser = normalized.find((submission) => submission.is_current_user);
 
   return (
@@ -526,10 +544,11 @@ function LeaderboardTab({ competition }) {
           <h2 className="font-heading text-2xl font-bold">Рейтинг участников</h2>
         </div>
         <div className="flex border border-border p-1">
-          <button type="button" onClick={() => setMode("public")} className={cn("h-8 px-4 text-xs font-semibold", mode === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Промежуточный</button>
+          <button type="button" aria-pressed={mode === "public"} onClick={() => setMode("public")} className={cn("h-8 px-4 text-xs font-semibold", mode === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Промежуточный</button>
           <button
             type="button"
             disabled={lockedPrivate}
+            aria-pressed={mode === "private"}
             onClick={() => setMode("private")}
             className={cn("flex h-8 items-center gap-1.5 px-4 text-xs font-semibold", mode === "private" ? "bg-primary text-primary-foreground" : "text-muted-foreground", lockedPrivate && "opacity-50")}
           >
@@ -542,7 +561,10 @@ function LeaderboardTab({ competition }) {
       {lockedPrivate && (
         <div className="mt-5 flex gap-3 border border-primary/20 bg-primary/5 p-4">
           <Lock className="mt-0.5 shrink-0 text-primary" size={17} />
-          <p className="text-xs leading-5 text-muted-foreground">Итоговая оценка скрыта до завершения. Места определяются после пересчёта на закрытой выборке.</p>
+          <div className="min-w-0 text-xs leading-5 text-muted-foreground" role="status">
+            <p>{!checkPrivate ? "Итоговая оценка станет доступна после дедлайна и публикации результатов." : privateQuery.isPending ? "Проверяем доступность итогового рейтинга на закрытой выборке." : privateQuery.isError ? "Не удалось проверить доступность итоговых оценок." : "Приём решений завершён. Сервер ещё не опубликовал закрытые оценки. Итоговый рейтинг появится автоматически после публикации."}</p>
+            {checkPrivate && <button type="button" className="mt-1 font-semibold text-primary hover:underline disabled:opacity-50" disabled={privateQuery.isFetching} onClick={() => privateQuery.refetch()}>Проверить итоги</button>}
+          </div>
         </div>
       )}
 
@@ -565,7 +587,7 @@ function LeaderboardTab({ competition }) {
       <div className="mt-4 overflow-x-auto border-y border-border">
         <div className="min-w-[700px]">
           <div className="grid grid-cols-[60px_minmax(220px,1fr)_120px_90px_120px] border-b border-border px-3 py-3 text-xs text-muted-foreground">
-            <span>Место</span><span>Участник</span><span>Оценка</span><span>Решения</span><span>Лучшее решение</span>
+            <span>Место</span><span>Участник</span><span>{mode === "private" ? "Закрытая оценка" : "Открытая оценка"}</span><span>Решения</span><span>Лучшее решение</span>
           </div>
           {normalized.map((submission) => {
             return (
@@ -590,7 +612,8 @@ function LeaderboardTab({ competition }) {
           })}
           {leaderboardQuery.isLoading && <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="animate-spin" size={16} /> Загружаем рейтинг</div>}
           {leaderboardQuery.error && <div className="py-12 text-center text-sm text-destructive">{leaderboardQuery.error.message}</div>}
-          {!leaderboardQuery.isLoading && !leaderboardQuery.error && !normalized.length && <div className="py-12 text-center text-sm text-muted-foreground">Участники не найдены.</div>}
+          {invalidResponse && <div className="py-12 text-center text-sm text-muted-foreground">Сервер пока не предоставил итоговые закрытые оценки. Повторная проверка выполняется автоматически.</div>}
+          {!leaderboardQuery.isLoading && !leaderboardQuery.error && !invalidResponse && !normalized.length && <div className="py-12 text-center text-sm text-muted-foreground">Участники не найдены.</div>}
         </div>
       </div>
     </div>

@@ -6,6 +6,8 @@ import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, BarChart3, Check, Chevro
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
+import { SourceCodeAttachment } from "@/components/ml/SubmissionSourceCode";
+import { isEvaluatedSubmission } from "@/lib/submissionSourceCode";
 import { allPages, directionEvidence, isFinalCompetition, isOfficialResult, numberOrNull, resultDate, safeArtifactUrl, submissionStatistics, topPercent } from "@/lib/passport";
 import { ActivityChart } from "./ProfilePractice";
 import "./ProfileDirection.css";
@@ -51,26 +53,34 @@ function Verification({ result }) {
   return <ul className="passport-verification" aria-label="Проверка результата">{levels.map(([label, confirmed]) => { const status = confirmed === true ? "Подтверждено" : confirmed === false ? "Не подтверждено" : "Нет данных о проверке"; return <li key={label} title={status} className={confirmed === true ? "is-confirmed" : ""}><span aria-hidden="true">{confirmed === true ? <Check size={15} /> : "—"}</span><div>{label}<span className="sr-only">: {status}</span></div></li>; })}</ul>;
 }
 
-function SubmissionRow({ submission }) {
+export function SubmissionRow({ submission, competitionId }) {
+  const [open, setOpen] = useState(false);
   const url = safeArtifactUrl(submission.file_url);
-  return <details className="passport-submission">
-    <summary><FileText size={18} /><span><strong>{submission.original_filename || `Отправка ${submission.attempt_number || ""}`}</strong><small>{date(submission.created_at)} · {statuses[submission.status] || "Статус уточняется"}</small></span><strong>{numeric(submission.public_score, 5)}</strong><ChevronDown size={16} /></summary>
+  const evaluated = isEvaluatedSubmission(submission);
+  return <details className="passport-submission" onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary><FileText size={18} /><span><strong>{submission.original_filename || `Отправка ${submission.attempt_number || ""}`}</strong><small>{date(submission.created_at)} · Файл ответов · {statuses[submission.status] || "Статус уточняется"}</small></span><strong>{numeric(submission.public_score, 5)}</strong><ChevronDown size={16} /></summary>
     <div className="passport-submission__body"><div className="passport-evidence-metrics">
       <Metric label="Публичный результат" value={numeric(submission.public_score, 5)} />
       <Metric label="Закрытый результат" value={submission.private_score_revealed === true ? numeric(submission.private_score, 5) : "Скрыт"} />
       <Metric label="Номер попытки" value={numeric(submission.attempt_number, 0)} />
     </div>{submission.error_message && <p className="passport-evidence-notice">{submission.error_message}</p>}
-    {url ? <a className="passport-evidence-link" href={url} target="_blank" rel="noreferrer"><Download size={16} />Открыть файл решения</a> : <p className="passport-evidence-muted">Файл решения не передан сервером.</p>}</div>
+    <div className="passport-submission__files">
+      <section><h5>Файл ответов (CSV)</h5>{url ? <a className="passport-evidence-link" href={url} target="_blank" rel="noreferrer"><Download size={16} />Скачать ответы (CSV)</a> : <p className="passport-evidence-muted">Файл ответов не передан сервером.</p>}</section>
+      <section><h5>Код решения</h5>{evaluated ? <>
+        {open && <SourceCodeAttachment submissionId={submission.id} readOnly />}
+        {competitionId && <Link className="passport-evidence-link" to={`/competitions/${competitionId}/submit?submission_id=${encodeURIComponent(submission.id)}`}>Прикрепить или заменить код в соревновании<ArrowUpRight size={16} /></Link>}
+      </> : <p className="passport-evidence-muted">Код можно прикрепить только к оценённой отправке.</p>}</section>
+    </div></div>
   </details>;
 }
 
-function CompetitionEvidence({ item, metrics }) {
+export function CompetitionEvidence({ item, metrics }) {
   const { competition, result } = item;
   const [open, setOpen] = useState(false);
   const query = useQuery({ queryKey: ["passport-submissions", competition.id, result.user_id], queryFn: () => allPages((params) => api.competitions.submissions(competition.id, params)), enabled: open, staleTime: 60000, retry: 1 });
   const official = isOfficialResult(item);
   const metric = metrics.find((entry) => entry.code === competition.metric);
-  const stats = submissionStatistics(query.data || [], competition, metric?.direction);
+  const stats = submissionStatistics(query.data || [], competition, metric?.direction, result.leaderboard_kind === "public" ? result.score : null);
   const finalSubmission = stats.valid.find((entry) => entry.private_score_revealed === true && numberOrNull(entry.private_score) != null && Math.abs(Number(entry.private_score) - Number(result.score)) < 1e-9);
   const scoreGap = finalSubmission ? Number(finalSubmission.public_score) - Number(finalSubmission.private_score) : null;
   const tech = Array.isArray(result.verified_technologies) ? result.verified_technologies : [];
@@ -82,12 +92,12 @@ function CompetitionEvidence({ item, metrics }) {
       {official ? <Verification result={result} /> : <p className="passport-evidence-notice">Сообщество · код не проверен ML-Ареной. Этот результат не повышает подтверждённый уровень направления.</p>}
       <div className="passport-result__links"><Link className="passport-evidence-link" to={`/competitions/${competition.id}`}><ArrowUpRight size={16} />Открыть соревнование</Link>{safeArtifactUrl(result.repository_url) && <a className="passport-evidence-link" href={safeArtifactUrl(result.repository_url)} target="_blank" rel="noreferrer">Репозиторий решения<ArrowUpRight size={16} /></a>}</div>
       {tech.length > 0 && <p className="passport-evidence-muted">Подтверждённые технологии: {tech.map((value) => typeof value === "string" ? value : value.technology).filter(Boolean).join(", ")}</p>}
-      <h4>История решений</h4>
-      {query.isLoading ? <p className="passport-evidence-loading"><Loader2 size={18} className="animate-spin" />Загружаем отправки…</p> : query.isError ? <div className="passport-evidence-notice">Не удалось загрузить решения.<Button size="sm" variant="outline" onClick={() => query.refetch()}><RefreshCw size={14} />Повторить</Button></div> : <>
-        <div className="passport-evidence-metrics"><Metric label="Отправок" value={query.data?.length || 0} /><Metric label="Рассчитано" value={stats.valid.length} /><Metric label="Лучший публичный результат" value={numeric(stats.best?.public_score, 5)} /><Metric label="Превышение базового решения" value={stats.beaten ? "Да" : !stats.baselineKnown ? "Нет данных" : "Пока нет"} note={stats.beaten ? `${stats.attemptsToBaseline} отправок · ${numeric(stats.minutes, 0)} мин от старта` : undefined} /></div>
+      <h4>История отправок ответов</h4>
+      {query.isLoading ? <p className="passport-evidence-loading"><Loader2 size={18} className="animate-spin" />Загружаем отправки…</p> : query.isError ? <div className="passport-evidence-notice">Не удалось загрузить отправки.<Button size="sm" variant="outline" onClick={() => query.refetch()}><RefreshCw size={14} />Повторить</Button></div> : <>
+        <div className="passport-evidence-metrics"><Metric label="Отправок" value={query.data?.length || 0} /><Metric label="Рассчитано" value={stats.valid.length} /><Metric label="Лучший публичный результат" value={numeric(stats.best?.public_score, 5)} note={stats.best ? undefined : stats.valid.length ? "Не задано направление метрики" : "Нет оценённых отправок"} /><Metric label="Превышение базового решения" value={stats.beaten ? "Да" : !stats.baselineKnown ? "Нет данных" : "Пока нет"} note={stats.beaten ? `${stats.attemptsToBaseline} отправок · ${numeric(stats.minutes, 0)} мин от старта` : stats.baseline == null ? "Базовая оценка не задана" : !stats.baselineKnown ? "Не задано направление метрики" : undefined} /></div>
         <ScoreChart submissions={stats.valid} />
         <details className="passport-evidence-extra"><summary><BarChart3 size={17} aria-hidden="true" />Подробная статистика отправок<ChevronDown size={16} /></summary><div className="passport-evidence-metrics"><Metric label="Улучшение базового решения" value={numeric(stats.improvement, 5)} note={stats.improvementPercent == null ? "Базовое решение или направление метрики не передано" : `${numeric(stats.improvementPercent)}% относительно базового решения`} /><Metric label="Первое принятое решение" value={date(stats.valid[0]?.created_at)} compact /><Metric label="Лучшее публичное решение" value={date(stats.best?.created_at)} compact /><Metric label="Разница публичного и закрытого результата" value={numeric(scoreGap, 5)} note="Для одной и той же финальной отправки" /></div></details>
-        <div className="passport-submissions">{stats.ordered.slice().reverse().map((submission) => <SubmissionRow key={submission.id} submission={submission} />)}{!stats.ordered.length && <p className="passport-evidence-empty">История отправок пуста.</p>}</div>
+        <div className="passport-submissions">{stats.ordered.slice().reverse().map((submission) => <SubmissionRow key={submission.id} submission={submission} competitionId={competition.id} />)}{!stats.ordered.length && <p className="passport-evidence-empty">История отправок пуста.</p>}</div>
       </>}
     </div>
   </details>;
