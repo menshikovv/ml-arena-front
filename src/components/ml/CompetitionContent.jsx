@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { Check, Copy } from "lucide-react";
+import { getCompetitionMetricDescription } from "@/lib/competitionMetricContent";
+import { getCompetitionMetricName } from "@/lib/ml-arena";
 
 function nodeText(node) {
   if (node.type === "text" || node.type === "inlineCode") return node.value || "";
@@ -25,11 +27,11 @@ function outlinePlugin(options = {}) {
     const headings = [];
     for (const node of tree.children) {
       if (node.type !== "element" || !["h1", "h2", "h3"].includes(node.tagName)) continue;
-      const id = `competition-section-${headings.length + 1}`;
+      const id = `${options.idPrefix || "competition-section"}-${headings.length + 1}`;
       node.properties = { ...node.properties, id };
       headings.push({ id, title: nodeText(node) });
     }
-    if (!headings.length || (!options.brief && headings.length < 3)) return;
+    if (options.outline === false || !headings.length || (!options.brief && headings.length < 3)) return;
     const outline = {
       type: "element", tagName: "nav", properties: { ariaLabel: "Содержание раздела" },
       children: [
@@ -108,7 +110,7 @@ const markdownComponents = {
   nav: ({ children }) => <nav aria-label="Содержание раздела" className="mb-8 border-y border-border bg-secondary/25 px-4 py-3 text-sm [&>p]:my-1 [&>p]:font-semibold [&>p]:text-foreground [&>ol]:my-3 [&>ol]:grid [&>ol]:gap-x-6 [&>ol]:gap-y-2 sm:[&>ol]:grid-cols-2 [&>ol>li]:!m-0 [&_li]:leading-6">{children}</nav>,
 };
 
-export function CompetitionContent({ children, className, brief = false }) {
+export function CompetitionContent({ children, className, brief = false, outline = true, idPrefix = "competition-section" }) {
   const root = useRef(null);
   useEffect(() => {
     if (!brief) return;
@@ -124,7 +126,13 @@ export function CompetitionContent({ children, className, brief = false }) {
     window.addEventListener("hashchange", scrollToSection);
     return () => window.removeEventListener("hashchange", scrollToSection);
   }, [brief, children]);
-  return <div ref={root} className={cn("competition-document min-w-0 max-w-4xl break-words text-[15px] text-muted-foreground", brief && "competition-document--brief", className)}><ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[[outlinePlugin, { brief }]]}>{children || ""}</ReactMarkdown></div>;
+  return <div ref={root} className={cn("competition-document min-w-0 max-w-4xl break-words text-[15px] text-muted-foreground", brief && "competition-document--brief", className)}><ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[[outlinePlugin, { brief, outline, idPrefix }]]}>{children || ""}</ReactMarkdown></div>;
+}
+
+export function CompetitionMetricExplanation({ competition, catalog }) {
+  const description = getCompetitionMetricDescription(competition, catalog);
+  return description ? <CompetitionContent className="competition-metric-description" outline={false} idPrefix="competition-metric-section">{description}</CompetitionContent>
+    : <><p>Оценка рассчитывается по метрике <strong>{getCompetitionMetricName(competition, catalog)}</strong>. Для первого запуска используйте данные участника и опубликованное стартовое решение.</p><CompetitionCodeSample>{competition.description}</CompetitionCodeSample></>;
 }
 
 export function CompetitionCodeSample({ children }) {

@@ -91,6 +91,11 @@
 .competition-metric-main { min-width: 0; }
 .competition-metric-main > p { margin-top: 10px; color: hsl(var(--muted-foreground)); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
 .competition-metric-main .competition-code-block { margin-bottom: 0; }
+.competition-metric-description { max-width: none; margin-top: 12px; font-size: 16px; overflow-wrap: anywhere; }
+.competition-metric-description > :first-child { margin-top: 0; }
+.competition-metric-description > :last-child { margin-bottom: 0; }
+.competition-metric-description table { min-width: 100%; }
+.competition-metric-description td:last-child { min-width: 0; }
 .competition-metric-note { display: flex; align-items: flex-start; gap: 14px; border-radius: 8px; padding: 18px; background: hsl(var(--accent) / .06); }
 .competition-metric-note .competition-detail-icon { width: 44px; height: 44px; border-radius: 50%; color: hsl(var(--accent)); background: hsl(var(--accent) / .09); }
 .competition-metric-note h3 { padding-top: 9px; color: hsl(var(--accent)); font-size: 16px; font-weight: 750; }

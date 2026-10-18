@@ -29,6 +29,29 @@ export const TASK_TYPE_LABELS = {
   recsys: "RecSys",
 };
 
+export function getCompetitionDeadlineTime(competition) {
+  const deadline = Date.parse(competition.submission_deadline || competition.deadline || "");
+  return Number.isFinite(deadline) ? deadline : null;
+}
+
+export function getCompetitionStatus(competition, now = Date.now()) {
+  if (["completed", "finished", "archived"].includes(competition.status)) return "finished";
+  if (["scheduled", "approved_scheduled", "draft", "moderation", "submitted_for_review", "changes_requested"].includes(competition.status)) return "upcoming";
+  const deadline = getCompetitionDeadlineTime(competition);
+  if (competition.status === "active" && deadline !== null && deadline <= now) return "closed";
+  return competition.status;
+}
+
+export function canChangeCompetitionTask(competition) {
+  return !competition || ["draft", "moderation"].includes(competition.status);
+}
+
+export function getCompetitionTaskPayload(taskVersionId, competition) {
+  if (!taskVersionId || taskVersionId === competition?.task_version_id) return {};
+  if (!canChangeCompetitionTask(competition)) throw new Error("После публикации нельзя заменить задачу соревнования. Остальные изменения можно сохранить отдельно.");
+  return { task_version_id: taskVersionId };
+}
+
 export const TASK_TYPE_COLORS = {
   regression: "#06B6D4",
   classification: "#7C3AED",

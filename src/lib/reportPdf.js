@@ -1,277 +1,215 @@
-import "./reportPdf.css";
+import { competitionReport, duelReport, passportReport, reportDate } from "./reportPdfModel.js";
 
-const A4_WIDTH = 210;
-const A4_HEIGHT = 297;
+const MARGIN = 18;
+const WIDTH = 174;
+const BOTTOM = 268;
+const COLORS = { ink: "#182338", muted: "#66738A", blue: "#2859E8", green: "#087E68", line: "#DFE5EF", wash: "#F3F6FB" };
+let fontsPromise;
 
-function node(tag, className, value) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (value !== undefined && value !== null) element.textContent = String(value);
-  return element;
-}
-
-function append(parent, ...children) {
-  children.filter(Boolean).forEach((child) => parent.appendChild(child));
-  return parent;
-}
-
-function display(value) {
-  return value === undefined || value === null || value === "" ? "—" : String(value);
-}
-
-function date(value) {
-  const parsed = value ? new Date(value) : null;
-  return parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : "—";
-}
-
-function shortDate(value) {
-  const parsed = value ? new Date(value) : null;
-  return parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleDateString("ru-RU") : "—";
-}
-
-function avatarFallback(name) {
-  const initials = (name || "?").split(/\s|_/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
-  const colors = ["#7C3AED", "#06B6D4", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6"];
-  const index = (name || "").split("").reduce((sum, character) => sum + character.charCodeAt(0), 0) % colors.length;
-  const fallback = node("span", "report-pdf__avatar-fallback", initials);
-  fallback.style.background = `linear-gradient(135deg, ${colors[index]}, ${colors[index]}99)`;
-  return fallback;
+async function loadFonts() {
+  if (!fontsPromise) fontsPromise = Promise.all(["Regular", "Bold"].map(async (weight) => {
+    const response = await fetch(`${import.meta.env.BASE_URL}fonts/LiberationSans-${weight}.ttf`);
+    if (!response.ok) throw new Error("Не удалось загрузить шрифт PDF");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const chunks = [];
+    for (let index = 0; index < bytes.length; index += 8192) chunks.push(String.fromCharCode(...bytes.subarray(index, index + 8192)));
+    return btoa(chunks.join(""));
+  })).catch((error) => { fontsPromise = null; throw error; });
+  return fontsPromise;
 }
 
 async function printableAvatar(url) {
   if (!url) return null;
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  let timeout;
   try {
-    const source = new Image();
-    source.crossOrigin = "anonymous";
-    source.src = new URL(url, window.location.href).href;
-    await source.decode();
+    image.src = new URL(url, window.location.href).href;
+    await Promise.race([image.decode(), new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Avatar timeout")), 2500); })]);
     const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 256;
+    canvas.width = canvas.height = 192;
     const context = canvas.getContext("2d");
-    const scale = Math.max(canvas.width / source.naturalWidth, canvas.height / source.naturalHeight);
-    const width = source.naturalWidth * scale;
-    const height = source.naturalHeight * scale;
-    context.drawImage(source, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
-    return canvas.toDataURL("image/png");
+    const size = Math.min(image.naturalWidth, image.naturalHeight);
+    context.drawImage(image, (image.naturalWidth - size) / 2, (image.naturalHeight - size) / 2, size, size, 0, 0, 192, 192);
+    return canvas.toDataURL("image/jpeg", 0.9);
   } catch {
     return null;
-  }
+  } finally { clearTimeout(timeout); }
 }
 
-function sectionChunks(section) {
-  const size = section.kind === "directions" ? 8 : section.kind === "facts" ? 8 : 7;
-  if (!section.items?.length) return [];
-  const chunks = [];
-  for (let index = 0; index < section.items.length; index += size) {
-    chunks.push({ ...section, title: index ? `${section.title} · продолжение` : section.title, items: section.items.slice(index, index + size) });
-  }
-  return chunks;
-}
+const clean = (value) => String(value ?? "").replace(/[\u2010-\u2015\u2212]/g, "-").replace(/\u00a0/g, " ").replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
 
-function createSection(section) {
-  const wrapper = node("section", "report-pdf__section");
-  wrapper.appendChild(node("h2", "report-pdf__section-title", section.title));
-  const content = node("div", `report-pdf__${section.kind}`);
-  section.items.forEach((item) => {
-    if (section.kind === "directions") {
-      const row = node("div", "report-pdf__direction");
-      append(row, node("strong", "report-pdf__direction-name", item.label), node("span", "report-pdf__direction-value", display(item.value)));
-      if (item.detail) row.appendChild(node("small", "report-pdf__direction-detail", item.detail));
-      content.appendChild(row);
-    } else if (section.kind === "facts") {
-      const row = node("div", "report-pdf__fact");
-      append(row, node("span", "report-pdf__fact-label", item.label), node("strong", "report-pdf__fact-value", display(item.value)));
-      content.appendChild(row);
-    } else {
-      const row = node("div", "report-pdf__list-row");
-      append(row, node("strong", "report-pdf__list-title", item.label), item.detail && node("span", "report-pdf__list-detail", item.detail));
-      content.appendChild(row);
-    }
+export async function createReportPdf(report) {
+  const [{ jsPDF }, fonts, avatar] = await Promise.all([import("jspdf"), loadFonts(), printableAvatar(report.avatarUrl)]);
+  const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true, putOnlyUsedFonts: true });
+  ["normal", "bold"].forEach((style, index) => {
+    pdf.addFileToVFS(`Report-${style}.ttf`, fonts[index]);
+    pdf.addFont(`Report-${style}.ttf`, "Report", style);
   });
-  wrapper.appendChild(content);
-  return wrapper;
-}
-
-function createPage(report, pageNumber, includeSummary) {
-  const page = node("article", "report-pdf__page");
-  const top = node("div", "report-pdf__top");
-  const brand = node("div", "report-pdf__brand");
-  const logo = node("img", "report-pdf__brand-logo");
-  logo.src = "/logo.svg";
-  logo.alt = "";
-  const brandCopy = node("div", "report-pdf__brand-copy");
-  append(brandCopy, node("strong", "report-pdf__brand-name", "ML-Арена"), node("span", "report-pdf__brand-season", "Founder Season"));
-  append(brand, logo, brandCopy);
-  append(top, brand, node("span", "report-pdf__type", report.type));
-  page.appendChild(top);
-
-  const hero = node("header", `report-pdf__hero${includeSummary && report.avatarName ? " report-pdf__hero--passport" : ""}`);
-  const heroCopy = node("div", "report-pdf__hero-copy");
-  append(heroCopy, node("p", "report-pdf__eyebrow", report.eyebrow), node("h1", "report-pdf__title", includeSummary ? report.title : `${report.title} · продолжение`));
-  if (includeSummary && report.subtitle) heroCopy.appendChild(node("p", "report-pdf__subtitle", report.subtitle));
-  if (includeSummary && report.avatarName) {
-    const avatar = node("div", "report-pdf__avatar");
-    if (report.avatarImage) {
-      const image = node("img", "report-pdf__avatar-image");
-      image.src = report.avatarImage;
-      image.alt = "";
-      avatar.appendChild(image);
-    } else {
-      avatar.appendChild(avatarFallback(report.avatarName));
+  pdf.setProperties({ title: clean(report.title), subject: report.type, author: "ML-Арена", creator: "ML-Арена" });
+  let y = 0;
+  let sectionTitle = "";
+  const font = (size = 10, bold = false, color = COLORS.ink) => { pdf.setFont("Report", bold ? "bold" : "normal"); pdf.setFontSize(size); pdf.setTextColor(color); };
+  const lines = (value, width, size = 10, bold = false) => { font(size, bold); return pdf.splitTextToSize(clean(value), width); };
+  const text = (value, x, top, size = 10, bold = false, color = COLORS.ink) => { font(size, bold, color); pdf.text(clean(value), x, top + size * 0.3528 * 0.82); };
+  const rule = (top, x = MARGIN, width = WIDTH) => { pdf.setDrawColor(COLORS.line); pdf.setLineWidth(0.25); pdf.line(x, top, x + width, top); };
+  const paintLines = (values, x, top, size, bold = false, color = COLORS.ink, leading = size * 0.46) => values.forEach((line, index) => text(line, x, top + index * leading, size, bold, color));
+  const heading = (title, continued = false) => {
+    pdf.setFillColor(COLORS.blue); pdf.rect(MARGIN, y + 0.2, 0.9, 4.2, "F");
+    text(`${title}${continued ? " / продолжение" : ""}`, MARGIN + 3.5, y, 11.5, true);
+    y += 8;
+  };
+  const newPage = () => {
+    if (y) pdf.addPage();
+    pdf.setFillColor(COLORS.blue); pdf.rect(MARGIN, 13, 8, 1, "F");
+    text("ML-Арена", MARGIN, 18, 14, true);
+    font(8, false, COLORS.muted);
+    pdf.text(report.type, 192, 21.5, { align: "right" });
+    rule(27);
+    y = 34;
+  };
+  const ensure = (height, repeat = false) => {
+    if (y + height <= BOTTOM) return;
+    newPage();
+    if (repeat && sectionTitle) heading(sectionTitle, true);
+  };
+  const paragraph = (value, size = 10, color = COLORS.muted, width = WIDTH) => {
+    const wrapped = lines(value, width, size);
+    const leading = size * 0.48;
+    for (const line of wrapped) {
+      ensure(leading, Boolean(sectionTitle));
+      text(line, MARGIN, y, size, false, color);
+      y += leading;
     }
-    hero.appendChild(avatar);
+  };
+  newPage();
+  text(report.eyebrow, MARGIN, y, 9, true, COLORS.blue);
+  y += 7;
+  const titleWidth = report.kind === "passport" ? WIDTH - 34 : WIDTH;
+  const titleLines = lines(report.title, titleWidth, 26, true);
+  const heroTop = y;
+  if (report.kind === "passport") {
+    if (avatar) pdf.addImage(avatar, "JPEG", 166, heroTop, 26, 26);
+    else {
+      pdf.setFillColor(COLORS.wash); pdf.roundedRect(166, heroTop, 26, 26, 2, 2, "F");
+      const initials = report.title.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+      text(initials, 171, heroTop + 8, 18, true, COLORS.blue);
+    }
   }
-  hero.appendChild(heroCopy);
-  page.appendChild(hero);
+  titleLines.forEach((line) => { ensure(12); text(line, MARGIN, y, 26, true); y += 11.5; });
+  y += 2;
+  paragraph(report.subtitle, 10.5, COLORS.muted, titleWidth);
+  y = Math.max(y + 8, heroTop + (report.kind === "passport" ? 34 : 0));
 
-  const body = node("div", "report-pdf__body");
-  if (includeSummary && report.stats?.length) {
-    const stats = node("div", "report-pdf__stats");
-    stats.style.gridTemplateColumns = `repeat(${Math.min(report.stats.length, 4)}, minmax(0, 1fr))`;
-    report.stats.forEach((item) => {
-      const stat = node("div", "report-pdf__stat");
-      append(stat, node("span", "report-pdf__stat-label", item.label), node("strong", "report-pdf__stat-value", display(item.value)), item.detail && node("small", "report-pdf__stat-detail", item.detail));
-      stats.appendChild(stat);
-    });
-    body.appendChild(stats);
-  }
-  page.appendChild(body);
+  const statWidth = WIDTH / report.stats.length;
+  const statLayouts = report.stats.map((item) => ({
+    ...item, labelLines: lines(item.label, statWidth - 10, 8),
+    valueLines: lines(item.value, statWidth - 10, item.value === "Нет данных" ? 12 : 18, true),
+    detailLines: item.detail ? lines(item.detail, statWidth - 10, 7.5) : [],
+  }));
+  const labelHeight = Math.max(...statLayouts.map((item) => item.labelLines.length * 3.7));
+  const valueHeight = Math.max(...statLayouts.map((item) => item.valueLines.length * (item.value === "Нет данных" ? 5.5 : 8)));
+  const statHeight = labelHeight + valueHeight + Math.max(...statLayouts.map((item) => item.detailLines.length * 3.5)) + 11;
+  ensure(statHeight);
+  pdf.setFillColor(COLORS.wash); pdf.roundedRect(MARGIN, y, WIDTH, statHeight, 2, 2, "F");
+  statLayouts.forEach((item, index) => {
+    const x = MARGIN + index * statWidth + 5;
+    paintLines(item.labelLines, x, y + 5, 8, false, COLORS.muted, 3.7);
+    const valueY = y + 6 + labelHeight;
+    const valueSize = item.value === "Нет данных" ? 12 : 18;
+    paintLines(item.valueLines, x, valueY, valueSize, true, COLORS[item.tone] || COLORS.ink, valueSize === 12 ? 5.5 : 8);
+    paintLines(item.detailLines, x, valueY + valueHeight + 1, 7.5, false, COLORS.muted, 3.5);
+    if (index) { pdf.setDrawColor(COLORS.line); pdf.line(x - 5, y + 5, x - 5, y + statHeight - 5); }
+  });
+  y += statHeight + 10;
 
-  const footer = node("footer", "report-pdf__footer");
-  append(footer, node("span", "report-pdf__footer-note", report.note), node("span", "report-pdf__footer-date", `Сформировано ${date(new Date())} · ${pageNumber}`));
-  footer.appendChild(node("div", "report-pdf__source", report.url));
-  page.appendChild(footer);
-  return { page, body, footer };
-}
-
-async function download(report, filename) {
-  const mount = node("div", "report-pdf__mount");
-  mount.setAttribute("aria-hidden", "true");
-  document.body.appendChild(mount);
-  try {
-    await Promise.all([
-      document.fonts.load('500 14px "Inter Report"', "Пример"),
-      document.fonts.load('500 14px "Inter Report"', "Sample 123"),
-      document.fonts.load('700 18px "Science Gothic"', "Пример"),
-      document.fonts.load('700 18px "Science Gothic"', "Sample 123"),
-    ]);
-    await document.fonts.ready;
-    report.avatarImage = await printableAvatar(report.avatarUrl);
-    const sections = report.sections.flatMap(sectionChunks);
-    const pages = [];
-    const first = createPage(report, 1, true);
-    mount.appendChild(first.page);
-    pages.push(first);
-    let current = first;
-
-    sections.forEach((section) => {
-      const element = createSection(section);
-      current.body.appendChild(element);
-      if (element.getBoundingClientRect().bottom > current.footer.getBoundingClientRect().top - 20) {
-        current.body.removeChild(element);
-        current = createPage(report, pages.length + 1, false);
-        mount.appendChild(current.page);
-        pages.push(current);
-        current.body.appendChild(element);
+  for (const section of report.sections.filter((item) => item.items.length)) {
+    sectionTitle = section.title;
+    ensure(28);
+    heading(section.title);
+    if (section.kind === "text") {
+      for (const item of section.items) { paragraph(item.label, 9); y += 3; }
+    } else if (section.kind === "facts" || section.kind === "directions") {
+      const colWidth = (WIDTH - 8) / 2;
+      for (let index = 0; index < section.items.length; index += 2) {
+        const cells = section.items.slice(index, index + 2).map((item) => ({
+          label: lines(item.label, section.kind === "directions" ? colWidth - 28 : colWidth - 8, section.kind === "directions" ? 10 : 8.5, section.kind === "directions"),
+          value: lines(item.value, colWidth - 8, 11, true),
+          detail: item.detail ? lines(item.detail, colWidth - 8, 8) : [],
+          direction: section.kind === "directions", rawValue: item.value,
+        }));
+        const blocks = cells.map((cell) => [
+          ...cell.label.map((line) => ({ line, size: cell.direction ? 10 : 8.5, bold: cell.direction, color: cell.direction ? COLORS.ink : COLORS.muted, height: 4.3 })),
+          ...(!cell.direction ? cell.value.map((line) => ({ line, size: 11, bold: true, color: COLORS.ink, height: 5.1 })) : []),
+          ...cell.detail.map((line) => ({ line, size: 8, bold: false, color: COLORS.muted, height: 3.7 })),
+        ]);
+        const desired = Math.max(...blocks.map((block) => block.reduce((sum, line) => sum + line.height, 0))) + 8;
+        ensure(Math.min(desired, 70), true);
+        let firstFragment = true;
+        while (blocks.some((block) => block.length)) {
+          const available = BOTTOM - y - 8;
+          const pieces = blocks.map((block) => {
+            const piece = [];
+            let height = 0;
+            while (block.length && height + block[0].height <= available) { const line = block.shift(); piece.push(line); height += line.height; }
+            return { piece, height };
+          });
+          const rowHeight = Math.max(...pieces.map((item) => item.height)) + 8;
+          if (pieces.every((item) => !item.piece.length)) { ensure(BOTTOM, true); continue; }
+          pieces.forEach(({ piece }, col) => {
+            const x = MARGIN + col * (colWidth + 8);
+            let top = y + 3;
+            piece.forEach((line) => { text(line.line, x, top, line.size, line.bold, line.color); top += line.height; });
+            if (cells[col].direction && firstFragment) {
+              font(cells[col].rawValue === "Нет данных" ? 9 : 15, true, COLORS.blue);
+              pdf.text(clean(cells[col].rawValue), x + colWidth, y + 7, { align: "right" });
+            }
+            rule(y + rowHeight - 1, x, colWidth);
+          });
+          y += rowHeight;
+          firstFragment = false;
+          if (blocks.some((block) => block.length)) { newPage(); heading(sectionTitle, true); }
+        }
       }
-    });
-
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-    await Promise.all([...mount.querySelectorAll("img")].map((image) => image.decode()));
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
-    pdf.setProperties({ title: report.title, subject: report.type, creator: "ML-Арена" });
-    for (const [index, { page }] of pages.entries()) {
-      const canvas = await html2canvas(page, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true });
-      if (index) pdf.addPage();
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, A4_WIDTH, A4_HEIGHT);
-      if (report.url) pdf.link(14, 279, 182, 11, { url: report.url });
+    } else {
+      for (const item of section.items) {
+        const label = lines(item.label, WIDTH, 10.5, true);
+        const detail = item.detail ? lines(item.detail, WIDTH, 9) : [];
+        ensure(Math.min(label.length * 5 + detail.length * 4.3 + 6, 45), true);
+        for (const line of label) { ensure(5, true); text(line, MARGIN, y, 10.5, true); y += 5; }
+        for (const line of detail) { ensure(4.3, true); text(line, MARGIN, y, 9, false, COLORS.muted); y += 4.3; }
+        y += 3;
+        rule(y); y += 4;
+      }
     }
-    pdf.save(filename);
-  } finally {
-    mount.remove();
+    y += 7;
   }
-}
+  sectionTitle = "";
+  const noteLines = lines(report.note, WIDTH - 8, 8.5);
+  const noteHeight = noteLines.length * 4 + 8;
+  ensure(noteHeight);
+  pdf.setFillColor(COLORS.wash); pdf.roundedRect(MARGIN, y, WIDTH, noteHeight, 1, 1, "F");
+  paintLines(noteLines, MARGIN + 4, y + 4, 8.5, false, COLORS.muted, 4);
 
-function filenamePart(value) {
-  return String(value || "user").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 48) || "user";
-}
-
-export function downloadPassportPdf({ profile, name, rating, rank, directions, badges, externalAchievements, options, url }) {
-  const facts = [];
-  if (options.includeCareer) {
-    [["Город", profile.city], ["Университет", profile.university], ["Компания", profile.company]].forEach(([label, value]) => { if (value) facts.push({ label, value }); });
+  const count = pdf.getNumberOfPages();
+  for (let index = 1; index <= count; index += 1) {
+    pdf.setPage(index); rule(277);
+    text(`Сформировано ${reportDate(new Date())}`, MARGIN, 281, 8, false, COLORS.muted);
+    font(8, false, COLORS.muted); pdf.text(`${index} / ${count}`, 192, 283.3, { align: "right" });
+    if (report.url) {
+      const label = "Открыть актуальные данные на ML-Арене";
+      text(label, MARGIN, 287, 8, false, COLORS.blue);
+      pdf.link(MARGIN, 287, pdf.getTextWidth(label), 4, { url: report.url });
+    }
   }
-  if (options.includeContacts) {
-    [["Email", profile.email], ["GitHub", profile.github_url], ["Kaggle", profile.kaggle_url]].forEach(([label, value]) => { if (value) facts.push({ label, value }); });
-  }
-  const verifiedExternal = options.includeExternal ? externalAchievements.filter((item) => item.verified === true || ["verified", "approved", "confirmed"].includes(item.verification_status || item.status)) : [];
-  const sections = [
-    { title: "Направления ML", kind: "directions", items: directions.map((item) => ({ label: item.title, value: item.score == null ? "—" : item.score, detail: item.evidence ? `${item.evidence.official.length} официальных финалов · ${item.evidence.duels.length} дуэлей` : "Индекс профиля" })) },
-    ...(badges.length ? [{ title: "Достижения ML-Арены", kind: "list", items: badges.map((grant) => ({ label: grant.badge?.name || grant.name || grant.title || "Бейдж", detail: grant.badge?.description || grant.description || "" })) }] : []),
-    ...(verifiedExternal.length ? [{ title: "Подтверждённые внешние достижения", kind: "list", items: verifiedExternal.map((item) => ({ label: item.title || item.name || item.competition_name || "Достижение", detail: item.source || item.platform || item.provider || "" })) }] : []),
-    ...(facts.length ? [{ title: "Дополнительные сведения", kind: "facts", items: facts }] : []),
-  ];
-  return download({
-    type: "ML-паспорт / резюме",
-    avatarName: name,
-    avatarUrl: profile.avatar_url,
-    eyebrow: profile.user_name ? `@${profile.user_name}` : "Профиль участника",
-    title: name,
-    subtitle: profile.bio || "Практические результаты и направления машинного обучения.",
-    stats: [{ label: "Рейтинг сезона", value: rating }, { label: "Место", value: rank ? `#${rank}` : "—" }, { label: "Соревнования", value: profile.stats?.competitions_participated ?? "—" }, { label: "Бейджи", value: badges.length }],
-    sections,
-    note: "Сводка профиля, не официальный сертификат. Актуальные данные доступны по ссылке.",
-    url,
-  }, `ml-arena-passport-${filenamePart(profile.user_name)}.pdf`);
+  return pdf;
 }
 
-export function downloadCompetitionPdf({ competition, result, score, metric, url }) {
-  const sections = [
-    { title: "Результат участника", kind: "facts", items: [
-      { label: "Участник", value: result.user_name || result.user_id },
-      { label: "Метрика", value: metric },
-      { label: "Таблица", value: result.leaderboard_kind === "private" ? "Финальная (private)" : display(result.leaderboard_kind) },
-      { label: "Завершено", value: date(competition.final_results_at || competition.completed_at || competition.deadline) },
-      { label: "Тип", value: competition.origin === "community" ? "Соревнование сообщества" : "Официальное соревнование" },
-      { label: "Уровень подтверждения", value: result.evidence_level === "arena_verified" ? "Результат ML-Арены" : "Активность сообщества" },
-    ] },
-  ];
-  return download({
-    type: "Итог соревнования",
-    eyebrow: "Завершённое соревнование",
-    title: result.competition_title || competition.title,
-    subtitle: "Карточка результата участника по опубликованным итогам.",
-    stats: [{ label: "Итоговое место", value: result.rank ? `#${result.rank}` : "—" }, { label: "Результат", value: score }, { label: "Участников", value: result.participants_count ?? "—" }],
-    sections,
-    note: "Карточка сформирована по данным итогов. Проверяйте актуальность на странице соревнования.",
-    url,
-  }, `ml-arena-competition-${filenamePart(competition.id)}.pdf`);
+async function download(report) {
+  const pdf = await createReportPdf(report);
+  pdf.save(report.filename);
 }
 
-export function downloadDuelPdf({ duel, player1Score, player2Score, metric, taskType, url }) {
-  const result = duel.is_draw ? "Ничья" : duel.winner_name === "Ты" ? "Победа" : "Поражение";
-  return download({
-    type: "Итог дуэли",
-    eyebrow: "Дуэль 1×1 · завершена",
-    title: `${display(duel.player1_name)} × ${display(duel.player2_name)}`,
-    subtitle: duel.task_title || "Одинаковая задача и единые условия для обоих участников.",
-    stats: [{ label: "Результат", value: result }, { label: "Изменение рейтинга", value: duel.current_user_rating_change == null ? "—" : `${duel.current_user_rating_change > 0 ? "+" : ""}${duel.current_user_rating_change}` }, { label: "Дата", value: shortDate(duel.completed_at) }],
-    sections: [
-      { title: "Сравнение результатов", kind: "facts", items: [
-        { label: display(duel.player1_name), value: player1Score },
-        { label: display(duel.player2_name), value: player2Score },
-        { label: "Метрика", value: metric },
-        { label: "Направление", value: taskType },
-      ] },
-      { title: "Параметры матча", kind: "facts", items: [
-        { label: "Рейтинг участника", value: duel.player1_rating },
-        { label: "Рейтинг соперника", value: duel.player2_rating },
-        { label: "ID дуэли", value: duel.id },
-        { label: "Статус", value: "Завершена" },
-      ] },
-    ],
-    note: "Карточка отражает итог матча и не содержит исходные решения участников.",
-    url,
-  }, `ml-arena-duel-${filenamePart(duel.id)}.pdf`);
-}
+export const downloadPassportPdf = (data) => download(passportReport(data));
+export const downloadCompetitionPdf = (data) => download(competitionReport(data));
+export const downloadDuelPdf = (data) => download(duelReport(data));

@@ -32,7 +32,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { getCompetitionMetricName, TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { getCompetitionDeadlineTime, getCompetitionMetricName, getCompetitionStatus, TASK_TYPE_LABELS } from "@/lib/ml-arena";
+import { useCompetitionClock } from "@/hooks/use-competition-clock";
 import { cn } from "@/lib/utils";
 import "./Competitions.css";
 
@@ -48,12 +49,6 @@ function pluralize(value, one, few, many) {
   if (mod10 === 1 && mod100 !== 11) return one;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
   return many;
-}
-
-function getStatus(competition) {
-  if (["completed", "finished", "archived"].includes(competition.status)) return "finished";
-  if (["scheduled", "approved_scheduled"].includes(competition.status)) return "upcoming";
-  return competition.status;
 }
 
 const ACCESS_LABELS = {
@@ -95,6 +90,8 @@ export default function Competitions() {
   const { data: competitionsResponse, isLoading } = useQuery({
     queryKey: ["competitions", section],
     queryFn: () => api.competitions.list({ limit: 50, offset: 0, origin: section === "community" ? "community" : "official" }),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: "always",
   });
   const serverCompetitions = Array.isArray(competitionsResponse) ? competitionsResponse : competitionsResponse?.data || competitionsResponse?.items || [];
 
@@ -105,13 +102,14 @@ export default function Competitions() {
   const competitions = useMemo(() => serverCompetitions.map((competition) => ({
     ...competition, metric_name: getCompetitionMetricName(competition, metricsQuery.data),
   })), [serverCompetitions, metricsQuery.data]);
+  const now = useCompetitionClock(competitions);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return [...competitions]
       .filter((competition) => {
-        const status = getStatus(competition);
-        const statusMatches = statusFilter === "finished" ? ["finished", "finalizing"].includes(status) : status === statusFilter;
+        const status = getCompetitionStatus(competition, now);
+        const statusMatches = statusFilter === "finished" ? ["finished", "finalizing", "closed"].includes(status) : status === statusFilter;
         const searchMatches = !query
           || String(competition.title || "").toLowerCase().includes(query)
           || String(competition.description || "").toLowerCase().includes(query)
@@ -123,9 +121,9 @@ export default function Competitions() {
       .sort((a, b) => {
         if (sort === "participants") return (b.participants_count || 0) - (a.participants_count || 0);
         if (sort === "newest") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-        return (a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY) - (b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY);
+        return (getCompetitionDeadlineTime(a) ?? Number.POSITIVE_INFINITY) - (getCompetitionDeadlineTime(b) ?? Number.POSITIVE_INFINITY);
       });
-  }, [accessFilter, competitions, search, sort, statusFilter, typeFilter]);
+  }, [accessFilter, competitions, now, search, sort, statusFilter, typeFilter]);
 
   const switchSection = (value) => {
     setSearchParams(value === "community" ? { section: "community" } : {});
@@ -215,7 +213,7 @@ export default function Competitions() {
             {[
               ["active", "Активные", Zap],
               ["upcoming", "Скоро", CalendarClock],
-              ["finished", "Завершённые", History, "Итоги"],
+              ["finished", "Итоги", History],
             ].map(([value, label, Icon, mobileLabel]) => (
               <button key={value} type="button" aria-label={label} onClick={() => setStatusFilter(value)} className={cn("competitions-status-tab", statusFilter === value && "competitions-status-tab--active")}>
                 <Icon size={16} />{mobileLabel ? <><span className="competitions-status-tab__full">{label}</span><span className="competitions-status-tab__short">{mobileLabel}</span></> : label}
@@ -270,7 +268,7 @@ export default function Competitions() {
               <StaggerItem key={competition.id}>
                 <CompetitionCard
                   competition={competition}
-                  status={getStatus(competition)}
+                  status={getCompetitionStatus(competition, now)}
                   meta={getCardMeta(competition)}
                   featured={section === "official" && index === 0}
                   sequence={index + 1}

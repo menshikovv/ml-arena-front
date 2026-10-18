@@ -3,7 +3,7 @@ import { after, before, test } from "node:test";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
-import { canReplaceSourceCode, findBestSourceSubmission, SOURCE_CODE_MAX_BYTES, validateSourceCodeFile } from "../src/lib/submissionSourceCode.js";
+import { canReplaceSourceCode, findBestSourceSubmission, getSourceCodeErrorMessage, isSourceCodeWindowClosedError, SOURCE_CODE_MAX_BYTES, validateSourceCodeFile } from "../src/lib/submissionSourceCode.js";
 
 let server;
 let api;
@@ -45,6 +45,25 @@ test("replacement respects both server permission and the code-specific deadline
   assert.equal(canReplaceSourceCode({ replacement_allowed: true, replace_until: "2026-10-20T18:00:00Z" }, Date.parse("2026-10-20T18:00:00Z")), false);
   assert.equal(canReplaceSourceCode({ replacement_allowed: true, replace_until: "2026-10-20T18:00:00Z" }, Date.parse("2026-10-20T17:59:59Z")), true);
   assert.equal(canReplaceSourceCode({ replacement_allowed: true, replace_until: "invalid" }), false);
+});
+
+test("closed source-code windows are identified by the server response, not unrelated upload errors", () => {
+  for (const message of ["Source code can no longer be attached or replaced", "Source code can no longer be attached or replaced."]) {
+    assert.equal(isSourceCodeWindowClosedError({ message }), true);
+    assert.match(getSourceCodeErrorMessage({ message }), /Срок загрузки и замены итогового кода истёк/);
+  }
+  for (const error of [null, { status: 403, message: "Permission denied" }, { status: 410, message: "Upload intent expired" }]) {
+    assert.equal(isSourceCodeWindowClosedError(error), false);
+  }
+});
+
+test("source errors use Russian messages and preserve localized server details", () => {
+  assert.equal(getSourceCodeErrorMessage({ message: "Проверка файла не пройдена" }), "Проверка файла не пройдена");
+  assert.equal(getSourceCodeErrorMessage({ message: "Internal server error" }), "Не удалось прикрепить итоговый код.");
+  assert.equal(getSourceCodeErrorMessage({ status: 500, message: "Internal server error" }, "Не удалось скачать итоговый код."), "Не удалось скачать итоговый код.");
+  assert.match(getSourceCodeErrorMessage({ status: 413, message: "Too large" }), /размер/);
+  assert.match(getSourceCodeErrorMessage({ status: 415, message: "Unsupported media type" }), /Формат/);
+  assert.match(getSourceCodeErrorMessage({ status: 403, message: "Forbidden" }), /Нет доступа/);
 });
 
 function response(data, status = 200) {

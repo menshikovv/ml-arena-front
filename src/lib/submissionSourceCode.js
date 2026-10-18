@@ -43,3 +43,16 @@ export function canReplaceSourceCode(source, now = Date.now()) {
   const deadline = Date.parse(source.replace_until);
   return Number.isFinite(deadline) && deadline > now;
 }
+
+export function isSourceCodeWindowClosedError(error) {
+  return /^Source code can no longer be attached or replaced[.!]?$/i.test(error?.message?.trim() || "");
+}
+
+export function getSourceCodeErrorMessage(error, fallback = "Не удалось прикрепить итоговый код.") {
+  if (isSourceCodeWindowClosedError(error)) return "Срок загрузки и замены итогового кода истёк. Прикрепить файл больше нельзя.";
+  if (/[а-яё]/i.test(error?.message || "")) return error.message;
+  if (error?.status === 413) return "Файл превышает допустимый размер.";
+  if (error?.status === 415) return "Формат файла не поддерживается. Нужен .py, .ipynb или .zip.";
+  if (error?.status === 403) return "Нет доступа к итоговому коду этого решения.";
+  return fallback;
+}

@@ -22,6 +22,7 @@ const STATUS_META = {
   active: { label: "Активно", className: "competition-event__status--active" },
   upcoming: { label: "Скоро", className: "competition-event__status--upcoming" },
   finalizing: { label: "Финализация", className: "competition-event__status--upcoming" },
+  closed: { label: "Приём завершён", className: "competition-event__status--upcoming" },
   finished: { label: "Завершено", className: "competition-event__status--finished" },
 };
 
@@ -36,6 +37,7 @@ function pluralize(value, one, few, many) {
 function getTimeLabel(competition, status) {
   if (status === "finished") return "Результаты опубликованы";
   if (status === "finalizing") return "Идёт финальный пересчёт";
+  if (status === "closed") return "Ожидаются итоги";
   const deadline = competition.submission_deadline || competition.deadline;
   if (!deadline) return "Дата уточняется";
   if (status === "upcoming") return `Старт до ${new Date(deadline).toLocaleDateString("ru-RU")}`;
@@ -71,7 +73,7 @@ export default function CompetitionCard({ competition, status, meta, userState, 
   ];
   const cta = status === "finished"
     ? "Смотреть результаты"
-    : status === "finalizing"
+    : ["finalizing", "closed"].includes(status)
       ? "Открыть соревнование"
       : status === "upcoming"
         ? "Открыть описание"

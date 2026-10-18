@@ -189,9 +189,9 @@ export default function Pricing() {
   };
 
   return (
-    <PageFrame className="pricing-page">
-      <Reveal viewportReveal className="pricing-hero-reveal">
-        <section className="pricing-hero">
+    <div className="pricing-page">
+      <section className="pricing-hero">
+        <Reveal viewportReveal className="pricing-hero-inner">
           <div className="pricing-hero__copy relative max-w-3xl">
             <h1 className="font-heading text-4xl font-extrabold leading-[1.08] sm:text-5xl lg:text-6xl">
               <span>Разбирайте</span>{" "}
@@ -224,8 +224,8 @@ export default function Pricing() {
             </div>
 
             <div className="my-6 grid grid-cols-2 border border-border bg-secondary/45 p-1" role="group" aria-label="Период оплаты">
-              <button type="button" onClick={() => setPeriod("month")} className={cn("min-h-10 px-3 text-sm font-semibold transition-colors", !annual ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>Месяц</button>
-              <button type="button" onClick={() => setPeriod("year")} className={cn("min-h-10 px-3 text-sm font-semibold transition-colors", annual ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>Год</button>
+              <button type="button" aria-pressed={!annual} onClick={() => setPeriod("month")} className={cn("min-h-10 px-3 text-sm font-semibold transition-colors", !annual ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>Месяц</button>
+              <button type="button" aria-pressed={annual} onClick={() => setPeriod("year")} className={cn("min-h-10 px-3 text-sm font-semibold transition-colors", annual ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>Год</button>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
@@ -256,8 +256,10 @@ export default function Pricing() {
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">Автопродление можно отключить в личном кабинете.</p>
           </div>
-        </section>
-      </Reveal>
+        </Reveal>
+      </section>
+
+      <PageFrame className="pricing-content">
 
       <Reveal className="pricing-comparison-reveal" viewportReveal>
         <section className="pricing-comparison">
@@ -317,10 +319,11 @@ export default function Pricing() {
 
       <Reveal className="pricing-coach-reveal" viewportReveal>
         <section className="pricing-coach">
+          <p className="pricing-detail-label"><BrainCircuit size={17} /> ML Coach</p>
           <h2>Понятный разбор результата</h2>
           <ul>
             {COACH_INSIGHTS.map((insight) => (
-              <li key={insight.title}><insight.icon size={20} className={insight.tone} /><strong>{insight.title}</strong></li>
+              <li key={insight.title}><insight.icon size={20} className={insight.tone} /><div><strong>{insight.title}</strong><p>{insight.text}</p></div></li>
             ))}
           </ul>
         </section>
@@ -328,12 +331,13 @@ export default function Pricing() {
 
       <Reveal className="pricing-plan-reveal" viewportReveal>
         <section className="pricing-plan">
+          <p className="pricing-detail-label"><Route size={17} /> План развития</p>
           <h2>План, который<br />меняется вместе с вами</h2>
           <ol>
             {DEVELOPMENT_STEPS.map((step, index) => (
               <li key={step.title}>
                 <span className="pricing-plan__number">{String(index + 1).padStart(2, "0")}</span>
-                <strong>{step.title}</strong>
+                <div><strong>{step.title}</strong><p>{step.description}</p></div>
                 <span className="pricing-plan__status">{step.status}</span>
               </li>
             ))}
@@ -343,6 +347,7 @@ export default function Pricing() {
 
       <Reveal className="pricing-practice-reveal" viewportReveal>
         <section className="pricing-practice">
+          <FlaskConical size={24} className="pricing-practice__icon" aria-hidden="true" />
           <div>
             <h2>Продолжайте практику после рейтинговой попытки</h2>
             <p>Рейтинговый результат фиксируется, а дальше можно открыть тренировочный режим: проверить гипотезы, использовать подсказки и изучить разбор организатора.</p>
@@ -386,9 +391,10 @@ export default function Pricing() {
         <section className="pricing-final group relative flex flex-col gap-7 overflow-hidden border-t border-border bg-foreground px-6 py-9 text-background sm:px-8 lg:flex-row lg:items-center lg:justify-between dark:bg-card dark:text-foreground">
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-accent" />
           <div><h2 className="mt-3 max-w-3xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">Следующий результат должен объяснять, куда двигаться дальше.</h2><p className="mt-3 text-sm opacity-65">{monthlyPlan ? `От ${Math.round(Number(monthlyPlan.amount) / 100).toLocaleString("ru-RU")} ${monthlyPlan.currency === "RUB" ? "₽" : monthlyPlan.currency} в месяц.` : "Стоимость пока не опубликована."}</p></div>
-          <Button size="lg" variant="secondary" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
+          <Button size="lg" onClick={requestPremium} className="h-12 shrink-0 px-6">Подключить Premium <ArrowRight size={17} /></Button>
         </section>
       </Reveal>
-    </PageFrame>
+      </PageFrame>
+    </div>
   );
 }

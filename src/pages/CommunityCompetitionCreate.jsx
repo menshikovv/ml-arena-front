@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import { TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { cn } from "@/lib/utils";
+import { COMPETITION_DESCRIPTION_MAX_LENGTH, composeCompetitionDescription } from "@/lib/competitionMetricContent";
 
 const STEPS = [
   { id: "main", label: "Основное", icon: FileText },
@@ -56,6 +57,7 @@ const INITIAL_FORM = {
   direction: "classification",
   customDirection: "",
   statement: "",
+  metricDescription: "",
   metric: "ROC-AUC",
   targetColumn: "target",
   predictionColumn: "prediction",
@@ -123,7 +125,7 @@ export default function CommunityCompetitionCreate() {
   const canContinue = useMemo(() => {
     if (step === 0) return form.title.trim().length >= 5 && form.description.trim().length >= 12;
     if (step === 1) return form.direction !== "other" || form.customDirection.trim().length >= 3;
-    if (step === 2) return form.statement.trim().length >= 20 && form.metric && form.targetColumn.trim() && form.predictionColumn.trim()
+    if (step === 2) return form.statement.trim().length >= 20 && composeCompetitionDescription(form.statement, form.metricDescription).length <= COMPETITION_DESCRIPTION_MAX_LENGTH && form.metric && form.targetColumn.trim() && form.predictionColumn.trim()
       && (!["ranking", "recsys"].includes(form.direction) || form.groupColumn.trim());
     if (step === 3) return Boolean(form.idColumn.trim() && form.participantBundle && form.publicLabelsFile && form.privateLabelsFile);
     if (step === 5) return Boolean(form.startsAt && form.endsAt && new Date(form.endsAt) > new Date(form.startsAt));
@@ -136,12 +138,14 @@ export default function CommunityCompetitionCreate() {
   const submitMutation = useMutation({
     mutationFn: async () => {
       setSubmitError("");
+      const description = composeCompetitionDescription(form.statement, form.metricDescription);
+      if (description.length > COMPETITION_DESCRIPTION_MAX_LENGTH) throw new Error("Общее описание и пояснение метрики вместе не должны превышать 30 000 символов.");
       const metricCodes = { "ROC-AUC": "roc_auc", Accuracy: "accuracy", F1: "f1", LogLoss: "logloss", RMSE: "rmse", MAE: "mae", "R²": "r2", "NDCG@10": "ndcg", "MAP@10": "map" };
       const difficulty = { "Начальная": "Starter", "Лёгкая": "Easy", "Средняя": "Medium", "Высокая": "Hard", "Экспертная": "Expert" }[form.difficulty] || form.difficulty;
       const competition = await api.communityCompetitions.create({
         title: form.title.trim(),
         short_description: form.description.trim(),
-        description: form.statement.trim(),
+        description,
         task_type: form.direction,
         custom_direction_label: form.direction === "other" ? form.customDirection.trim() : null,
         metric_code: metricCodes[form.metric] || form.metric.toLowerCase(),
@@ -247,6 +251,7 @@ export default function CommunityCompetitionCreate() {
 
             {step === 5 && <div className="space-y-5"><div className="grid gap-5 sm:grid-cols-2"><Field label="Начало"><Input type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} /></Field><Field label="Окончание"><Input type="datetime-local" value={form.endsAt} onChange={(event) => update("endsAt", event.target.value)} /></Field><Field label="Попыток в сутки"><Select value={form.attempts} onChange={(event) => update("attempts", event.target.value)}>{["3", "5", "10"].map((item) => <option key={item} value={item}>{item}</option>)}</Select></Field></div><div className="border border-border bg-secondary/45 p-4 text-sm leading-6 text-muted-foreground">Публичные и приватные ответы загружаются отдельными файлами. Приватная оценка скрыта до завершения, итоговые места определяются после финального пересчёта.</div></div>}
 
+            {step === 2 && <div className="mt-6"><Field label="Метрика и оценка решения"><Textarea maxLength={30000} rows={7} value={form.metricDescription} onChange={(event) => update("metricDescription", event.target.value)} placeholder="Формула, пример расчёта, порядок усреднения и правила при равных оценках" /></Field><p className="mt-2 text-right text-xs text-muted-foreground">{composeCompetitionDescription(form.statement, form.metricDescription).length.toLocaleString("ru-RU")} / 30 000</p></div>}
             {step === 6 && <ReviewStep form={form} update={update} />}
           </div>
 

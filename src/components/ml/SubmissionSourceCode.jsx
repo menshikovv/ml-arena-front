@@ -4,7 +4,7 @@ import { AlertCircle, CheckCircle2, Download, FileCode2, Loader2, Lock, RefreshC
 import { api, uploadSubmissionSourceCode } from "@/api/mlArenaApi";
 import { Button } from "@/components/ui/button";
 import { canShowPrivateScore, formatScore, getSubmissionScore } from "@/lib/ml-arena";
-import { canReplaceSourceCode, findBestSourceSubmission, isEvaluatedSubmission, validateSourceCodeFile } from "@/lib/submissionSourceCode";
+import { canReplaceSourceCode, findBestSourceSubmission, getSourceCodeErrorMessage, isEvaluatedSubmission, isSourceCodeWindowClosedError, validateSourceCodeFile } from "@/lib/submissionSourceCode";
 
 const STAGES = {
   hashing: "Подготовка файла",
@@ -30,6 +30,7 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
   const [stage, setStage] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [windowClosed, setWindowClosed] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [now, setNow] = useState(Date.now);
   const queryKey = ["submission-source-code", submissionId];
@@ -45,7 +46,8 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
   });
   const source = sourceQuery.data;
   const pending = Boolean(stage);
-  const canUpload = sourceQuery.isSuccess && (!source || canReplaceSourceCode(source, now));
+  const rejectedAsClosed = windowClosed || isSourceCodeWindowClosedError(sourceQuery.error);
+  const canUpload = !rejectedAsClosed && sourceQuery.isSuccess && (!source || canReplaceSourceCode(source, now));
 
   useEffect(() => {
     setNow(Date.now());
@@ -84,7 +86,11 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
       if (input.current) input.current.value = "";
       setSaved(true);
     } catch (uploadError) {
-      setError(uploadError.message || "Не удалось прикрепить итоговый код.");
+      if (isSourceCodeWindowClosedError(uploadError)) {
+        setWindowClosed(true);
+        setFile(null);
+        if (input.current) input.current.value = "";
+      } else setError(getSourceCodeErrorMessage(uploadError));
       await sourceQuery.refetch();
     } finally {
       inFlight.current = false;
@@ -103,13 +109,13 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
       const url = new URL(fresh.download_url, window.location.origin);
       if (!["https:", "http:"].includes(url.protocol)) throw new Error("Сервер вернул некорректную ссылку скачивания.");
       window.location.assign(url.href);
-    } catch (downloadError) { setError(downloadError.message || "Не удалось скачать итоговый код."); }
+    } catch (downloadError) { setError(getSourceCodeErrorMessage(downloadError, "Не удалось скачать итоговый код.")); }
     finally { setDownloading(false); onBusyChange(false); }
   };
 
   return <div className="mt-4 space-y-4">
     {sourceQuery.isPending && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={16} className="animate-spin" />Загружаем данные файла</p>}
-    {sourceQuery.isError && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-destructive"><p>{sourceQuery.error.message || "Не удалось получить итоговый код."}</p><Button variant="outline" size="sm" onClick={() => sourceQuery.refetch()}><RefreshCw size={14} /> Повторить</Button></div>}
+    {sourceQuery.isError && !rejectedAsClosed && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-destructive"><p>{getSourceCodeErrorMessage(sourceQuery.error, "Не удалось получить итоговый код.")}</p><Button variant="outline" size="sm" onClick={() => sourceQuery.refetch()}><RefreshCw size={14} /> Повторить</Button></div>}
     {source?.file && <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-4">
       <div className="flex min-w-0 flex-1 items-start gap-3"><FileCode2 size={22} className="mt-1 shrink-0 text-primary" /><div className="min-w-0">
         <p className="break-all text-sm font-semibold">{source.file.original_filename}</p>
@@ -117,8 +123,8 @@ function SourceCodeAttachment({ submissionId, onBusyChange }) {
       </div></div>
       <Button type="button" variant="outline" size="sm" onClick={download} disabled={pending || downloading}>{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Скачать</Button>
     </div>}
-    {sourceQuery.isSuccess && !source && <p className="text-sm text-muted-foreground">Итоговый код ещё не прикреплён.</p>}
-    {source && <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">{canUpload ? <RefreshCw size={14} className="mt-0.5 shrink-0" /> : <Lock size={14} className="mt-0.5 shrink-0" />}<span>{canUpload ? source.replace_until ? `Замена доступна до ${dateLabel(source.replace_until)}` : "Замена файла разрешена" : "Замена файла закрыта"}</span></p>}
+    {sourceQuery.isSuccess && !source?.file && <p className="text-sm text-muted-foreground">Итоговый код ещё не прикреплён.</p>}
+    {(source || rejectedAsClosed) && <p role="status" className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">{canUpload ? <RefreshCw size={14} className="mt-0.5 shrink-0" /> : <Lock size={14} className="mt-0.5 shrink-0" />}<span>{rejectedAsClosed ? "Срок загрузки и замены итогового кода истёк. Прикрепить файл больше нельзя." : canUpload ? source.replace_until ? `Замена доступна до ${dateLabel(source.replace_until)}` : "Замена файла разрешена" : source.file ? "Замена файла закрыта" : "Прикрепление кода закрыто"}</span></p>}
     {canUpload && <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <input ref={input} id={`source-code-file-${submissionId}`} type="file" accept=".py,.ipynb,.zip" disabled={pending || downloading} className="sr-only" onChange={(event) => chooseFile(event.target.files?.[0])} />
       <Button type="button" variant="outline" className="min-h-11 min-w-0 flex-1 justify-start text-left" onClick={() => input.current?.click()} disabled={pending || downloading}><FileCode2 size={17} className="shrink-0" /><span className="truncate">{file ? file.name : source ? "Выбрать новый файл" : "Выбрать файл кода"}</span></Button>

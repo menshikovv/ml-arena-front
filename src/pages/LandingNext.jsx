@@ -69,9 +69,10 @@ const SKILLS = [
 
 const MotionLink = motion(Link);
 
-function Reveal({ children, className = "", delay = 0 }) {
+function Reveal({ children, className = "", delay = 0, as = "div", ...props }) {
   const reduced = useReducedMotion();
-  return <motion.div className={className} initial={reduced ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.45, margin: "0px 0px -65px 0px" }} transition={{ duration: reduced ? 0 : 0.62, delay: reduced ? 0 : delay, ease: [0.22, 1, 0.36, 1] }}>{children}</motion.div>;
+  const Component = motion[as];
+  return <Component {...props} className={`landing2-reveal ${className}`} initial={reduced ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: reduced ? 0 : 0.62, delay: reduced ? 0 : delay, ease: [0.22, 1, 0.36, 1] }}>{children}</Component>;
 }
 
 function TileIcon({ icon: Icon, tone = "blue" }) {
@@ -79,7 +80,7 @@ function TileIcon({ icon: Icon, tone = "blue" }) {
 }
 
 function SectionHeading({ title, text }) {
-  return <div className="landing2-heading"><h2>{title}</h2>{text && <p>{text}</p>}</div>;
+  return <Reveal className="landing2-heading"><h2>{title}</h2>{text && <p>{text}</p>}</Reveal>;
 }
 
 function Header({ isAuthenticated, loginTarget, logout, featureEnabled }) {
@@ -143,7 +144,7 @@ function Footer({ featureEnabled }) {
     ["Компаниям", [["/companies", "Решения для компаний"], ["/companies#cooperation-form", "Обсудить сотрудничество"]]],
     ["Поддержка", [["/support", "Помощь и FAQ"], ["/login", "Войти"]]],
   ];
-  return <footer className="landing2-footer"><div className="landing2-wrap landing2-footer-grid"><div><Link to="/" className="landing2-footer-brand"><img src="/logo.svg" alt="" /> ML-Арена</Link><p>Практические задачи, соревнования<br />и ML-паспорт с подтверждёнными результатами.</p></div>{groups.map(([title, links]) => <nav key={title} aria-label={title}><strong>{title}</strong>{links.filter(([, , feature]) => !feature || featureEnabled(feature)).map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}</nav>)}</div><div className="landing2-footer-bottom landing2-wrap"><span>© 2026 ML-Арена. Все права защищены.</span><div><Link to="/terms">Условия использования</Link><Link to="/privacy">Обработка данных</Link></div></div></footer>;
+  return <footer className="landing2-footer"><div className="landing2-wrap landing2-footer-grid"><Reveal><Link to="/" className="landing2-footer-brand"><img src="/logo.svg" alt="" /> ML-Арена</Link><p>Практические задачи, соревнования<br />и ML-паспорт с подтверждёнными результатами.</p></Reveal>{groups.map(([title, links], index) => <Reveal as="nav" key={title} aria-label={title} delay={index * 0.04}><strong>{title}</strong>{links.filter(([, , feature]) => !feature || featureEnabled(feature)).map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}</Reveal>)}</div><Reveal className="landing2-footer-bottom landing2-wrap"><span>© 2026 ML-Арена. Все права защищены.</span><div><Link to="/terms">Условия использования</Link><Link to="/privacy">Обработка данных</Link></div></Reveal></footer>;
 }
 
 export default function LandingNext() {
@@ -182,6 +183,6 @@ export default function LandingNext() {
 
     <section className="landing2-band landing2-band--tint"><div className="landing2-wrap landing2-passport-section"><Reveal><h2>Навыки, которые<br />не нужно доказывать<br />словами</h2><p>Результаты, лиги, бейджи и история отправок собираются в одном профиле и показывают работодателям реальный уровень.</p><div className="landing2-proof-label"><Award size={18} /> Подтверждено результатами на платформе</div></Reveal><Reveal><PassportPreview /></Reveal></div></section>
 
-    <section className="landing2-final"><div className="landing2-wrap landing2-final-inner"><Sparkles size={27} /><div><h2>Готов выйти на арену?</h2><p>Начни с первой задачи и преврати практику в результат.</p></div><div className="landing2-final-actions"><Link to={primaryTarget}>Открыть профиль <ArrowRight size={16} /></Link><Link to="/competitions"><Play size={16} /> Смотреть соревнования</Link></div></div></section>
+    <section className="landing2-final"><Reveal className="landing2-wrap landing2-final-inner"><Sparkles size={27} /><div><h2>Готов выйти на арену?</h2><p>Начни с первой задачи и преврати практику в результат.</p></div><div className="landing2-final-actions"><Link to={primaryTarget}>Открыть профиль <ArrowRight size={16} /></Link><Link to="/competitions"><Play size={16} /> Смотреть соревнования</Link></div></Reveal></section>
   </main><Footer featureEnabled={featureEnabled} /></div>;
 }

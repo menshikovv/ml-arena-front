@@ -177,7 +177,7 @@ export default function Profile() {
   const competitionsQuery = useQuery({ queryKey: ["profile-rating", "competitions", season], queryFn: () => api.rating.get({ tab: "competitions", season }), enabled: Boolean(isOwner && season) });
   const duelsQuery = useQuery({ queryKey: ["profile-rating", "duels", season], queryFn: () => api.rating.get({ tab: "duels", season }), enabled: Boolean(isOwner && season) });
   const methodologyQuery = useQuery({ queryKey: ["profile-rating-methodology", season], queryFn: () => api.rating.methodology({ season }), enabled: Boolean(isOwner && season), staleTime: 60000 });
-  const evidenceQuery = useQuery({ queryKey: ["passport-evidence", profileUserId], queryFn: () => loadPassportEvidence(api), enabled: Boolean(isOwner && profileUserId && ["directions", "practice"].includes(activeTab)), staleTime: 60000, retry: 1 });
+  const evidenceQuery = useQuery({ queryKey: ["passport-evidence", profileUserId], queryFn: () => loadPassportEvidence(api), enabled: Boolean(isOwner && profileUserId && (["directions", "practice"].includes(activeTab) || exportDialogOpen)), staleTime: 60000, retry: 1 });
   const metricsQuery = useQuery({ queryKey: ["catalog-metrics"], queryFn: api.catalogs.metrics, enabled: Boolean(isOwner && activeTab === "directions"), staleTime: 60000 });
 
   const badges = list(badgesQuery.data);
@@ -219,7 +219,20 @@ export default function Profile() {
     if (!profile || exportingPdf) return;
     setExportingPdf(true);
     try {
-      await downloadPassportPdf({ profile, name: displayName, rating: overall?.rank ? seasonalScore : null, rank: overall?.rank, directions: directionCards, badges, externalAchievements, options: exportOptions, url: `${window.location.origin}/profile/${profileUserId}` });
+      const [evidenceResult, badgeResult, ratingResult] = await Promise.all([
+        evidenceQuery.refetch(),
+        badgesQuery.refetch(),
+        season ? overallQuery.refetch() : Promise.resolve(null),
+      ]);
+      const exportRating = currentRating(ratingResult?.data);
+      const exportDirections = directionCards.map((item) => ({ ...item, evidence: evidenceResult.data ? directionEvidence(evidenceResult.data, item.code, profileUserId) : null }));
+      await downloadPassportPdf({
+        profile, name: displayName, rating: exportRating?.rank ? exportRating.score : null, rank: exportRating?.rank,
+        seasonName: seasons.find((item) => item.slug === season)?.name || season,
+        directions: exportDirections, badges: list(badgeResult.data), badgesLoaded: Boolean(badgeResult.isSuccess),
+        evidenceIncomplete: evidenceResult.isError || evidenceResult.data?.errors > 0,
+        externalAchievements, options: exportOptions, url: `${window.location.origin}/profile/${profileUserId}`,
+      });
       setExportDialogOpen(false);
     } catch {
       toast.error("Не удалось скачать ML-паспорт в PDF");
