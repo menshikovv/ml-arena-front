@@ -17,6 +17,7 @@ let CompetitionCard;
 let CompetitionMetricExplanation;
 let CompetitionsSection;
 let CompetitionFinalResults;
+let CompetitionReadiness;
 let SubmissionRow;
 let CompetitionEvidence;
 let SourceCodeAttachment;
@@ -27,7 +28,7 @@ before(async () => {
   server = await createServer({ configFile: false, cacheDir: fileURLToPath(new URL("../node_modules/.vite-tests/competition-content", import.meta.url)), esbuild: { jsx: "automatic" }, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
   ({ CompetitionContent, CompetitionSummary, CompetitionCodeSample, CompetitionMetricExplanation } = await server.ssrLoadModule("/src/components/ml/CompetitionContent.jsx"));
   ({ default: CompetitionCard } = await server.ssrLoadModule("/src/components/ml/CompetitionCard.jsx"));
-  ({ CompetitionsSection, CompetitionFinalResults } = await server.ssrLoadModule("/src/pages/Admin.jsx"));
+  ({ CompetitionsSection, CompetitionFinalResults, CompetitionReadiness } = await server.ssrLoadModule("/src/pages/Admin.jsx"));
   ({ SubmissionRow, CompetitionEvidence } = await server.ssrLoadModule("/src/pages/ProfileDirection.jsx"));
   ({ SourceCodeAttachment, default: SubmissionSourceCode } = await server.ssrLoadModule("/src/components/ml/SubmissionSourceCode.jsx"));
 });
@@ -163,6 +164,39 @@ test("admin finalization explains blocked lifecycle and permits only server-supp
   assert.match(render("completed"), /Обновить итоговый рейтинг/);
   assert.equal(render("draft"), "");
   assert.equal(render("archived"), "");
+});
+
+test("readiness localizes checks and treats an expired deadline as expected only after launch", () => {
+  const now = Date.parse("2026-10-19T12:00:00Z");
+  const checks = ["content", "deadline", "task", "metric", "dataset", "dataset_validation"].map((code) => ({ code, passed: code !== "deadline", message: "English API check" }));
+  const render = (status, extra = {}) => renderToStaticMarkup(React.createElement(CompetitionReadiness, { competition: { status, submission_deadline: "2026-10-16T12:00:00Z" }, data: { ready: false, checks }, now, ...extra }));
+  for (const status of ["active", "finalizing", "completed", "archived"]) {
+    const html = render(status);
+    assert.match(html, /Проверка конфигурации/);
+    assert.match(html, /Настройки проверены/);
+    assert.match(html, /Истёкший дедлайн на этом этапе не является ошибкой/);
+    assert.match(html, /Проверка датасета/);
+    assert.doesNotMatch(html, /Требует внимания|English API check|Проверка перед запуском/);
+  }
+  const draft = render("draft");
+  assert.match(draft, /Проверка перед запуском/);
+  assert.match(draft, /Требует внимания/);
+  assert.match(draft, /Укажите дедлайн отправок в будущем/);
+  assert.doesNotMatch(draft, /не является ошибкой/);
+  const failure = render("active", { data: { ready: false, checks: checks.map((check) => check.code === "dataset_validation" ? { ...check, passed: false } : check) } });
+  assert.match(failure, /Требует внимания/);
+  assert.match(failure, /Успешная проверка текущего датасета отсутствует/);
+  assert.doesNotMatch(failure, /Настройки проверены/);
+  const unknown = render("active", { data: { ready: false, checks: [...checks, { code: "new_check", passed: false, message: "Новая серверная проверка не пройдена" }] } });
+  assert.match(unknown, /Новая серверная проверка не пройдена/);
+  assert.match(unknown, /Требует внимания/);
+  const noDeadline = render("active", { competition: { status: "completed" } });
+  assert.match(noDeadline, /Требует внимания/);
+  const empty = render("active", { data: { ready: false, checks: [] } });
+  assert.match(empty, /Сервер не вернул результаты проверок/);
+  assert.doesNotMatch(empty, /Настройки проверены/);
+  const unexplained = render("active", { data: { ready: false, checks: checks.map((check) => ({ ...check, passed: true })) } });
+  assert.match(unexplained, /Требует внимания/);
 });
 
 test("active competitions close at the exact submission deadline without mutating server status", () => {
