@@ -81,6 +81,15 @@ test("upload link selects only the requested submission that belongs to the elig
   client.clear();
 });
 
+test("source-code panel respects explicit optional code and a separate source deadline", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const html = renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(StaticRouter, null, React.createElement(SubmissionSourceCode, { competition: { status: "finalizing", source_code_required: false, source_code_deadline: "2026-10-30T15:00:00Z", final_results_at: "2026-11-01T15:00:00Z" }, submissions: [] }))));
+  assert.match(html, /итоговый код необязателен/);
+  assert.match(html, /Срок прикрепления итогового кода/);
+  assert.doesNotMatch(html, /Итоговый код обязателен|ноября/);
+  client.clear();
+});
+
 function renderEvent(overrides = {}, status = "active", featured = false) {
   return renderToStaticMarkup(React.createElement(StaticRouter, { location: "/competitions" }, React.createElement(CompetitionCard, {
     competition: { id: "event", title: "Техносмена", origin: "official", task_type: "ranking", metric: "custom_ndcg_v1", rated: false, participants_count: 3, submission_deadline: new Date(Date.now() + 3 * 86400000).toISOString(), short_description: "Краткое условие.", description: "Полное условие. ".repeat(500), ...overrides },
@@ -142,18 +151,23 @@ test("featured archive cards retain status semantics without the active artwork"
   }
 });
 
-test("admin finalization explains blocked lifecycle and permits only server-supported publication", () => {
+test("admin finalization requires a reason and respects server lifecycle", () => {
   const render = (status, overrides = {}) => renderToStaticMarkup(React.createElement(CompetitionFinalResults, {
-    competition: { status, submission_deadline: "2000-01-01" }, permissions: new Set(["leaderboards.reveal"]), reason: "Проверка завершена", onReasonChange: () => {}, onPublish: () => {}, ...overrides,
+    competition: { id: "event", status, submission_deadline: "2000-01-01" }, publication: { competition_id: "event", status: "finalizing", publication_ready: true, publication_blockers: [] }, permissions: new Set(["leaderboards.reveal"]), reason: "Проверка завершена", onReasonChange: () => {}, onPublish: () => {}, ...overrides,
   }));
   const closed = render("active");
-  assert.match(closed, /сервер ещё не перевёл соревнование в финализацию/);
-  assert.match(closed, /<button[^>]*disabled=""/);
-  assert.doesNotMatch(closed, /<input/);
+  assert.match(closed, /Начать финализацию/);
+  assert.doesNotMatch(closed, /<button[^>]*disabled=""/);
+  assert.match(render("paused"), /Начать финализацию/);
+  assert.equal(render("active", { competition: { status: "active", submission_deadline: "2099-01-01" } }), "");
+  assert.match(render("active", { reason: "  " }), /<button[^>]*disabled=""/);
   const finalizing = render("finalizing");
   assert.match(finalizing, /Основание публикации итогов/);
   assert.match(finalizing, /Опубликовать итоги/);
   assert.doesNotMatch(finalizing, /disabled=""/);
+  assert.match(render("finalizing", { publication: null }), /<button[^>]*disabled=""/);
+  assert.match(render("finalizing", { publicationLoading: true }), /<button[^>]*disabled=""/);
+  assert.match(render("finalizing", { publicationFailure: new Error("Нет связи") }), /<button[^>]*disabled=""/);
   for (const overrides of [{ reason: "  " }, { reason: "a".repeat(1001) }, { pending: true }]) {
     assert.match(render("finalizing", overrides), /<button[^>]*disabled=""/);
   }
@@ -161,7 +175,7 @@ test("admin finalization explains blocked lifecycle and permits only server-supp
   assert.match(restricted, /нужно право leaderboards.reveal/);
   assert.doesNotMatch(restricted, /<button|<input/);
   assert.match(render("completed"), /Итоги опубликованы/);
-  assert.match(render("completed"), /Обновить итоговый рейтинг/);
+  assert.match(render("completed"), /Повторить публикацию/);
   assert.equal(render("draft"), "");
   assert.equal(render("archived"), "");
 });

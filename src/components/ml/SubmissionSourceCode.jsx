@@ -151,7 +151,8 @@ export default function SubmissionSourceCode({ competition, participation, submi
   const privateVisible = selected && canShowPrivateScore(competition, selected) && getSubmissionScore(selected, "private") != null;
   return <section className="mt-8 min-w-0 rounded-lg border border-border bg-card p-4 sm:p-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-heading text-lg font-bold">Итоговый код решения</h3><span className="text-xs text-muted-foreground">.py · .ipynb · .zip · до 100 МиБ</span></div>
-    <p className="mt-3 text-sm leading-6 text-muted-foreground">Итоговый код обязателен для финального рейтинга. CSV с ответами не заменяет код решения.</p>
+    <p className="mt-3 text-sm leading-6 text-muted-foreground">{competition.source_code_required === false ? "Для этого соревнования итоговый код необязателен." : "Итоговый код обязателен для финального рейтинга."} CSV с ответами не заменяет код решения.</p>
+    {competition.source_code_deadline && <p className="mt-2 text-xs text-muted-foreground">Срок прикрепления итогового кода: {dateLabel(competition.source_code_deadline)}</p>}
     {!eligible.length ? <p className="mt-4 text-sm text-muted-foreground">Пока нет оценённых решений для прикрепления кода.</p> : <>
       <label htmlFor="source-code-submission" className="mt-4 block text-xs font-semibold text-muted-foreground">Оценённое решение</label>
       <select id="source-code-submission" value={selectedId} disabled={busy} onChange={(event) => setChosenId(event.target.value)} className="mt-2 h-11 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground">

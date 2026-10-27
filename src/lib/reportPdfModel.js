@@ -1,4 +1,5 @@
 import { numberOrNull, safeArtifactUrl } from "./passport.js";
+import { ACHIEVEMENT_TYPES } from "./profileAchievements.js";
 
 const shown = (value) => value == null || value === "" || value === "—" || (typeof value === "number" && !Number.isFinite(value)) ? "Нет данных" : String(value);
 const numeric = (value) => numberOrNull(value) == null ? "Нет данных" : String(Number(value));
@@ -48,7 +49,7 @@ export function passportReport({ profile, name, rating, rank, directions = [], b
         detail: [`Место ${place(result.rank)}`, numberOrNull(result.participants_count) > 0 ? `из ${result.participants_count} участников` : null, `Оценка: ${shown(result.score ?? result.final_score)}`, reportDate(result.confirmed_at || result.completed_at || competition.final_results_at || competition.deadline)].filter(Boolean).join(" / "),
       })) }] : []),
       ...(badges.length ? [{ title: "Достижения ML-Арены", kind: "list", items: badges.map((grant) => ({ label: grant.badge?.name || grant.name || grant.title || "Достижение", detail: grant.badge?.description || grant.description || "" })) }] : []),
-      ...(external.length ? [{ title: "Подтверждённые внешние достижения", kind: "list", items: external.map((item) => ({ label: item.title || item.name || item.competition_name || "Достижение", detail: item.source || item.platform || item.provider || "" })) }] : []),
+      ...(external.length ? [{ title: "Подтверждённые внешние достижения", kind: "list", items: external.map((item) => ({ label: item.title || item.name || item.competition_name || "Достижение", detail: [ACHIEVEMENT_TYPES[item.achievement_type] || item.source || item.platform || item.provider, item.result, item.achieved_at ? reportDate(item.achieved_at) : null].filter(Boolean).join(" / ") })) }] : []),
       ...(facts.length ? [{ title: "Профиль и контакты", kind: "facts", items: facts }] : []),
     ],
     note: "Снимок данных профиля, не официальный сертификат. Актуальные результаты и историю проверяйте на ML-Арене.", url,

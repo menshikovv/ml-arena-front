@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { Activity, Award, BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, ChevronRight, CircleDot, Crown, Download, ExternalLink, FileText, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, ListFilter, Loader2, MapPin, Medal, Network, Pencil, ScanEye, ShieldCheck, Sparkles, Star, Swords, Target, TrendingUp, Trophy, UserRoundSearch, X } from "lucide-react";
+import { Activity, Award, BadgeCheck, BarChart3, BriefcaseBusiness, CalendarDays, ChevronRight, CircleDot, Crown, Download, FileText, Flame, Github, Globe2, GraduationCap, History, Link as LinkIcon, ListFilter, Loader2, MapPin, Medal, Network, Pencil, ScanEye, ShieldCheck, Sparkles, Star, Swords, Target, TrendingUp, Trophy, UserRoundSearch, X } from "lucide-react";
 import { api } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import { PageFrame } from "@/components/ml/PageFrame";
@@ -18,6 +18,7 @@ import ProfileRating from "./ProfileRating";
 import ProfileCareer from "./ProfileCareer";
 import ProfilePractice from "./ProfilePractice";
 import ProfileDirection from "./ProfileDirection";
+import ProfileAchievements from "@/components/ml/ProfileAchievements";
 import "./Profile.css";
 
 const DIRECTIONS = [
@@ -113,47 +114,6 @@ function BadgeCard({ grant }) {
   );
 }
 
-function externalAchievementUrl(achievement) {
-  const value = achievement?.source_url || achievement?.evidence_url || achievement?.url;
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : null;
-  } catch {
-    return null;
-  }
-}
-
-function ExternalAchievementCard({ achievement }) {
-  const title = achievement.title || achievement.name || achievement.competition_name || "Внешнее достижение";
-  const source = achievement.source || achievement.platform || achievement.provider || "Внешняя площадка";
-  const place = achievement.place ?? achievement.rank;
-  const status = achievement.verification_status || achievement.status;
-  const verified = achievement.verified === true || ["verified", "approved", "confirmed"].includes(status);
-  const pending = ["pending", "review", "in_review"].includes(status);
-  const dateValue = achievement.achieved_at || achievement.awarded_at || achievement.verified_at;
-  const date = dateValue ? new Date(dateValue) : null;
-  const url = externalAchievementUrl(achievement);
-
-  return <article className="group relative flex min-h-64 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card p-6 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transform-none">
-    <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500" />
-    <div className="flex items-start justify-between gap-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"><Globe2 size={21} /></span>
-    </div>
-    <h3 className="mt-6 break-words font-heading text-xl font-extrabold leading-snug [overflow-wrap:anywhere]">{title}</h3>
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">{source}</p>
-      <span className={cn("inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-semibold", verified ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : pending ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-border bg-secondary text-muted-foreground")}>
-        {verified && <ShieldCheck size={12} />}{verified ? "Подтверждено" : pending ? "На проверке" : "Не подтверждено"}
-      </span>
-    </div>
-    {achievement.description && <p className="mt-3 break-words text-sm leading-6 text-muted-foreground">{achievement.description}</p>}
-    <div className="mt-auto flex flex-wrap items-end justify-between gap-3 border-t border-border pt-5">
-      <div className="text-xs text-muted-foreground">{place != null ? <><span>Место</span><strong className="ml-2 font-heading text-lg text-foreground">#{place}</strong></> : date && !Number.isNaN(date.getTime()) ? <time dateTime={date.toISOString()}>{date.toLocaleDateString("ru-RU")}</time> : "Источник указан пользователем"}</div>
-      {url && <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Открыть <ExternalLink size={13} /></a>}
-    </div>
-  </article>;
-}
 
 export default function Profile() {
   const { id } = useParams();
@@ -181,7 +141,7 @@ export default function Profile() {
   const metricsQuery = useQuery({ queryKey: ["catalog-metrics"], queryFn: api.catalogs.metrics, enabled: Boolean(isOwner && activeTab === "directions"), staleTime: 60000 });
 
   const badges = list(badgesQuery.data);
-  const externalAchievements = list(profile?.external_achievements);
+  const externalAchievements = list(profile?.achievements ?? profile?.external_achievements);
   const stats = profile?.stats || {};
   const skills = profile?.skills || {};
   const overall = currentRating(overallQuery.data);
@@ -296,7 +256,7 @@ export default function Profile() {
 
       <Tabs.Content value="badges" className="mt-7 outline-none"><Reveal>{badges.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{badges.map((grant) => <BadgeCard key={grant.id || grant.badge?.id || grant.code} grant={grant} />)}</div> : <EmptyState title="Бейджей пока нет" text="Достижения появятся здесь после участия в активностях ML-Арены." />}</Reveal></Tabs.Content>
 
-      <Tabs.Content value="external" className="mt-7 outline-none"><Reveal><div className="mb-7"><h2 className="mt-2 font-heading text-2xl font-extrabold sm:text-3xl">Внешние достижения</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Результаты с ML-площадок, соревнований и олимпиад отображаются отдельно от внутреннего рейтинга.</p></div>{externalAchievements.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{externalAchievements.map((achievement, index) => <ExternalAchievementCard key={achievement.id || `${achievement.source || achievement.platform || "external"}-${index}`} achievement={achievement} />)}</div> : <EmptyState title="Внешних достижений пока нет" text="Здесь появятся достижения, которые передаст и подтвердит ML-Арена." />}</Reveal></Tabs.Content>
+      <Tabs.Content value="external" className="mt-7 outline-none"><ProfileAchievements key={profileUserId || "me"} isOwner={isOwner} ownerId={profileUserId || "me"} achievements={externalAchievements} /></Tabs.Content>
 
       {isOwner && <Tabs.Content value="career" className="outline-none"><Reveal><ProfileCareer profile={profile} /></Reveal></Tabs.Content>}
     </Tabs.Root>

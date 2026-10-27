@@ -723,8 +723,9 @@ export default function CompetitionDetail() {
     queryKey: ["catalog-metrics"], queryFn: api.catalogs.metrics, staleTime: 60000,
     enabled: Boolean(competitionData),
   });
+  const archivePublication = useQuery({ queryKey: ["competition-private-availability", id], queryFn: () => api.competitions.leaderboard(id, { kind: "private", limit: 1, offset: 0 }), enabled: Boolean(id && competitionData?.status === "archived"), refetchInterval: 15000, refetchOnWindowFocus: "always", retry: false });
   const competition = competitionData ? {
-    ...competitionData, metric_name: getCompetitionMetricName(competitionData, metricsQuery.data),
+    ...competitionData, metric_name: getCompetitionMetricName(competitionData, metricsQuery.data), _privateLeaderboard: archivePublication.isSuccess ? archivePublication.data : null,
   } : null;
   const now = useCompetitionClock(competitionData ? [competitionData] : []);
   const { data: participation } = useQuery({

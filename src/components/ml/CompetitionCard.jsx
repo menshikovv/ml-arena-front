@@ -35,6 +35,7 @@ function pluralize(value, one, few, many) {
 }
 
 function getTimeLabel(competition, status) {
+  if (competition.status === "archived") return "Итоги в соревновании";
   if (status === "finished") return "Результаты опубликованы";
   if (status === "finalizing") return "Идёт финальный пересчёт";
   if (status === "closed") return "Ожидаются итоги";

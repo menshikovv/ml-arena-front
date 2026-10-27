@@ -99,6 +99,7 @@ export function getSubmissionScore(submission, kind = "public") {
 
 export function canShowPrivateScore(competition, submission) {
   return ["completed", "finished", "archived"].includes(competition.status)
+    && (competition.status !== "archived" || isPrivateLeaderboardPublished(competition, competition._privateLeaderboard))
     && submission.private_score_revealed !== false;
 }
 

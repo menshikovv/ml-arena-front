@@ -1,5 +1,6 @@
 import { API_URL, ApiError, apiData, apiRequest, clearAccessToken, getAccessToken, queryString, restoreSession, setAccessToken } from "@/api/client";
 import { validateSourceCodeFile } from "@/lib/submissionSourceCode";
+import { validateAchievementEvidence } from "@/lib/profileAchievements";
 
 const json = (body) => JSON.stringify(body);
 
@@ -36,6 +37,13 @@ export const api = {
     setAvatar: (uploadId) => apiData("/api/v1/profiles/me/avatar", { method: "POST", body: json({ upload_id: uploadId }) }),
     deleteAvatar: () => apiData("/api/v1/profiles/me/avatar", { method: "DELETE" }),
     badges: (userId) => apiData(`/api/v1/profiles/${userId}/badges`, {}, { auth: false }),
+    achievementTypes: () => apiData("/api/v1/profiles/achievement-types", {}, { auth: false }),
+    myAchievements: () => apiData("/api/v1/profiles/me/achievements"),
+    achievements: (userId) => apiData(`/api/v1/profiles/${userId}/achievements`),
+    createAchievement: (body) => apiData("/api/v1/profiles/me/achievements", { method: "POST", body: json(body) }),
+    updateAchievement: (id, body) => apiData(`/api/v1/profiles/me/achievements/${id}`, { method: "PATCH", body: json(body) }),
+    deleteAchievement: (id) => apiData(`/api/v1/profiles/me/achievements/${id}`, { method: "DELETE" }),
+    achievementEvidence: (id) => apiData(`/api/v1/profiles/me/achievements/${id}/evidence`),
   },
   files: {
     createUploadIntent: (body) => apiData("/api/v1/files/upload-intents", { method: "POST", body: json(body) }),
@@ -272,6 +280,8 @@ export const api = {
     resumeCompetition: (id) => apiData(`/api/v1/admin/competitions/${id}/resume`, { method: "POST" }),
     archiveCompetition: (id) => apiData(`/api/v1/admin/competitions/${id}/archive`, { method: "POST" }),
     competitionReadiness: (id) => apiData(`/api/v1/admin/competitions/${id}/readiness`),
+    publicationReadiness: (id) => apiData(`/api/v1/admin/competitions/${id}/publication-readiness`),
+    finalizeCompetition: (id, reason) => apiData(`/api/v1/admin/competitions/${id}/finalize`, { method: "POST", body: json({ reason }) }),
     updateScoringConfig: (id, body) => apiData(`/api/v1/admin/competitions/${id}/scoring-config`, { method: "POST", body: json(body) }),
     moderateCommunityCompetition: (id, body) => apiData(`/api/v1/admin/competitions/${id}/community-moderation`, { method: "POST", body: json(body) }),
     createRatingSeason: (body) => apiData("/api/v1/admin/rating/seasons", { method: "POST", body: json(body) }),
@@ -287,6 +297,10 @@ export const api = {
     leaderboardRecalculations: (id) => apiData(`/api/v1/admin/competitions/${id}/leaderboard/recalculations`),
     recalculateLeaderboard: (id, body) => apiData(`/api/v1/admin/competitions/${id}/leaderboard/recalculate`, { method: "POST", body: json(body) }),
     revealPrivateLeaderboard: (id, reason) => apiData(`/api/v1/admin/competitions/${id}/leaderboard/reveal-private`, { method: "POST", body: json({ reason }) }),
+    profileAchievements: (params) => apiRequest(`/api/v1/admin/profile-achievements${queryString(params)}`),
+    profileAchievementEvidence: (id) => apiData(`/api/v1/admin/profile-achievements/${id}/evidence`),
+    verifyProfileAchievement: (id) => apiData(`/api/v1/admin/profile-achievements/${id}/verify`, { method: "POST" }),
+    rejectProfileAchievement: (id, reason) => apiData(`/api/v1/admin/profile-achievements/${id}/reject`, { method: "POST", body: json({ reason }) }),
     moderationReports: (params) => apiRequest(`/api/v1/admin/moderation/reports${queryString(params)}`),
     decideModerationReport: (id, body) => apiData(`/api/v1/admin/moderation/reports/${id}/decision`, { method: "POST", body: json(body) }),
     blogPosts: (params) => apiRequest(`/api/v1/admin/blog/posts${queryString(params)}`),
@@ -471,7 +485,7 @@ export async function uploadFile(file, purpose, context = {}, options = {}) {
   if (Number.isFinite(intent.max_size_bytes) && file.size > intent.max_size_bytes) {
     throw new ApiError(413, { code: "FILE_TOO_LARGE", message: `Файл ${file.name} превышает лимит сервера (${intent.max_size_bytes} байт)` });
   }
-  if (purpose === "submission_source_code" && intent.expires_at && Date.parse(intent.expires_at) <= Date.now()) {
+  if (["submission_source_code", "achievement_evidence"].includes(purpose) && intent.expires_at && Date.parse(intent.expires_at) <= Date.now()) {
     throw new ApiError(410, { code: "UPLOAD_INTENT_EXPIRED", message: "Ссылка загрузки истекла. Попробуйте снова." });
   }
   options.onStage?.("uploading");
@@ -488,6 +502,13 @@ export async function uploadSubmissionSourceCode(submissionId, file, options = {
   if (upload?.status !== "ready" || !upload.id) throw new ApiError(409, { code: "UPLOAD_NOT_READY", message: "Хранилище ещё не подтвердило готовность файла. Попробуйте снова." });
   options.onStage?.("attaching");
   return api.submissions.attachSourceCode(submissionId, upload.id);
+}
+
+export async function uploadAchievementEvidence(file, options = {}) {
+  const contentType = validateAchievementEvidence(file);
+  const upload = await uploadFile(file, "achievement_evidence", {}, { ...options, contentType });
+  if (upload?.status !== "ready" || !upload.id) throw new ApiError(409, { code: "UPLOAD_NOT_READY" });
+  return upload.id;
 }
 
 export async function waitForSubmission(id, options = {}) {

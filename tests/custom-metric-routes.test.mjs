@@ -25,6 +25,30 @@ test("publishing private results sends the required audit reason", async () => {
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test("starting finalization sends the reason and preserves authoritative server status", async () => {
+  const originalFetch = globalThis.fetch;
+  let request;
+  globalThis.fetch = async (url, init) => {
+    request = { url, ...init };
+    return new Response(JSON.stringify({ data: { id: "competition-id", status: "finalizing" } }), { status: 200 });
+  };
+  try {
+    const result = await api.admin.finalizeCompetition("competition-id", "Приём завершён");
+    assert.equal(new URL(request.url, "http://localhost").pathname, "/api/v1/admin/competitions/competition-id/finalize");
+    assert.equal(request.method, "POST");
+    assert.deepEqual(JSON.parse(request.body), { reason: "Приём завершён" });
+    assert.equal(result.status, "finalizing");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("finalization preserves server rejection instead of treating it as a successful transition", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { code: "competition_deadline_not_reached", message: "Дедлайн ещё не наступил" } }), { status: 409 });
+  try {
+    await assert.rejects(api.admin.finalizeCompetition("event", "Начать проверку"), (error) => error.status === 409 && error.code === "competition_deadline_not_reached");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 after(async () => {
   await server?.close();
 });
