@@ -23,6 +23,7 @@ let CompetitionEvidence;
 let SourceCodeAttachment;
 let SubmissionSourceCode;
 let ResultCard;
+let DirectionCard;
 
 before(async () => {
   globalThis.window = { self: null, top: null };
@@ -33,9 +34,25 @@ before(async () => {
   ({ SubmissionRow, CompetitionEvidence } = await server.ssrLoadModule("/src/pages/ProfileDirection.jsx"));
   ({ SourceCodeAttachment, default: SubmissionSourceCode } = await server.ssrLoadModule("/src/components/ml/SubmissionSourceCode.jsx"));
   ({ default: ResultCard } = await server.ssrLoadModule("/src/components/ml/ResultCard.jsx"));
+  ({ DirectionCard } = await server.ssrLoadModule("/src/pages/Profile.jsx"));
 });
 
 after(async () => { await server?.close(); delete globalThis.window; });
+
+test("direction cards distinguish default zeros, uncalculated indices and unavailable history", () => {
+  const render = (props) => renderToStaticMarkup(React.createElement(DirectionCard, { code: "nlp", title: "NLP", ...props }));
+  const empty = { complete: true, competitions: [], official: [], duels: [] };
+  for (const score of [0, undefined]) {
+    const html = render({ score, evidence: empty });
+    assert.match(html, /Нет результатов/);
+    assert.match(html, /<strong>—<\/strong>/);
+    assert.doesNotMatch(html, /<strong>0<\/strong>/);
+  }
+  assert.match(render({ score: 0, evidence: { ...empty, official: [{}] } }), /Индекс не рассчитан/);
+  assert.match(render({ score: 0, evidence: null }), /История недоступна/);
+  assert.match(render({ score: 0, loading: true }), /Загрузка истории/);
+  assert.match(render({ score: 42, evidence: empty }), /<strong>42<\/strong>/);
+});
 
 test("result cards use one branded responsive layout with explicit verification details", async () => {
   const { competitionReport, duelReport } = await import("../src/lib/reportPdfModel.js");

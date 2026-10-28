@@ -1,9 +1,39 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { allPages, directionEvidence, directionKey, loadPassportEvidence, median, safeArtifactUrl, submissionStatistics } from "../src/lib/passport.js";
+import { allPages, directionEvidence, directionIndex, directionKey, loadPassportEvidence, median, safeArtifactUrl, submissionStatistics } from "../src/lib/passport.js";
 
 const now = Date.parse("2026-09-28T12:00:00Z");
 const result = (id, rank, origin = "official_platform", extra = {}) => ({ competition: { id, task_type: "classification", status: "finished", origin, deadline: "2026-09-10T12:00:00Z" }, result: { rank, participants_count: 100, origin, score: 0.9, leaderboard_kind: "private", ...extra } });
+
+test("default zero and absent direction indices share a confirmed empty state", () => {
+  const evidence = directionEvidence({ competitions: [], duels: [] }, "classification", "me");
+  assert.equal(evidence.complete, true);
+  for (const score of [0, "0", null, undefined]) {
+    assert.equal(directionIndex(score, evidence).value, null);
+    assert.equal(directionIndex(score, evidence).status, "Нет результатов");
+  }
+});
+
+test("participation does not turn a default skill zero into a calculated index", () => {
+  const evidence = directionEvidence({ competitions: [result("a", 1, "official_platform", { score: 0 })] }, "classification", "me");
+  assert.equal(directionIndex(0, evidence).value, null);
+  assert.equal(directionIndex(0, evidence).status, "Индекс не рассчитан");
+  assert.equal(directionIndex(57, evidence).value, 57);
+  const preliminary = directionEvidence({ competitions: [result("public", 2, "community", { leaderboard_kind: "public" })] }, "classification", "me");
+  assert.match(directionIndex(0, preliminary).detail, /Есть промежуточные/);
+});
+
+test("loading, private and incomplete history never masquerade as an empty direction", () => {
+  assert.equal(directionIndex(0, null, { loading: true }).status, "Загрузка истории");
+  assert.equal(directionIndex(0, null).status, "История недоступна");
+  for (const flag of ["competitionsError", "competitionsIncomplete", "duelsError", "errors"]) {
+    const evidence = directionEvidence({ competitions: [], duels: [], [flag]: true }, "nlp", "me");
+    assert.equal(evidence.complete, false);
+    assert.equal(directionIndex(0, evidence).status, "История недоступна");
+  }
+  const cached = directionEvidence({ competitions: [], duels: [] }, "nlp", "me");
+  assert.equal(directionIndex(0, cached, { unavailable: true }).status, "История недоступна");
+});
 
 test("official, community and preliminary results remain separate", () => {
   const data = directionEvidence({ competitions: [result("a", 10), result("b", 20), result("c", 1, "community"), result("d", 2, "official_platform", { leaderboard_kind: "public" })] }, "classification", "me", now);

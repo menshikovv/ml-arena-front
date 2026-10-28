@@ -11,7 +11,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/ml/PageReveal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
-import { directionEvidence, loadPassportEvidence } from "@/lib/passport";
+import { directionEvidence, directionIndex, loadPassportEvidence } from "@/lib/passport";
 import { downloadPassportPdf } from "@/lib/reportPdf";
 import { toast } from "@/components/ui/use-toast";
 import ProfileRating from "./ProfileRating";
@@ -77,15 +77,16 @@ const DIRECTION_STYLE = {
   recsys: ["RS", Network, "#7045e9", "#ece8ff"],
 };
 
-function DirectionCard({ code, title, score, evidence, onOpen }) {
-  const value = Number(score);
-  const hasData = score != null && Number.isFinite(value) && value > 0;
+export function DirectionCard({ code, title, score, evidence, loading, unavailable, onOpen }) {
+  const index = directionIndex(score, evidence, { loading, unavailable });
+  const value = index.value;
+  const hasData = value !== null;
   const progress = hasData ? Math.max(0, Math.min(100, value)) : 0;
   const [mark, Icon, accent, soft] = DIRECTION_STYLE[code] || DIRECTION_STYLE.classification;
   return <button type="button" onClick={onOpen} aria-label={`Открыть направление: ${title}`} className="passport-direction" style={{ "--direction-accent": accent, "--direction-soft": soft }}>
     <div className="passport-direction__top"><span className="passport-direction__icon"><Icon size={27} strokeWidth={2.4} /></span><span className="passport-direction__mark" aria-hidden="true">{mark}<span>/</span></span><span className="passport-direction__brand">ML-ARENA</span></div>
     <h3>{title}</h3>
-    <p>{evidence ? `${evidence.official.length} официальных финалов · ${evidence.duels.length} дуэлей` : hasData ? "Есть результаты профиля" : "Пока нет результатов"}</p>
+    <p>{index.detail}</p>
     <div className="passport-direction__bottom"><span>Индекс профиля</span><div className="passport-direction__track"><div style={{ width: `${progress}%` }} /></div><strong>{hasData ? value : "—"}</strong></div>
     <span className="passport-direction__action">Результаты и решения<ChevronRight size={16} /></span>
   </button>;
@@ -159,7 +160,7 @@ export default function Profile() {
   const seasonDuelHistory = duelRating?.history?.length ? duelRating.history : duelRating?.rating_history?.length ? duelRating.rating_history : null;
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
   const displayName = fullName || profile?.user_name || "Участник";
-  const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] ?? (code === "cv" ? skills.computer_vision : null), evidence: isOwner && evidenceQuery.data ? directionEvidence(evidenceQuery.data, code, profileUserId) : null })), [skills, evidenceQuery.data, isOwner, profileUserId]);
+  const directionCards = useMemo(() => DIRECTIONS.map(([code, title]) => ({ code, title, score: skills[code] ?? (code === "cv" ? skills.computer_vision : null), evidence: isOwner && evidenceQuery.data ? directionEvidence(evidenceQuery.data, code, profileUserId) : null, loading: isOwner && evidenceQuery.isLoading, unavailable: evidenceQuery.isError })), [skills, evidenceQuery.data, evidenceQuery.isLoading, evidenceQuery.isError, isOwner, profileUserId]);
   const selectedDirection = directionCards.find((item) => item.code === searchParams.get("direction"));
   const openDirection = (code) => {
     setSearchParams((previous) => { const params = new URLSearchParams(previous); if (code) params.set("direction", code); else params.delete("direction"); return params; });

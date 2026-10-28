@@ -21,11 +21,27 @@ test("zero scores are preserved but unknown values are not invented", () => {
   assert.equal(data.stats[1].value, "—");
   assert.equal(data.stats[2].value, "—");
   assert.equal(data.stats[3].value, "—");
-  assert.equal(data.sections[0].items[0].value, "0");
+  assert.equal(data.sections[0].items[0].value, "—");
   assert.equal(data.sections[0].items[1].value, "—");
   assert.match(data.sections[0].items[0].detail, /недоступна/);
   assert.doesNotMatch(serialized(data), /Founder Season/);
   assert.match(data.filename, /Алексей/);
+});
+
+test("passport PDF treats legacy zero and missing skills equally without hiding real result zeros", () => {
+  const empty = { complete: true, official: [], duels: [], competitions: [] };
+  const directions = ["Классификация", "Регрессия", "NLP", "CV", "Временные ряды", "Ранжирование", "Кластеризация", "RecSys"].map((title, index) => ({ title, score: index < 5 ? 0 : undefined, evidence: empty }));
+  const data = passport({ rating: 0, directions });
+  assert.ok(data.sections[0].items.every((item) => item.value === "—" && item.detail === "Нет результатов"));
+  assert.equal(data.stats[0].value, "0");
+  const results = { ...empty, official: [{ competition: { id: "a", title: "Zero result" }, result: { score: 0, leaderboard_kind: "private" } }] };
+  const withResults = passport({ directions: [{ title: "NLP", score: 0, evidence: results }, { title: "CV", score: 42, evidence: empty }] });
+  assert.equal(withResults.sections[0].items[0].value, "—");
+  assert.match(withResults.sections[0].items[0].detail, /Индекс не рассчитан/);
+  assert.equal(withResults.sections[0].items[1].value, "42");
+  assert.match(serialized(withResults), /"Итоговая оценка","value":"0"/);
+  const incomplete = passport({ directions, evidenceIncomplete: true });
+  assert.ok(incomplete.sections[0].items.every((item) => item.detail === "История недоступна"));
 });
 
 test("passport deduplicates final evidence and discloses incomplete history", () => {

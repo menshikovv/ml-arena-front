@@ -2,6 +2,22 @@ import { getCompetitionMetricDirection, getSubmissionScore } from "./ml-arena.js
 
 export const directionKey = (value) => value === "computer_vision" ? "cv" : value;
 export const numberOrNull = (value) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
+
+export function directionIndex(score, evidence, { loading = false, unavailable = false } = {}) {
+  const parsed = typeof score === "number" || typeof score === "string" ? numberOrNull(score) : null;
+  const value = parsed > 0 ? parsed : null;
+  const officialCount = evidence?.official?.length || 0;
+  const duelCount = evidence?.duels?.length || 0;
+  const hasResults = officialCount + duelCount + (evidence?.competitions?.length || 0) + (evidence?.community?.length || 0) > 0;
+  const complete = evidence?.complete === true && !unavailable;
+  const status = value !== null ? "Индекс профиля" : loading ? "Загрузка истории" : hasResults ? "Индекс не рассчитан" : complete ? "Нет результатов" : "История недоступна";
+  const counts = hasResults ? officialCount + duelCount > 0 ? `${officialCount} офиц. финалов / ${duelCount} рейтинг. дуэлей` : "Есть промежуточные или результаты сообщества" : null;
+  return {
+    value,
+    status,
+    detail: [value === null ? status : null, counts, hasResults && !complete ? "История загружена не полностью" : null].filter(Boolean).join(" · ") || "Индекс из профиля",
+  };
+}
 export const median = (values) => {
   const sorted = values.filter((value) => value != null && Number.isFinite(value)).sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
@@ -86,6 +102,7 @@ export function directionEvidence(evidence, code, ownerId, now = Date.now()) {
   const status = official.length >= 4 && reviewed.length && age >= 0 && age <= 180 ? "Высокая подтверждённость" : age >= 0 && age <= 365 && (official.length >= 2 || official.length >= 1 && duels.length >= 10) ? "Данных достаточно" : "Мало данных";
   return {
     competitions, official, community, duels, status, lastConfirmed,
+    complete: Boolean(evidence) && !evidence.errors && !evidence.competitionsError && !evidence.competitionsIncomplete && !evidence.duelsError,
     peak: percentages.length ? Math.min(...percentages) : null,
     typical: median(official.slice(0, 5).map(topPercent)),
     recent: recent.length >= 2 ? median(recent.map(topPercent)) : null,

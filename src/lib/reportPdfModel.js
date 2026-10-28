@@ -1,4 +1,4 @@
-import { numberOrNull, safeArtifactUrl } from "./passport.js";
+import { directionIndex, numberOrNull, safeArtifactUrl } from "./passport.js";
 import { ACHIEVEMENT_TYPES } from "./profileAchievements.js";
 import { formatScore, getCompetitionMetricName, TASK_TYPE_LABELS } from "./ml-arena.js";
 
@@ -87,16 +87,16 @@ export function passportReport({ profile, name, rating, rank, ratingLoaded = tru
       { label: "Бейджи платформы", value: badgesLoaded ? String(badges.length) : missing, detail: badgesLoaded ? badges.length ? "Полученные награды" : "Наград пока нет" : "Не удалось загрузить" },
     ],
     sections: [
-      { title: "Направления машинного обучения", kind: "directions", items: directions.map((item) => ({
-        label: item.title, value: numberOrNull(item.score) === null ? missing : String(Number(item.score)),
-        detail: item.evidence ? `${list(item.evidence.official).length} офиц. финалов / ${list(item.evidence.duels).length} рейтинг. дуэлей` : "История подтверждений недоступна",
-      })) },
+      { title: "Направления машинного обучения", kind: "directions", items: directions.map((item) => {
+        const index = directionIndex(item.score, item.evidence, { unavailable: evidenceIncomplete });
+        return { label: item.title, value: index.value === null ? missing : String(index.value), detail: index.detail };
+      }) },
       { title: "Соревнования и результаты", kind: "competitions", items: participationItems.length ? participationItems : [{ label: participationComplete ? "Участий в соревнованиях пока нет" : "История соревнований недоступна", detail: participationComplete ? "После участия здесь появятся название соревнования, место и оценка." : "Список не удалось загрузить целиком. Он не заменяется нулевым числом участий." }] },
       ...(badges.length ? [{ title: "Достижения ML-Арены", kind: "list", items: badges.map((grant) => ({ label: grant.badge?.name || grant.name || grant.title || "Достижение", detail: grant.badge?.description || grant.description || "" })) }] : []),
       ...(external.length ? [{ title: "Подтверждённые внешние достижения", kind: "list", items: external.map((item) => ({ label: item.title || item.name || item.competition_name || "Достижение", detail: [ACHIEVEMENT_TYPES[item.achievement_type] || item.source || item.platform || item.provider, item.result, item.achieved_at ? reportDate(item.achieved_at) : null].filter(Boolean).join(" / ") })) }] : []),
       ...(facts.length ? [{ title: "Профиль и контакты", kind: "facts", items: facts }] : []),
     ],
-    note: `Снимок профиля, не официальный сертификат. 0 - подтверждённое нулевое значение; прочерк - показатель не присвоен или недоступен. Индексы не являются сертификацией навыков.${evidenceIncomplete ? " Часть истории недоступна: показаны только загруженные участия и результаты." : historyGap ? " Подробности доступны не для всех участий." : ""}`, url,
+    note: `Снимок профиля, не официальный сертификат. Начальные нули направлений не считаются рассчитанными индексами. Прочерк - индекс не рассчитан или недоступен; нулевые оценки и счётчики сохраняются.${evidenceIncomplete ? " Часть истории недоступна: показаны только загруженные участия и результаты." : historyGap ? " Подробности доступны не для всех участий." : ""}`, url,
   }, profile.user_name);
 }
 
