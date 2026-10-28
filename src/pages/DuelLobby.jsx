@@ -28,16 +28,18 @@ import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import LeagueBadge from "@/components/ml/LeagueBadge";
+import ResultCard from "@/components/ml/ResultCard";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
-import { METRIC_LABELS, TASK_TYPE_LABELS, formatScore } from "@/lib/ml-arena";
+import { METRIC_LABELS, TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { downloadDuelPdf } from "@/lib/reportPdf";
+import { duelReport, resultScore } from "@/lib/reportPdfModel";
 import { cn } from "@/lib/utils";
 
 const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 function safeScore(score, metric) {
-  return typeof score === "number" ? formatScore(score, metric) : "—";
+  return resultScore(score, metric);
 }
 
 function useRemainingSeconds(endTime) {
@@ -568,34 +570,11 @@ function ResultView({ duel }) {
       </section>
 
       <section className="grid gap-7 py-8 lg:grid-cols-[1fr_360px]">
-        <div className="border border-border bg-card p-6">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="" className="h-10 w-10 object-contain" />
-            <div>
-              <p className="font-heading text-lg font-bold">ML-Арена</p>
-              <p className="text-xs text-muted-foreground">Результат дуэли 1×1</p>
-            </div>
-          </div>
-          <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <div>
-              <p className="text-sm font-semibold">{duel.player1_name}</p>
-              <p className="mt-1 font-heading text-2xl font-bold">{safeScore(duel.player1_score, duel.metric)}</p>
-            </div>
-            <Swords className="text-primary" />
-            <div className="text-right">
-              <p className="text-sm font-semibold">{duel.player2_name}</p>
-              <p className="mt-1 font-heading text-2xl font-bold">{safeScore(duel.player2_score, duel.metric)}</p>
-            </div>
-          </div>
-          <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
-            <span className="text-xs text-muted-foreground">{TASK_TYPE_LABELS[duel.task_type]}</span>
-          </div>
-        </div>
+        {duel.status === "completed" && <ResultCard report={duelReport({ duel })} onDownload={exportCard} downloading={exportingPdf} />}
         <div>
           <h2 className="font-heading text-xl font-bold">Продолжить серию</h2>
           <div className="mt-5 space-y-2">
             <Button className="w-full" onClick={() => navigate("/duels/matchmaking")}><RefreshCw size={15} /> Сыграть ещё</Button>
-            <Button variant="outline" className="w-full" onClick={exportCard} disabled={duel.status !== "completed" || exportingPdf}>{exportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Скачать PDF-карточку</Button>
             <Button asChild variant="outline" className="w-full"><Link to="/profile/me">Открыть ML-паспорт <ArrowRight size={15} /></Link></Button>
             <Button asChild variant="ghost" className="w-full"><Link to="/rating?tab=duels"><Share2 size={15} /> В рейтинг дуэлей</Link></Button>
           </div>

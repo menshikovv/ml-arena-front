@@ -126,3 +126,19 @@ test("artifact links reject executable URLs and medians do not mutate input", ()
   assert.equal(median(values), 3);
   assert.deepEqual(values, [5, 1, 3]);
 });
+
+test("participation history retains active entries without a result and excludes unrelated ended events", async () => {
+  const rows = [
+    { id: "active", status: "active", user_state: "joined_no_submit" },
+    { id: "scored", status: "active", user_state: "has_valid_submit" },
+    { id: "past", status: "completed", user_state: "finished_with_result" },
+    { id: "stranger", status: "completed", user_state: "finished_no_submit" },
+    { id: "not-joined", status: "active", user_state: "not_joined" },
+  ];
+  const api = { competitions: { list: async () => ({ data: rows }), resultCard: async (id) => { if (["active", "stranger"].includes(id)) throw { status: 404 }; return { score: 0, leaderboard_kind: "public" }; } }, duels: { list: async () => ({ data: [] }) } };
+  const history = await loadPassportEvidence(api);
+  assert.deepEqual(history.participations.map((item) => item.competition.id).sort(), ["active", "past", "scored"]);
+  assert.equal(history.participations.find((item) => item.competition.id === "active").result, null);
+  assert.equal(history.competitionsError, false);
+  assert.equal(history.errors, 0);
+});

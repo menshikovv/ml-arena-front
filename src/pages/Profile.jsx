@@ -179,19 +179,25 @@ export default function Profile() {
     if (!profile || exportingPdf) return;
     setExportingPdf(true);
     try {
-      const [evidenceResult, badgeResult, ratingResult] = await Promise.all([
+      const [evidenceResult, badgeResult, ratingResult, profileResult, metricResult] = await Promise.all([
         evidenceQuery.refetch(),
         badgesQuery.refetch(),
         season ? overallQuery.refetch() : Promise.resolve(null),
+        profileQuery.refetch(),
+        metricsQuery.refetch(),
       ]);
+      if (!profileResult.isSuccess) throw new Error("Не удалось обновить профиль для PDF");
+      const exportProfile = profileResult.data;
       const exportRating = currentRating(ratingResult?.data);
       const exportDirections = directionCards.map((item) => ({ ...item, evidence: evidenceResult.data ? directionEvidence(evidenceResult.data, item.code, profileUserId) : null }));
       await downloadPassportPdf({
-        profile, name: displayName, rating: exportRating?.rank ? exportRating.score : null, rank: exportRating?.rank,
+        profile: exportProfile, name: [exportProfile.first_name, exportProfile.last_name].filter(Boolean).join(" ") || exportProfile.user_name,
+        rating: exportRating?.score ?? null, rank: exportRating?.rank, ratingLoaded: !season || Boolean(ratingResult?.isSuccess),
         seasonName: seasons.find((item) => item.slug === season)?.name || season,
-        directions: exportDirections, badges: list(badgeResult.data), badgesLoaded: Boolean(badgeResult.isSuccess),
+        directions: exportDirections.map((item) => ({ ...item, score: exportProfile.skills?.[item.code] ?? (item.code === "cv" ? exportProfile.skills?.computer_vision : null) })), badges: badgeResult.isSuccess ? list(badgeResult.data) : [], badgesLoaded: Boolean(badgeResult.isSuccess),
         evidenceIncomplete: evidenceResult.isError || evidenceResult.data?.errors > 0,
-        externalAchievements, options: exportOptions, url: `${window.location.origin}/profile/${profileUserId}`,
+        history: evidenceResult.isSuccess ? evidenceResult.data : null, metrics: metricResult.isSuccess ? list(metricResult.data) : [],
+        externalAchievements: list(exportProfile.achievements ?? exportProfile.external_achievements), options: exportOptions, url: `${window.location.origin}/profile/${profileUserId}`,
       });
       setExportDialogOpen(false);
     } catch {

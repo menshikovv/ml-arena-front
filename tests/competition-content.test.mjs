@@ -22,6 +22,7 @@ let SubmissionRow;
 let CompetitionEvidence;
 let SourceCodeAttachment;
 let SubmissionSourceCode;
+let ResultCard;
 
 before(async () => {
   globalThis.window = { self: null, top: null };
@@ -31,9 +32,27 @@ before(async () => {
   ({ CompetitionsSection, CompetitionFinalResults, CompetitionReadiness } = await server.ssrLoadModule("/src/pages/Admin.jsx"));
   ({ SubmissionRow, CompetitionEvidence } = await server.ssrLoadModule("/src/pages/ProfileDirection.jsx"));
   ({ SourceCodeAttachment, default: SubmissionSourceCode } = await server.ssrLoadModule("/src/components/ml/SubmissionSourceCode.jsx"));
+  ({ default: ResultCard } = await server.ssrLoadModule("/src/components/ml/ResultCard.jsx"));
 });
 
 after(async () => { await server?.close(); delete globalThis.window; });
+
+test("result cards use one branded responsive layout with explicit verification details", async () => {
+  const { competitionReport, duelReport } = await import("../src/lib/reportPdfModel.js");
+  const reports = [
+    competitionReport({ competition: { status: "completed", title: "Техносмена", metric: "custom" }, result: { rank: 1, score: "0.88163", leaderboard_kind: "private" } }),
+    duelReport({ duel: { status: "completed", player1_name: "Участник", player2_name: "Соперник", player1_score: "0", metric: "custom" } }),
+  ];
+  for (const report of reports) {
+    const html = renderToStaticMarkup(React.createElement(ResultCard, { report, onDownload: () => {} }));
+    assert.match(html, /ML-Арена/);
+    assert.match(html, /src="\/logo.svg"/);
+    assert.match(html, /sm:grid-cols-2 xl:grid-cols-4/);
+    assert.equal((html.match(/<dt /g) || []).length, 4);
+    assert.match(html, /Скачать карточку PDF/);
+    assert.doesNotMatch(html, /undefined|NaN/);
+  }
+});
 
 test("passport distinguishes prediction CSV from participant source code", () => {
   const html = renderToStaticMarkup(React.createElement(StaticRouter, null, React.createElement(SubmissionRow, { competitionId: "event-1", submission: { id: "submission-1", status: "scored", original_filename: "answers.csv", file_url: "https://storage.example/answers.csv", public_score: 0.5 } })));

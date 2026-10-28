@@ -38,6 +38,7 @@ import { toast } from "@/components/ui/use-toast";
 import { api, uploadFile, waitForSubmission } from "@/api/mlArenaApi";
 import Avatar from "@/components/ml/Avatar";
 import SubmissionSourceCode from "@/components/ml/SubmissionSourceCode";
+import ResultCard from "@/components/ml/ResultCard";
 import { CompetitionContent, CompetitionSummary, CompetitionMetricExplanation } from "@/components/ml/CompetitionContent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,6 @@ import {
   getCompetitionMetricName,
   getCompetitionStatus,
   TASK_TYPE_LABELS,
-  formatScore,
   getCompetitionMetricDirection,
   SUBMISSION_STATUS_LABELS,
   getSubmissionScore,
@@ -57,6 +57,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCompetitionClock } from "@/hooks/use-competition-clock";
 import { downloadCompetitionPdf } from "@/lib/reportPdf";
+import { competitionReport, resultScore } from "@/lib/reportPdfModel";
 import { splitCompetitionDescription } from "@/lib/competitionMetricContent";
 import "./CompetitionDetail.css";
 
@@ -86,7 +87,7 @@ function getDeadlineLabel(competition) {
 }
 
 function safeScore(score, metric) {
-  return typeof score === "number" && Number.isFinite(score) ? formatScore(score, metric) : "—";
+  return resultScore(score, metric);
 }
 
 function formatPrize(competition) {
@@ -704,7 +705,7 @@ export default function CompetitionDetail() {
   const { id, section } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -749,9 +750,10 @@ export default function CompetitionDetail() {
   const submissionsPayload = submissionsQuery.data?.data ?? submissionsQuery.data;
   const submissions = Array.isArray(submissionsPayload) ? submissionsPayload : submissionsPayload?.items || [];
   const resultCardQuery = useQuery({
-    queryKey: ["competition-result-card", id],
+    queryKey: ["competition-result-card", id, user?.id, competition?.status, competition?.final_results_at],
     queryFn: () => api.competitions.resultCard(id),
-    enabled: Boolean(id && competition && ["completed", "finished", "archived"].includes(competition.status)),
+    enabled: Boolean(isAuthenticated && id && competition && ["completed", "finished", "archived"].includes(competition.status)),
+    refetchOnWindowFocus: "always",
     retry: false,
   });
   const { data: discussionsResponse } = useQuery({
@@ -878,12 +880,7 @@ export default function CompetitionDetail() {
       )}
 
       {resultCardQuery.data && (
-        <div className="mt-5">
-          <div className="grid gap-px border border-border bg-border sm:grid-cols-3">
-            {[["Итоговое место", resultCardQuery.data.rank ? `#${resultCardQuery.data.rank}` : "—"], ["Итоговый результат", safeScore(resultCardQuery.data.score ?? resultCardQuery.data.final_score, competition.metric)], ["Статус проверки", resultCardQuery.data.verification_status || resultCardQuery.data.status || "—"]].map(([label, value]) => <div key={label} className="bg-card p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-heading text-lg font-bold">{value}</p></div>)}
-          </div>
-          <Button type="button" variant="outline" className="mt-3" onClick={exportResult} disabled={exportingPdf}>{exportingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Скачать итоговую карточку PDF</Button>
-        </div>
+        <ResultCard className="mt-5" report={competitionReport({ competition, result: resultCardQuery.data, metric: getCompetitionMetricName(competition) })} onDownload={exportResult} downloading={exportingPdf} />
       )}
 
       <header className="competition-detail-header">

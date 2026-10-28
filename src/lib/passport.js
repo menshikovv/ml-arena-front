@@ -42,8 +42,11 @@ export async function loadPassportEvidence(api) {
     allPages((params) => api.duels.list({ status: "completed", sort: "-completed_at", ...params })),
   ]);
   let errors = Number(catalog.status === "rejected") + Number(duels.status === "rejected");
-  const candidates = catalog.status === "fulfilled" ? catalog.value.filter((item) => isFinalCompetition(item) || ["has_valid_submit", "joined_no_submit"].includes(item.user_state)) : [];
+  let competitionErrors = Number(catalog.status === "rejected");
+  const participantStates = ["has_valid_submit", "joined_no_submit", "finished_with_result"];
+  const candidates = catalog.status === "fulfilled" ? catalog.value.filter((item) => isFinalCompetition(item) || participantStates.includes(item.user_state)) : [];
   const competitions = [];
+  const participations = new Map(candidates.filter((item) => participantStates.includes(item.user_state)).map((competition) => [competition.id, { competition, result: null }]));
   // The existing API exposes own results per competition, not a passport history endpoint.
   let next = 0;
   await Promise.all(Array.from({ length: Math.min(4, candidates.length) }, async () => {
@@ -52,13 +55,14 @@ export async function loadPassportEvidence(api) {
       try {
         const result = await api.competitions.resultCard(competition.id);
         competitions.push({ competition, result });
+        participations.set(competition.id, { competition, result });
       } catch (error) {
-        if (error.status !== 404) errors += 1;
+        if (error.status !== 404) { errors += 1; competitionErrors += 1; }
       }
     }
   }));
   competitions.sort((a, b) => (Date.parse(resultDate(b)) || 0) - (Date.parse(resultDate(a)) || 0));
-  return { competitions, duels: duels.status === "fulfilled" ? duels.value : [], errors, duelsError: duels.status === "rejected" };
+  return { competitions, participations: [...participations.values()].sort((a, b) => (Date.parse(b.competition.starts_at || b.competition.deadline) || 0) - (Date.parse(a.competition.starts_at || a.competition.deadline) || 0)), competitionsError: catalog.status === "rejected", competitionsIncomplete: competitionErrors > 0, duels: duels.status === "fulfilled" ? duels.value : [], errors, duelsError: duels.status === "rejected" };
 }
 
 export function directionEvidence(evidence, code, ownerId, now = Date.now()) {
