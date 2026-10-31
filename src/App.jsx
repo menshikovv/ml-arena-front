@@ -112,26 +112,27 @@ function AppRoutes() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Navigate to="/login" replace />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/terms" element={<LegalNotice type="terms" />} />
-      <Route path="/privacy" element={<LegalNotice type="privacy" />} />
-      <Route path="/help" element={<Navigate to="/support" replace />} />
-      <Route path="/contacts/cooperation" element={<Navigate to="/companies" replace />} />
-      <Route path="/cooperation" element={<Navigate to="/companies" replace />} />
 
-      <Route element={<AppLayout />}>
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/:slug" element={<BlogPost />} />
-        <Route path="/companies" element={<Cooperation embedded />} />
-        <Route path="/support" element={<Help embedded />} />
-        <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<Landing />} />
+        <Route path="/terms" element={<LegalNotice type="terms" />} />
+        <Route path="/privacy" element={<LegalNotice type="privacy" />} />
+        <Route path="/help" element={<Navigate to="/support" replace />} />
+        <Route path="/contacts" element={<Navigate to="/support" replace />} />
+        <Route path="/contacts/cooperation" element={<Navigate to="/companies" replace />} />
+        <Route path="/cooperation" element={<Navigate to="/companies" replace />} />
+
+        <Route element={<AppLayout />}>
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/companies" element={<Cooperation embedded />} />
+          <Route path="/support" element={<Help embedded />} />
           <Route path="/competitions/invites/accept" element={<CompetitionInviteAccept />} />
-        </Route>
-        <Route element={<ProtectedRoute />}>
           <Route path="/competitions" element={<Competitions />} />
           <Route path="/competitions/community/create" element={<CommunityCompetitionCreate />} />
           <Route path="/competitions/:id/:section?" element={<CompetitionDetail />} />
@@ -144,22 +145,17 @@ function AppRoutes() {
           <Route path="/rating" element={<Leaderboard />} />
           <Route path="/rating/methodology" element={<RatingMethodology />} />
           <Route path="/ml-passport" element={<Navigate to="/profile" replace />} />
-        </Route>
-        <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route element={<ProtectedRoute />}>
+          <Route path="/leaderboard" element={<Navigate to="/rating" replace />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/me" element={<Navigate to="/profile" replace />} />
           <Route path="/profile/:id" element={<Profile />} />
-        </Route>
-        <Route element={<ProtectedRoute />}>
           <Route path="/profile/edit" element={<ProfileEdit />} />
           <Route path="/company/dashboard" element={<CompanyEntry />} />
           <Route path="/admin" element={<AdminEntry />} />
         </Route>
-      </Route>
-
         <Route path="*" element={<PageNotFound />} />
+      </Route>
       </Routes>
     </Suspense>
   );

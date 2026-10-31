@@ -6,7 +6,7 @@ import {
   Activity, Archive, ArrowUpRight, BadgeCheck, Ban, Building2, CalendarClock, CheckCircle2, CircleAlert,
   ClipboardCheck, Database, Download, FileClock, FileText, Gauge, History, LayoutDashboard, Loader2,
   Award, Bold, Copy, Crown, EyeOff, Flame, Heading1, Heading2, Heading3, ImageIcon, Italic, Link2, List, ListOrdered, LockKeyhole, Medal, Newspaper, Pause, Pencil, Play, Plus, Quote, RefreshCw, RotateCcw,
-  Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Strikethrough, Trash2,
+  Save, Search, Send, Settings2, ShieldAlert, SlidersHorizontal, Strikethrough, Trash2, Inbox,
   Sparkles, Star, Swords, Target, Trophy, Undo2, Upload, UserCheck, Users, X,
 } from "lucide-react";
 import { api, uploadFile } from "@/api/mlArenaApi";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CustomMetricDialog from "@/components/ml/CustomMetricDialog";
 import ProfileAchievementModeration from "@/components/ml/ProfileAchievementModeration";
+import AdminInquiries from "@/components/ml/AdminInquiries";
 import CompetitionPublicationReadiness, { PublicationBlockers } from "@/components/ml/CompetitionPublicationReadiness";
 import { publicationError, publicationReady, sourceCodePolicyPayload, sourceCodeDeadlineInput } from "@/lib/competitionPublication";
 import { useToast } from "@/components/ui/use-toast";
@@ -32,6 +33,7 @@ const STATUS_LABELS = {
   completed: "Завершено", finished: "Завершено", closed: "Приём завершён", published: "Опубликовано", review: "На проверке", new: "Новая",
   escalated: "Передана выше", resolved: "Решена", rejected: "Отклонена", failed: "Ошибка",
   disqualified: "Дисквалифицирована", scored: "Оценена", queued: "В очереди", validating: "Проверяется",
+  uploaded: "Загружена", scoring: "Расчёт оценки", invalid: "Некорректный файл", cancelled: "Отменена", evaluated: "Оценена", error: "Ошибка",
   pending_tests: "Тестируется", tests_failed: "Тесты не пройдены", pending_review: "Ожидает решения",
   changes_requested: "Нужны изменения", approved: "Одобрена", disabled: "Отключена",
 };
@@ -59,6 +61,7 @@ const SECTIONS = [
   { id: "competitions", label: "Соревнования", icon: Trophy, permission: "competitions.read" },
   { id: "rating", label: "Сезоны рейтинга", icon: Award, permission: "settings.manage" },
   { id: "submissions", label: "Отправки", icon: FileClock, permission: "submissions.read" },
+  { id: "inquiries", label: "Обращения", icon: Inbox, permission: "inquiries.read" },
   { id: "moderation", label: "Модерация", icon: ShieldAlert, any: ["moderation.read", "metrics.read"] },
   { id: "content", label: "Блог", icon: Newspaper, permission: "content.read" },
   { id: "resources", label: "Ресурсы", icon: Database, any: ["datasets.read", "settings.manage", "subscriptions.read"] },
@@ -599,10 +602,40 @@ export function CompetitionsSection({ permissions, requestAction }) {
   </>;
 }
 
+export function SubmissionDetailContent({ detail }) {
+  const payload = detail && typeof detail === "object" ? detail : {};
+  const submission = payload.submission && typeof payload.submission === "object" && !Array.isArray(payload.submission) ? payload.submission : payload;
+  const history = Array.isArray(payload.history) ? payload.history : Array.isArray(submission.history) ? submission.history : [];
+  const fields = [
+    ["Участник", submissionParticipant({ ...submission, user_name: payload.user_name ?? submission.user_name })],
+    ["Соревнование", payload.competition_title ?? submission.competition_title ?? submission.competition_id],
+    ["Статус", STATUS_LABELS[submission.status] || submission.status],
+    ["Публичный результат", submission.public_score ?? submission.score],
+    ["Приватный результат", submission.private_score],
+    ["Создана", formatDate(submission.created_at || submission.created_date)],
+  ];
+  return <div className="mt-6 space-y-7">
+    <div className="grid gap-px bg-border sm:grid-cols-3">{fields.map(([label, value]) => <div key={label} className="min-w-0 bg-background p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 break-words font-semibold">{value ?? "—"}</p></div>)}</div>
+    {(submission.error_message || submission.error_code) && <div className="border border-destructive/25 bg-destructive/5 p-4 text-sm text-destructive">{submission.error_message && <p>{submission.error_message}</p>}{submission.error_code && <p className="mt-1 break-all font-mono text-xs">{submission.error_code}</p>}</div>}
+    <section><h3 className="font-heading text-lg font-bold">Переходы статуса</h3>
+      <div className="mt-4 divide-y divide-border border border-border">{history.map((event, index) => <div key={event.id || index} className="grid gap-2 p-4 sm:grid-cols-[150px_1fr_auto]">
+        <p className="font-semibold">{STATUS_LABELS[event.from_status] || event.from_status || "Создана"} → {STATUS_LABELS[event.to_status] || event.to_status}</p>
+        <div className="min-w-0 break-words"><p className="text-sm">{event.reason || "Без комментария"}</p>{event.error_code && <p className="mt-1 break-all font-mono text-xs text-destructive">{event.error_code}</p>}</div>
+        <p className="text-xs text-muted-foreground">{event.actor_type} · {formatDate(event.created_at)}</p>
+      </div>)}{!history.length && <p className="p-4 text-sm text-muted-foreground">История пуста.</p>}</div>
+    </section>
+  </div>;
+}
+
 function SubmissionDetailDialog({ submissionId, onClose }) {
   const query = useQuery({ queryKey: ["admin", "submission", submissionId], queryFn: () => api.admin.submission(submissionId), enabled: Boolean(submissionId) });
-  const submission = query.data && typeof query.data === "object" ? query.data : {};
-  return <Dialog.Root open={Boolean(submissionId)} onOpenChange={(open) => !open && onClose()}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] max-h-[92vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-border bg-card p-6 shadow-2xl focus:outline-none"><div className="flex items-start justify-between"><div><Dialog.Title className="font-heading text-2xl font-extrabold">История отправки</Dialog.Title><Dialog.Description className="mt-1 font-mono text-xs text-muted-foreground">{submissionId}</Dialog.Description></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center border border-border"><X size={17} /></button></div>{query.isLoading ? <LoadingRows /> : query.error ? <div className="mt-5"><ErrorState error={query.error} /></div> : <div className="mt-6 space-y-7"><div className="grid gap-px bg-border sm:grid-cols-3">{[["Участник", submissionParticipant(submission)], ["Соревнование", submission.competition_title || submission.competition_id], ["Статус", STATUS_LABELS[submission.status] || submission.status], ["Публичный результат", submission.public_score ?? "—"], ["Приватный результат", submission.private_score ?? "—"], ["Создана", formatDate(submission.created_at)]].map(([label, value]) => <div key={label} className="bg-background p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 break-words font-semibold">{value || "—"}</p></div>)}</div><section><h3 className="font-heading text-lg font-bold">Переходы статуса</h3><div className="mt-4 divide-y divide-border border border-border">{(submission.history || []).map((event, index) => <div key={event.id || index} className="grid gap-2 p-4 sm:grid-cols-[150px_1fr_auto]"><p className="font-semibold">{STATUS_LABELS[event.from_status] || event.from_status || "Создана"} → {STATUS_LABELS[event.to_status] || event.to_status}</p><div><p className="text-sm">{event.reason || "Без комментария"}</p>{event.error_code && <p className="mt-1 font-mono text-xs text-destructive">{event.error_code}</p>}</div><p className="text-xs text-muted-foreground">{event.actor_type} · {formatDate(event.created_at)}</p></div>)}{!(submission.history || []).length && <p className="p-4 text-sm text-muted-foreground">История пуста.</p>}</div></section></div>}</Dialog.Content></Dialog.Portal></Dialog.Root>;
+  return <Dialog.Root open={Boolean(submissionId)} onOpenChange={(open) => !open && onClose()}><Dialog.Portal>
+    <Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" />
+    <Dialog.Content className="fixed left-1/2 top-1/2 z-[101] max-h-[92vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-border bg-card p-6 shadow-2xl focus:outline-none">
+      <div className="flex items-start justify-between gap-4"><div className="min-w-0"><Dialog.Title className="font-heading text-2xl font-extrabold">История отправки</Dialog.Title><Dialog.Description className="mt-1 break-all font-mono text-xs text-muted-foreground">{submissionId}</Dialog.Description></div><button type="button" onClick={onClose} aria-label="Закрыть историю отправки" className="flex h-9 w-9 shrink-0 items-center justify-center border border-border"><X size={17} /></button></div>
+      {query.isLoading ? <LoadingRows /> : query.error ? <div className="mt-5"><ErrorState error={query.error} /></div> : <SubmissionDetailContent detail={query.data} />}
+    </Dialog.Content>
+  </Dialog.Portal></Dialog.Root>;
 }
 
 function SubmissionsSectionLegacy({ permissions, requestAction }) {
@@ -1820,6 +1853,7 @@ export default function Admin() {
           {active === "competitions" && <CompetitionsSection {...shared} />}
           {active === "rating" && <RatingSeasonsSection {...shared} />}
           {active === "submissions" && <SubmissionsSection {...shared} />}
+          {active === "inquiries" && <AdminInquiries permissions={permissions} />}
           {active === "moderation" && <ModerationSection {...shared} />}
           {active === "content" && <ContentSection {...shared} />}
           {active === "resources" && <ResourcesSection {...shared} initialResource={searchParams.get("resource") || "datasets"} />}

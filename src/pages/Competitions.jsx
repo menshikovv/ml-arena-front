@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link, useSearchParams } from "react-router-dom";
@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getCompetitionDeadlineTime, getCompetitionMetricName, getCompetitionStatus, TASK_TYPE_LABELS } from "@/lib/ml-arena";
 import { useCompetitionClock } from "@/hooks/use-competition-clock";
 import { cn } from "@/lib/utils";
+import { INQUIRY_CONSENT_VERSION, inquiryAttempt, inquiryError, inquirySource } from "@/lib/inquiries";
 import "./Competitions.css";
 
 const FAIRNESS = [
@@ -77,6 +78,7 @@ export default function Competitions() {
   const [sort, setSort] = useState("deadline");
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({ company: "", name: "", contact: "", description: "", consent: false });
+  const requestAttempt = useRef(null);
 
   useEffect(() => {
     if (!requestOpen) return undefined;
@@ -142,28 +144,35 @@ export default function Competitions() {
   };
 
   const requestMutation = useMutation({
-    mutationFn: () => api.cooperation.createLead({
-      name: requestForm.name.trim(),
-      company: requestForm.company.trim(),
-      email: requestForm.contact.trim().toLowerCase(),
-      role: null,
-      goal: "competition",
-      comment: requestForm.description.trim(),
-      consent_privacy: requestForm.consent,
-      consent_marketing: false,
-      consent_document_version: "2026-08-14",
-      source: { landing_path: window.location.pathname, referrer: document.referrer || null },
-    }),
+    mutationFn: () => {
+      if (!requestForm.consent || requestForm.name.trim().length < 2 || requestForm.company.trim().length < 2 || requestForm.description.trim().length < 20) throw Object.assign(new Error("Заполните обязательные поля"), { status: 422 });
+      const body = {
+        request_type: "competition_request",
+        name: requestForm.name.trim(),
+        company: requestForm.company.trim(),
+        email: requestForm.contact.trim().toLowerCase(),
+        role: null,
+        goal: "competition",
+        comment: requestForm.description.trim(),
+        consent_privacy: requestForm.consent,
+        consent_marketing: false,
+        consent_document_version: INQUIRY_CONSENT_VERSION,
+        source: inquirySource(),
+      };
+      return api.cooperation.createLead(body, inquiryAttempt(requestAttempt, body));
+    },
     onSuccess: () => {
+      requestAttempt.current = null;
       toast.success("Заявка отправлена команде ML-Арены");
       setRequestOpen(false);
       setRequestForm({ company: "", name: "", contact: "", description: "", consent: false });
     },
-    onError: (error) => toast.error(error.message || "Не удалось отправить заявку"),
+    onError: (error) => toast.error(inquiryError(error)),
   });
 
   const submitRequest = (event) => {
     event.preventDefault();
+    if (requestMutation.isPending) return;
     requestMutation.mutate();
   };
 
@@ -304,13 +313,16 @@ export default function Competitions() {
                 <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setRequestOpen(false)} aria-label="Закрыть форму"><X size={17} /></Button>
               </div>
               <form className="space-y-6 px-5 py-6 sm:px-8 sm:py-7 [&_input]:h-11 [&_input]:rounded-md [&_input]:bg-secondary/20 [&_input]:font-normal [&_input]:shadow-none" onSubmit={submitRequest}>
+                <fieldset disabled={requestMutation.isPending} className="contents">
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Компания или проект"><Input required value={requestForm.company} onChange={(event) => setRequestForm({ ...requestForm, company: event.target.value })} placeholder="Название компании" /></Field>
-                  <Field label="Ваше имя"><Input required value={requestForm.name} onChange={(event) => setRequestForm({ ...requestForm, name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
+                  <Field label="Компания или проект"><Input required minLength={2} maxLength={160} value={requestForm.company} onChange={(event) => setRequestForm({ ...requestForm, company: event.target.value })} placeholder="Название компании" /></Field>
+                  <Field label="Ваше имя"><Input required minLength={2} maxLength={80} value={requestForm.name} onChange={(event) => setRequestForm({ ...requestForm, name: event.target.value })} placeholder="Как к вам обращаться" /></Field>
                 </div>
-                <Field label="Email для связи"><Input required type="email" autoComplete="email" value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" /></Field>
-                <Field label="Кратко о задаче"><Textarea required rows={5} className="min-h-32 resize-y rounded-md bg-secondary/20 p-3 font-normal leading-6 shadow-none" value={requestForm.description} onChange={(event) => setRequestForm({ ...requestForm, description: event.target.value })} placeholder="Что нужно решить и какой результат вы ожидаете" /></Field>
+                <Field label="Email для связи"><Input required type="email" maxLength={254} autoComplete="email" value={requestForm.contact} onChange={(event) => setRequestForm({ ...requestForm, contact: event.target.value })} placeholder="contact@company.ru" /></Field>
+                <Field label="Кратко о задаче"><Textarea required minLength={20} maxLength={2000} rows={5} className="min-h-32 resize-y rounded-md bg-secondary/20 p-3 font-normal leading-6 shadow-none" value={requestForm.description} onChange={(event) => setRequestForm({ ...requestForm, description: event.target.value })} placeholder="Что нужно решить и какой результат вы ожидаете" /></Field>
                 <div className="flex items-start gap-3 border border-border bg-secondary/20 p-4"><Checkbox id="competition-request-consent" checked={requestForm.consent} onCheckedChange={(checked) => setRequestForm({ ...requestForm, consent: checked === true })} className="mt-0.5" /><div className="text-xs leading-5 text-muted-foreground"><label htmlFor="competition-request-consent" className="cursor-pointer">Я согласен на обработку персональных данных в соответствии с </label><Link to="/privacy" className="font-semibold text-primary hover:underline">политикой обработки данных</Link>.</div></div>
+                </fieldset>
+                {requestMutation.error && <p role="alert" className="text-sm text-destructive">{inquiryError(requestMutation.error)}</p>}
                 <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end"><Button type="button" variant="ghost" onClick={() => setRequestOpen(false)}>Отмена</Button><Button type="submit" className="min-h-11 px-6" disabled={requestMutation.isPending || !requestForm.consent}>{requestMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Отправить заявку</Button></div>
               </form>
             </motion.div>

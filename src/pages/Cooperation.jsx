@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/AuthContext";
+import { INQUIRY_CONSENT_VERSION, inquiryAttempt, inquiryError, inquirySource } from "@/lib/inquiries";
 import "./Cooperation.css";
 
 const RESULT_ITEMS = [
@@ -102,7 +103,8 @@ export default function Cooperation({ embedded = false }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const attempt = useRef(null);
 
   useEffect(() => {
     const canonical = document.createElement("link");
@@ -122,7 +124,7 @@ export default function Cooperation({ embedded = false }) {
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
-    setSubmitError(false);
+    setSubmitError("");
   };
 
   const validate = () => {
@@ -138,16 +140,16 @@ export default function Cooperation({ embedded = false }) {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     if (form.website) {
-      setSubmitted(true);
       return;
     }
     if (!validate()) return;
     setSubmitting(true);
-    setSubmitError(false);
-    const params = new URLSearchParams(window.location.search);
+    setSubmitError("");
     try {
-      await api.cooperation.createLead({
+      const body = {
+        request_type: "cooperation",
         name: form.name.trim(),
         company: form.company.trim(),
         email: form.email.trim().toLowerCase(),
@@ -156,19 +158,15 @@ export default function Cooperation({ embedded = false }) {
         comment: form.comment.trim() || null,
         consent_privacy: true,
         consent_marketing: form.marketing,
-        consent_document_version: "2026-08-14",
-        source: {
-          landing_path: window.location.pathname,
-          referrer: document.referrer || null,
-          utm_source: params.get("utm_source"),
-          utm_medium: params.get("utm_medium"),
-          utm_campaign: params.get("utm_campaign"),
-        },
-      });
+        consent_document_version: INQUIRY_CONSENT_VERSION,
+        source: inquirySource(),
+      };
+      await api.cooperation.createLead(body, inquiryAttempt(attempt, body));
+      attempt.current = null;
       setSubmitted(true);
       setForm(EMPTY_FORM);
-    } catch {
-      setSubmitError(true);
+    } catch (error) {
+      setSubmitError(inquiryError(error));
     } finally {
       setSubmitting(false);
     }
@@ -257,7 +255,8 @@ export default function Cooperation({ embedded = false }) {
               {submitted ? (
                 <div className="flex min-h-96 flex-col items-center justify-center border border-emerald-500/20 bg-emerald-500/[0.05] p-8 text-center"><span className="flex h-14 w-14 items-center justify-center bg-emerald-500 text-white"><CheckCircle2 size={25} /></span><h3 className="mt-6 font-heading text-2xl font-extrabold">Спасибо! Заявка получена.</h3><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Мы свяжемся с вами по указанной почте.</p><Button type="button" variant="outline" className="mt-7" onClick={() => setSubmitted(false)}>Отправить ещё одну заявку</Button></div>
               ) : (
-                <form onSubmit={submit} noValidate className="companies-lead-form border border-border bg-card shadow-sm">
+                <form onSubmit={submit} noValidate className="companies-lead-form border border-border bg-card shadow-sm" aria-busy={submitting}>
+                  <fieldset disabled={submitting} className="contents">
                   <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
                     <CooperationField id="cooperation-name" label="Имя" error={errors.name}><Input id="cooperation-name" value={form.name} onChange={(event) => update("name", event.target.value)} minLength={2} maxLength={80} autoComplete="name" className="h-11 bg-secondary/20" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? "cooperation-name-error" : undefined} /></CooperationField>
                     <CooperationField id="cooperation-company" label="Компания" error={errors.company}><Input id="cooperation-company" value={form.company} onChange={(event) => update("company", event.target.value)} minLength={2} maxLength={160} autoComplete="organization" className="h-11 bg-secondary/20" aria-invalid={Boolean(errors.company)} aria-describedby={errors.company ? "cooperation-company-error" : undefined} /></CooperationField>
@@ -271,7 +270,8 @@ export default function Cooperation({ embedded = false }) {
                       <Consent id="cooperation-marketing" checked={form.marketing} onChange={(value) => update("marketing", value)} muted>Хочу получать новости о корпоративных форматах и проектах ML-Арены.</Consent>
                     </div>
                   </div>
-                  {submitError && <div role="alert" className="border-t border-destructive/20 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не удалось отправить заявку. Попробуйте ещё раз или напишите нам на <a href="mailto:support@mlarena.ru?subject=Сотрудничество с ML-Ареной" className="font-semibold underline">support@mlarena.ru</a>.</div>}
+                  </fieldset>
+                  {submitError && <div role="alert" className="border-t border-destructive/20 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">{submitError} <a href="mailto:support@mlarena.ru?subject=Сотрудничество с ML-Ареной" className="font-semibold underline">Написать на почту</a>.</div>}
                   <div className="flex flex-col justify-between gap-4 border-t border-border bg-secondary/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7"><p className="text-xs leading-5 text-muted-foreground">Имя, компания, рабочая почта, задача и согласие обязательны.</p><Button type="submit" disabled={submitting} className="h-11 sm:min-w-44">{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Отправить заявку</Button></div>
                 </form>
               )}

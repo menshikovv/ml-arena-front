@@ -4,6 +4,14 @@ import { validateAchievementEvidence } from "@/lib/profileAchievements";
 
 const json = (body) => JSON.stringify(body);
 
+async function createInquiry(path, body, idempotencyKey) {
+  const data = await apiData(path, { method: "POST", body: json(body), headers: { "Idempotency-Key": idempotencyKey || globalThis.crypto.randomUUID() } });
+  if (!data?.id || !data?.created_at || !data?.status) {
+    throw new ApiError(0, { code: "inquiry_receipt_missing" });
+  }
+  return data;
+}
+
 export const api = {
   auth: {
     register: (body) => apiData("/api/v1/auth/register", { method: "POST", body: json(body) }, { auth: false }),
@@ -100,7 +108,10 @@ export const api = {
     plans: () => apiData("/api/v1/billing/plans", {}, { auth: false }),
   },
   cooperation: {
-    createLead: (body) => apiData("/api/v1/cooperation/leads", { method: "POST", body: json(body) }, { auth: false }),
+    createLead: (body, idempotencyKey) => createInquiry("/api/v1/cooperation/leads", body, idempotencyKey),
+  },
+  support: {
+    createRequest: (body, idempotencyKey) => createInquiry("/api/v1/support/requests", body, idempotencyKey),
   },
   organizations: {
     me: () => apiData("/api/v1/organizations/me"),
@@ -180,6 +191,9 @@ export const api = {
   },
   admin: {
     me: () => apiData("/api/v1/admin/me"),
+    inquiries: (params) => apiRequest(`/api/v1/admin/inquiries${queryString(params)}`),
+    inquiry: (id) => apiData(`/api/v1/admin/inquiries/${encodeURIComponent(id)}`),
+    updateInquiry: (id, body) => apiData(`/api/v1/admin/inquiries/${encodeURIComponent(id)}`, { method: "PATCH", body: json(body) }),
     dashboard: () => apiData("/api/v1/admin/dashboard"),
     roles: () => apiData("/api/v1/admin/roles"),
     setStaffRoles: (userId, roles) => apiData(`/api/v1/admin/staff/${userId}/roles`, { method: "PUT", body: json({ roles }) }),

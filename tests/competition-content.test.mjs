@@ -24,20 +24,71 @@ let SourceCodeAttachment;
 let SubmissionSourceCode;
 let ResultCard;
 let DirectionCard;
+let SubmissionDetailContent;
+let TestingNotice;
+let safeReturnTo;
 
 before(async () => {
   globalThis.window = { self: null, top: null };
   server = await createServer({ configFile: false, cacheDir: fileURLToPath(new URL("../node_modules/.vite-tests/competition-content", import.meta.url)), esbuild: { jsx: "automatic" }, resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } }, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom" });
   ({ CompetitionContent, CompetitionSummary, CompetitionCodeSample, CompetitionMetricExplanation } = await server.ssrLoadModule("/src/components/ml/CompetitionContent.jsx"));
   ({ default: CompetitionCard } = await server.ssrLoadModule("/src/components/ml/CompetitionCard.jsx"));
-  ({ CompetitionsSection, CompetitionFinalResults, CompetitionReadiness } = await server.ssrLoadModule("/src/pages/Admin.jsx"));
+  ({ CompetitionsSection, CompetitionFinalResults, CompetitionReadiness, SubmissionDetailContent } = await server.ssrLoadModule("/src/pages/Admin.jsx"));
   ({ SubmissionRow, CompetitionEvidence } = await server.ssrLoadModule("/src/pages/ProfileDirection.jsx"));
   ({ SourceCodeAttachment, default: SubmissionSourceCode } = await server.ssrLoadModule("/src/components/ml/SubmissionSourceCode.jsx"));
   ({ default: ResultCard } = await server.ssrLoadModule("/src/components/ml/ResultCard.jsx"));
   ({ DirectionCard } = await server.ssrLoadModule("/src/pages/Profile.jsx"));
+  ({ TestingNotice, safeReturnTo } = await server.ssrLoadModule("/src/pages/Login.jsx"));
 });
 
 after(async () => { await server?.close(); delete globalThis.window; });
+
+test("login explains temporary registration closure and testing without exposing a registration action", () => {
+  const html = renderToStaticMarkup(React.createElement(TestingNotice));
+  assert.match(html, /role="status"/);
+  assert.match(html, /Платформа находится в тестировании/);
+  assert.match(html, /Регистрация временно недоступна/);
+  assert.doesNotMatch(html, /href=|<button/);
+});
+
+test("login returns to the requested local content page without redirect loops or external targets", () => {
+  assert.equal(safeReturnTo("/blog/article?preview=true#results"), "/blog/article?preview=true#results");
+  assert.equal(safeReturnTo("/companies"), "/companies");
+  for (const path of [undefined, "https://example.com", "//example.com", "/\\example.com", "/login", "/login/", "/%6cogin", "/register?email=test", "/forgot-password", "/reset-password", "/verify-email", "/blog/../login", "/blog/..//example.com", "/invalid%encoding"]) assert.equal(safeReturnTo(path), "/profile");
+});
+
+test("admin submission summary reads the nested API contract and preserves wrapper metadata and history", () => {
+  const html = renderToStaticMarkup(React.createElement(SubmissionDetailContent, { detail: {
+    user_name: "mlarena", competition_title: "Техносмена",
+    submission: { id: "one", user_id: "owner-id", competition_id: "competition-id", status: "scored", public_score: "0.87594", private_score: "0.88163", created_at: "2026-10-13T01:25:00Z" },
+    history: [{ id: "event", from_status: "scoring", to_status: "scored", reason: "Evaluation completed", actor_type: "system", created_at: "2026-10-13T01:26:00Z" }],
+  } }));
+  for (const expected of ["mlarena", "Техносмена", "Оценена", "0.87594", "0.88163", "13.10.2026", "Расчёт оценки", "Evaluation completed"]) assert.ok(html.includes(expected), expected);
+  assert.doesNotMatch(html, />scoring<|owner-id|competition-id|История пуста/);
+});
+
+test("admin submission summary retains numeric zero and supports the legacy flat response", () => {
+  for (const nested of [true, false]) {
+    const submission = { user_name: "Zero participant", competition_title: "Zero competition", status: "evaluated", public_score: 0, private_score: 0, created_date: "2026-10-14T12:00:00Z", history: [] };
+    const html = renderToStaticMarkup(React.createElement(SubmissionDetailContent, { detail: nested ? { submission, history: [] } : submission }));
+    assert.equal((html.match(/font-semibold">0<\/p>/g) || []).length, 2);
+    assert.match(html, /14.10.2026/);
+    assert.match(html, /Оценена/);
+    assert.match(html, /Zero participant/);
+  }
+});
+
+test("admin submission summary does not infer scores or current status from historical transitions", () => {
+  const html = renderToStaticMarkup(React.createElement(SubmissionDetailContent, { detail: {
+    submission: { user_id: "owner", competition_id: "event", status: "failed", public_score: null, private_score: null, error_code: "CSV_INVALID", error_message: "Не найдена колонка prediction" },
+    history: [{ from_status: "scoring", to_status: "scored", actor_type: "system", created_at: "2026-10-13" }],
+  } }));
+  assert.match(html, /Статус<\/p><p[^>]*>Ошибка<\/p>/);
+  assert.match(html, /Публичный результат<\/p><p[^>]*>—<\/p>/);
+  assert.match(html, /Приватный результат<\/p><p[^>]*>—<\/p>/);
+  assert.match(html, /CSV_INVALID/);
+  assert.match(html, /Не найдена колонка prediction/);
+});
 
 test("direction cards distinguish default zeros, uncalculated indices and unavailable history", () => {
   const render = (props) => renderToStaticMarkup(React.createElement(DirectionCard, { code: "nlp", title: "NLP", ...props }));

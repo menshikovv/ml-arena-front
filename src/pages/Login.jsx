@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, FlaskConical, Loader2, Lock, Mail } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,8 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/AuthContext";
 
-function safeReturnTo(value) {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/profile";
+export function safeReturnTo(value) {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f]/.test(value)) return "/profile";
+  const target = new URL(value, "https://ml-arena.invalid");
+  let pathname;
+  try { pathname = decodeURIComponent(target.pathname).replace(/\/+$/, ""); } catch { return "/profile"; }
+  if (pathname.startsWith("//") || pathname.includes("\\") || ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"].includes(pathname)) return "/profile";
+  return `${target.pathname}${target.search}${target.hash}`;
+}
+
+export function TestingNotice() {
+  return <div role="status" className="mb-5 flex items-start gap-3 rounded-md border border-primary/20 bg-primary/5 p-4">
+    <FlaskConical size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+    <div className="min-w-0"><p className="text-sm font-semibold leading-6">Платформа находится в тестировании</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Регистрация временно недоступна. Войти могут пользователи с существующим аккаунтом.</p></div>
+  </div>;
 }
 
 export default function Login() {
@@ -29,7 +41,7 @@ export default function Login() {
     if (emailFromQuery) setEmail(emailFromQuery);
   }, [searchParams]);
 
-  if (isAuthenticated) return <Navigate to="/profile" replace />;
+  if (isAuthenticated) return <Navigate to={safeReturnTo(searchParams.get("return_to") || location.state?.from)} replace />;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -51,6 +63,7 @@ export default function Login() {
 
   return (
     <AuthLayout compact title="Вход">
+      <TestingNotice />
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

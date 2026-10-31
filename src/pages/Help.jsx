@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -32,6 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/AuthContext";
+import { api } from "@/api/mlArenaApi";
+import { INQUIRY_CATEGORIES, INQUIRY_CONSENT_VERSION, inquiryAttempt, inquiryError, inquirySource } from "@/lib/inquiries";
 import "./Help.css";
 
 const SUPPORT_EMAIL = "support@mlarena.ru";
@@ -265,13 +267,7 @@ const CONTACTS = [
   { title: "Написать на почту", text: "Прямая связь с командой ML-Арены для любых вопросов.", action: "Скопировать email", href: "mailto:support@mlarena.ru", icon: Mail, tone: "bg-green/10 text-green", copyEmail: "support@mlarena.ru" },
 ];
 
-const CATEGORY_OPTIONS = [
-  ["account_profile", "Аккаунт и профиль"],
-  ["technical", "Техническая проблема"],
-  ["founder_season", "Founder Season"],
-  ["privacy_legal", "Данные и документы"],
-  ["security", "Безопасность"],
-];
+const CATEGORY_OPTIONS = Object.entries(INQUIRY_CATEGORIES);
 
 function normalizeSearch(value) {
   return value.toLowerCase().replaceAll("ё", "е").replace(/\s+/g, " ").trim();
@@ -303,7 +299,9 @@ export default function Help({ embedded = false, contactsOnly = false }) {
   const [openItem, setOpenItem] = useState(null);
   const [showAllFaq, setShowAllFaq] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [mailPrepared, setMailPrepared] = useState(false);
+  const [receipt, setReceipt] = useState(null);
+  const [submitError, setSubmitError] = useState("");
+  const attempt = useRef(null);
   const [form, setForm] = useState({ category: initialSupportCategory, subject: "", message: "", reply_email: user?.email || "", consent: false });
 
   useEffect(() => {
@@ -345,19 +343,26 @@ export default function Help({ embedded = false, contactsOnly = false }) {
     scrollToSection("faq");
   };
 
-  const updateForm = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const prepareMail = (event) => {
+  const updateForm = (key, value) => { setForm((current) => ({ ...current, [key]: value })); setSubmitError(""); };
+  const submitSupport = async (event) => {
     event.preventDefault();
-    if (!form.consent) return;
+    if (!form.consent || submitting) return;
+    if (form.subject.trim().length < 5 || form.message.trim().length < 20) {
+      setSubmitError("Укажите тему от 5 символов и сообщение от 20 символов.");
+      return;
+    }
     setSubmitting(true);
-    const categoryLabel = CATEGORY_OPTIONS.find(([value]) => value === form.category)?.[1] || "Поддержка";
-    const body = `Категория: ${categoryLabel}\nEmail для ответа: ${form.reply_email}\nСтраница: ${window.location.href}\n\n${form.message}`;
-    const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`[ML-Арена] ${form.subject}`)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
-    window.setTimeout(() => {
+    setSubmitError("");
+    const body = { category: form.category, subject: form.subject.trim(), message: form.message.trim(), reply_email: form.reply_email.trim().toLowerCase(), consent_privacy: true, consent_document_version: INQUIRY_CONSENT_VERSION, source: inquirySource() };
+    try {
+      setReceipt(await api.support.createRequest(body, inquiryAttempt(attempt, body)));
+      setForm((current) => ({ ...current, subject: "", message: "", consent: false }));
+      attempt.current = null;
+    } catch (error) {
+      setSubmitError(inquiryError(error));
+    } finally {
       setSubmitting(false);
-      setMailPrepared(true);
-    }, 250);
+    }
   };
 
   if (contactsOnly) {
@@ -493,18 +498,19 @@ export default function Help({ embedded = false, contactsOnly = false }) {
             </Reveal>
 
             <Reveal viewportReveal delay={0.06} className="support-contact__form-wrap">
-              {mailPrepared ? (
-                <div className="rounded-lg border border-border bg-card p-7 shadow-sm sm:p-8">
+              {receipt ? (
+                <div role="status" className="rounded-lg border border-border bg-card p-7 shadow-sm sm:p-8">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><CheckCircle2 size={21} /></span>
-                  <h3 className="mt-5 font-heading text-2xl font-bold">Письмо подготовлено</h3>
-                  <p className="mt-3 text-sm leading-7 text-muted-foreground">Мы открыли ваше почтовое приложение с заполненным обращением. Проверьте текст и отправьте письмо.</p>
+                  <h3 className="mt-5 font-heading text-2xl font-bold">Обращение отправлено</h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">Команда получила ваше сообщение. Ответ придёт на указанный email.</p>
+                  <p className="mt-3 break-all text-xs text-muted-foreground">Номер обращения: {receipt.id}</p>
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <Button asChild><a href={`mailto:${SUPPORT_EMAIL}`}>Открыть почту ещё раз</a></Button>
-                    <Button type="button" variant="outline" onClick={() => { setMailPrepared(false); updateForm("consent", false); }}>Новое обращение</Button>
+                    <Button type="button" variant="outline" onClick={() => setReceipt(null)}><Send size={16} />Новое обращение</Button>
                   </div>
                 </div>
               ) : (
-                <form onSubmit={prepareMail} className="support-form">
+                <form onSubmit={submitSupport} className="support-form" aria-busy={submitting}>
+                  <fieldset disabled={submitting} className="contents">
                   <div className="support-form__fields">
                     <Field label="Категория" htmlFor="support-category">
                       <select id="support-category" value={form.category} onChange={(event) => updateForm("category", event.target.value)} className="flex h-11 w-full rounded-md border border-input bg-secondary/25 px-3 text-sm shadow-none outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15">
@@ -529,7 +535,9 @@ export default function Help({ embedded = false, contactsOnly = false }) {
                       </div>
                     </div>
                   </div>
-                  {form.category === "security" && <div className="border-t border-destructive/15 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не публикуйте детали уязвимости в открытых каналах. Отправьте их только через приватное письмо.</div>}
+                  </fieldset>
+                  {form.category === "security" && <div className="border-t border-destructive/15 bg-destructive/5 px-5 py-4 text-sm leading-6 text-destructive sm:px-7">Не публикуйте детали уязвимости в открытых каналах. Это обращение доступно только команде поддержки.</div>}
+                  {submitError && <div role="alert" className="border-t border-destructive/20 bg-destructive/5 px-5 py-4 text-sm text-destructive sm:px-7">{submitError} <a className="underline" href={`mailto:${SUPPORT_EMAIL}`}>Написать на почту</a></div>}
                   <div className="support-form__footer">
                     <p className="text-xs text-muted-foreground">Ответ придёт на указанный email.</p>
                     <Button type="submit" disabled={submitting || !form.consent}>{submitting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />} Написать в поддержку</Button>

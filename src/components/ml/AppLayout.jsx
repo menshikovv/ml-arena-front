@@ -253,6 +253,13 @@ export default function AppLayout({ children }) {
           <button type="button" aria-label="Закрыть меню" className={`flex-1 bg-foreground/35 backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none ${mobileOpen ? "opacity-100" : "opacity-0"}`} onClick={() => setMobileOpen(false)} />
         </div>
         <main className="arena-app-main scrollbar-thin min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+          {import.meta.env.DEV && import.meta.env.MODE === "screenshots" && <aside role="status" data-screenshot-demo className="sticky top-0 z-20 border-b border-primary/20 bg-card px-4 py-3 sm:px-8">
+            <p className="text-sm font-bold text-primary">Демонстрационные данные</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Тестовые пользователи и результаты. Не показатели аудитории, достижений или результатов пилота.</p>
+            <nav aria-label="Демонстрационные экраны" className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-primary">
+              {[["Условия", "/competitions/demo-techsmena"], ["Таблица соревнования", "/competitions/demo-techsmena/leaderboard"], ["Общий рейтинг", "/rating?tab=overall&season=demo-autumn-2026"], ["Дуэль", "/duels/demo-duel/live"], ["ML-паспорт", "/profile"], ["История работ", "/profile?direction=ranking"]].map(([label, to]) => <Link key={to} to={to} className="underline underline-offset-4">{label}</Link>)}
+            </nav>
+          </aside>}
           {children || <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Загрузка страницы"><div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" /></div>}><Outlet /></Suspense>}
         </main>
       </div>
