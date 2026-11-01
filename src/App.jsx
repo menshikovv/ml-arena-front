@@ -112,6 +112,7 @@ function AppRoutes() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Navigate to="/login" replace />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
@@ -119,7 +120,6 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Landing />} />
         <Route path="/terms" element={<LegalNotice type="terms" />} />
         <Route path="/privacy" element={<LegalNotice type="privacy" />} />
         <Route path="/help" element={<Navigate to="/support" replace />} />
